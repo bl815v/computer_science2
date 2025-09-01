@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,16 +8,14 @@
     <title>Simuladores - Ciencias de la Computación II</title>
   </head>
   <body>
+    <div class="title">Ciencias de la Computación II</div>
     <div class="tab-bar">
-      <div class="tab active">Búsquedas</div>
-      <div class="tab">Grafos</div>
+      <div class="tab" data-type="busqueda_interna" onclick="handleTabClick('busqueda_interna')">Búsquedas internas</div>
+      <div class="tab" data-type="busqueda_externa" onclick="handleTabClick('busqueda_externa')">Búsquedas externas</div>
+      <div class="tab" data-type="grafos" onclick="handleTabClick('grafos')">Grafos</div>
     </div>
 
-    <div class="ribbon" id="ribbon">
-      <button onclick="showContent('secuencial')">Secuencial</button>
-      <button onclick="showContent('binaria')">Binaria</button>
-      <button onclick="showContent('hashing')">Hashing</button>
-    </div>
+    <div class="ribbon" id="ribbon"></div>
 
     <div class="content" id="content">
       <h2>Selecciona un algoritmo en la cinta de opciones</h2>

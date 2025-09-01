@@ -1,0 +1,11 @@
+Crear estrucutura (se inicia desde 01)
+Tamaño estructura (multiplos de 10)
+tamano clave
+Insertar clave (no repeticion) (numerico)
+Crear antes de buscar
+Buscar clave
+Borrar clave
+Guardar
+Abrir
+Recuperar
+Ctrl z
