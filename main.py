@@ -22,6 +22,7 @@ You should have received a copy of the GNU General Public License
 along with ComputerScience2. If not, see <https://www.gnu.org/licenses/>. 
 """
 
+import sys
 import os
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
@@ -29,7 +30,14 @@ from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+
+if getattr(sys, 'frozen', False):
+    BASE_PATH = getattr(sys, '_MEIPASS', os.path.abspath("."))
+else:
+    BASE_PATH = os.path.abspath(".")
+static_path = os.path.join(BASE_PATH, "static")
+
+app.mount("/static", StaticFiles(directory=static_path), name="static")
 
 
 @app.get("/")
