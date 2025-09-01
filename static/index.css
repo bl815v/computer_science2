@@ -1,0 +1,74 @@
+body {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: #f5f5f5;
+}
+
+.title {
+  background: #2c3e50;
+  color: white;
+  font-weight: bold;
+  padding: 10px 16px;
+}
+
+.tab-bar {
+  display: flex;
+  background: #2c3e50;
+  color: white;
+  padding: 10px;
+  gap: 10px;
+  user-select: none;
+}
+
+.tab {
+  padding: 10px 20px;
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+  background: #34495e;
+  transition: background 0.2s, color 0.2s;
+}
+
+.tab.active {
+  background: white;
+  color: black;
+  font-weight: 600;
+}
+
+.tab:hover {
+  background: #1abc9c;
+  color: white;
+}
+
+.ribbon {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  gap: 12px;
+  background: #ecf0f1;
+  border-bottom: 2px solid #bdc3c7;
+}
+
+.ribbon-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ribbon button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  background: #3498db;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  transition: transform 0.06s ease, background 0.2s ease;
+}
+
+.ribbon button:hover {
+  background: #2980b9;
+}
+
+.ribbon button:active {
+  transform: translateY(1px);
+}
