@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="index.css" />
+    <script src="index.js" defer></script>
+    <title>Simuladores - Ciencias de la Computación II</title>
+  </head>
+  <body>
+    <div class="tab-bar">
+      <div class="tab active">Búsquedas</div>
+      <div class="tab">Grafos</div>
+    </div>
+
+    <div class="ribbon" id="ribbon">
+      <button onclick="showContent('secuencial')">Secuencial</button>
+      <button onclick="showContent('binaria')">Binaria</button>
+      <button onclick="showContent('hashing')">Hashing</button>
+    </div>
+
+    <div class="content" id="content">
+      <h2>Selecciona un algoritmo en la cinta de opciones</h2>
+    </div>
+  </body>
+</html>
