@@ -12,7 +12,7 @@ def start_api():
 
 def wait_for_server(url, timeout=10):
     """Wait until the FastAPI server is available."""
-    for _ in range(timeout * 10):  # 10 intentos por segundo
+    for _ in range(timeout * 10):
         try:
             r = requests.get(url)
             if r.status_code == 200:
