@@ -50,4 +50,4 @@ def read_root() -> FileResponse:
     Returns:
         FileResponse: The `index.html` file from the static folder.
     """
-    return FileResponse(os.path.join("static", "index.html"))
+    return FileResponse(os.path.join(static_path, "index.html"))
