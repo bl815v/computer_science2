@@ -1,0 +1,37 @@
+<div class="binaria-container">
+  <h2>Búsqueda Binaria</h2>
+
+  <div id="setup-section">
+    <label for="size">Tamaño máximo:</label>
+    <input type="number" id="size" min="1" value="10" />
+
+    <label for="digits">Dígitos por valor:</label>
+    <input type="number" id="digits" min="1" value="2" />
+
+    <button id="create-structure">Crear estructura</button>
+  </div>
+
+  <div id="message" class="message info">
+    Primero crea una estructura para poder insertar, buscar o eliminar valores.
+  </div>
+
+  <div id="actions-section" style="display: none">
+    <input type="text" id="value-input" placeholder="Valor" maxlength="2" />
+    <button id="insert-btn">Insertar</button>
+    <button id="search-btn">Buscar</button>
+    <button id="delete-btn">Eliminar</button>
+  </div>
+
+  <div id="visualization" class="grid"></div>
+
+  <div class="controls">
+    <button id="slow-speed" title="Velocidad lenta">⏪</button>
+    <button id="normal-speed" title="Velocidad normal">⏯️</button>
+    <button id="fast-speed" title="Velocidad rápida">⏩</button>
+  </div>
+
+  <div id="algorithm-info" class="algorithm-steps" style="display: none">
+    <h3>Proceso de Búsqueda Binaria:</h3>
+    <div id="steps-container"></div>
+  </div>
+</div>

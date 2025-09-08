@@ -27,9 +27,22 @@ import os
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
+from app.controllers import linear_search_router
 
-app = FastAPI()
-
+app = FastAPI(
+    title="ComputerScience2",
+    description="Simulator of different data structures.",
+    version="0.0.1",
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:8000", "http://127.0.0.1:8000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+app.include_router(linear_search_router)
 
 if getattr(sys, 'frozen', False):
     BASE_PATH = getattr(sys, '_MEIPASS', os.path.abspath("."))
@@ -50,4 +63,4 @@ def read_root() -> FileResponse:
     Returns:
         FileResponse: The `index.html` file from the static folder.
     """
-    return FileResponse(os.path.join("static", "index.html"))
+    return FileResponse(os.path.join(static_path, "index.html"))
