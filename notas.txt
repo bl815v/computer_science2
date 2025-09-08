@@ -23,3 +23,4 @@ Nombres estandarizados tamaño tabla-> tamaño estructura, digitos por valor -> 
 En hash, primo mayor como opcion avanzada
 En hash, editar colisiones en tiempo real con los mismos valores
 No mostrar estructura sin haberla creado
+No limitar input (dar error si se pasa)
