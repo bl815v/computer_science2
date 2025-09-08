@@ -14,7 +14,7 @@ Ctrl z
 
 08/09/25
 Guardar estructura y recuperar estructura
-Posiciones con numero visible de celda
+Posiciones con numero visible de celda (arriba o abajo visible) 
 Color de botones mas amigable
 Bug al cambiar de una a otra luego de crear
 Busqueda interna y externa en el mismo menu
