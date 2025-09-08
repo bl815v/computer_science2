@@ -1,0 +1,66 @@
+<div class="hashing-container">
+  <h2>Simulación de Hashing</h2>
+
+  <div id="setup-section" class="section">
+    <div class="flex-row">
+      <label for="size">Tamaño de tabla:</label>
+      <input type="number" id="size" min="1" value="10" />
+
+      <label for="digits">Dígitos por valor:</label>
+      <input type="number" id="digits" min="1" value="2" />
+
+      <button id="create-structure">Crear tabla</button>
+    </div>
+
+    <div id="setup-hashing" class="flex-row">
+      <label for="hash-function">Función hash:</label>
+      <select id="hash-function">
+        <option value="mod">Módulo</option>
+        <option value="cuadrado">Cuadrado</option>
+        <option value="truncamiento">Truncamiento</option>
+        <option value="plegamiento">Plegamiento</option>
+      </select>
+
+      <label for="range-option">Rango:</label>
+      <select id="range-option">
+        <option value="user">Definido por usuario</option>
+        <option value="prime">Primo mayor</option>
+      </select>
+
+      <label for="collision-resolution">Manejo de colisiones:</label>
+      <select id="collision-resolution">
+        <option value="lineal">Lineal</option>
+        <option value="cuadratica">Cuadrática</option>
+        <option value="doble">Doble hash</option>
+        <option value="anidados">Arreglos anidados</option>
+        <option value="encadenamiento">Encadenamiento</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="message" class="message info">
+    Primero crea una tabla hash para poder insertar, buscar o eliminar valores.
+  </div>
+
+  <div id="actions-section" class="section" style="display: none">
+    <div class="flex-row">
+      <input type="text" id="value-input" placeholder="Valor" maxlength="2" />
+      <button id="insert-btn">Insertar</button>
+      <button id="search-btn">Buscar</button>
+      <button id="delete-btn">Eliminar</button>
+    </div>
+  </div>
+
+  <div id="visualization" class="grid"></div>
+
+  <div class="controls">
+    <button id="slow-speed" title="Velocidad lenta">⏪</button>
+    <button id="normal-speed" title="Velocidad normal">⏯️</button>
+    <button id="fast-speed" title="Velocidad rápida">⏩</button>
+  </div>
+
+  <div id="algorithm-info" class="algorithm-steps" style="display: none">
+    <h3>Proceso de Hashing:</h3>
+    <div id="steps-container"></div>
+  </div>
+</div>

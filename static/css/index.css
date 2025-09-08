@@ -3,6 +3,11 @@ body {
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   background: #f5f5f5;
 }
+main {
+  margin: auto 20px auto 20px;
+  border-radius: 8px;
+  overflow: hidden;
+}
 
 .title {
   background: #2c3e50;

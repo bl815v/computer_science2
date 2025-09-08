@@ -1,40 +1,30 @@
 <!DOCTYPE html>
 <html lang="es">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/x-icon" href="static/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="static/index.css" />
-    <script src="static/index.js" defer></script>
+    <link rel="stylesheet" href="static/css/index.css" />
+    <script src="static/js/index.js" defer></script>
     <title>Simuladores - Ciencias de la Computación II</title>
-  </head>
-  <body>
+</head>
+<body>
     <div class="title">Ciencias de la Computación II</div>
     <div class="tab-bar">
-      <div
-        class="tab"
-        data-type="busqueda_interna"
-        onclick="handleTabClick('busqueda_interna')"
-      >
-        Búsquedas internas
-      </div>
-      <div
-        class="tab"
-        data-type="busqueda_externa"
-        onclick="handleTabClick('busqueda_externa')"
-      >
-        Búsquedas externas
-      </div>
-      <div class="tab" data-type="grafos" onclick="handleTabClick('grafos')">
-        Grafos
-      </div>
+        <div class="tab" data-type="busqueda_interna" onclick="handleTabClick('busqueda_interna')">
+            Búsquedas internas
+        </div>
+        <div class="tab" data-type="busqueda_externa" onclick="handleTabClick('busqueda_externa')">
+            Búsquedas externas
+        </div>
+        <div class="tab" data-type="grafos" onclick="handleTabClick('grafos')">
+            Grafos
+        </div>
     </div>
-
     <div class="ribbon" id="ribbon"></div>
-
     <main id="content">
-      <h2>Bienvenido</h2>
-      <p>Selecciona una opción en la cinta para ver el simulador.</p>
+        <h2>Bienvenido</h2>
+        <p>Selecciona una opción en la cinta para ver el simulador.</p>
     </main>
-  </body>
+</body>
 </html>
