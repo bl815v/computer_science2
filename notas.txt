@@ -1,3 +1,4 @@
+
 Crear estrucutura (se inicia desde 01)
 Tamaño estructura (multiplos de 10)
 tamano clave
@@ -12,7 +13,7 @@ Recuperar
 Ctrl z
 
 08/09/25
-Guardar y abrir
+Guardar estructura y recuperar estructura
 Posiciones con numero visible de celda
 Color de botones mas amigable
 Bug al cambiar de una a otra luego de crear
@@ -24,3 +25,7 @@ En hash, primo mayor como opcion avanzada
 En hash, editar colisiones en tiempo real con los mismos valores
 No mostrar estructura sin haberla creado
 No limitar input (dar error si se pasa)
+input con label
+mas tiempo para mensajes, no quitar mensaje hasta que se haga otra opcion
+Estandarizar cada uno
+Todo en español
