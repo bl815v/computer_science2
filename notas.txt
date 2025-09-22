@@ -30,10 +30,10 @@ Todo en español
 
 15/09/25
 Busquedas internas: paso a paso: Animaciones..?
-    Arboles digitales
-    arbol por residuos
-    arbol por residuos multiple
-    huffman
+    Arboles digitales (claves en nodos)
+    arbol por residuos (claves en hojas) (nodos enlace redondos) (nodos hoja cuadrados) (color de nodo suave)
+    arbol por residuos multiple (claves en hojas, similar al anterior)
+    huffman (mensaje completo) (fracciones sin simplificar) (poder cambiar las frecuencias de las letras)
 abcd -> en bin a = 1
 0 y 1 en la arista no en el nodo
 Eliminar elimina clave no espacio -> espacio puede ser reemplazado 
@@ -41,3 +41,10 @@ Eliminar estructura (limpia todo hasta los inputs)
 Guardar informacion en carpeta ciencias2 por defecto -> guardar como sera una opcion avanzada
 Limpiar al guardar
 Ordenar en busqueda lineal (secuencial)
+
+22/09/25
+Simular tamaño de estructura en pantalla, igual que en el taller.
+Busquedas externas: mismas que internas + dinamica
+Arboles con tabla clave-codigo
+Es mejor claves una a una
+Truncamiento hash definido por usuario
