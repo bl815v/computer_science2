@@ -1,0 +1,10 @@
+line-length = 100
+
+[format]
+quote-style = "single"
+indent-style = "tab"
+docstring-code-format = true
+
+[lint]
+select = ["E", "F", "W", "D", "C90", "I"]
+ignore = ["D206", "D212", "D213", "E101", "F401", "W191"]

@@ -1,8 +1,8 @@
 /* eslint-disable no-console */
 /**
- * Secuencial (frontend)
- * - Se apoya en el backend FastAPI (/linear-search)
- * - Este archivo solo maneja UI y animaciones.
+ * Sequential (frontend)
+ * - Supported by FastAPI backend (/linear-search)
+ * - This file only handles UI and animations.
  */
 
 (() => {
@@ -12,7 +12,7 @@
   const API_BASE = "http://127.0.0.1:8000/linear-search";
 
   /**
-   * Espera ms milisegundos.
+   * Wait ms miliseconds.
    * @param {number} ms
    * @return {!Promise<void>}
    */
@@ -21,7 +21,7 @@
   }
 
   /**
-   * Pad izquierda con ceros hasta `digits`.
+   * Left pad with zeros up to `digits`.
    * @param {number|string} v
    * @param {number} digits
    * @return {string}
@@ -31,7 +31,7 @@
   }
 
   /**
-   * Obtiene estado actual del backend.
+   * Gets current state of the backend.
    * @return {!Promise<{size:number,digits:number,data:Array<number|null>}>}
    */
   async function fetchState() {
@@ -48,7 +48,7 @@
   }
 
   /**
-   * Muestra mensaje temporal debajo del simulador.
+   * Shows temporary message below the simulator.
    * @param {string} text
    * @param {'success'|'error'|'info'} type
    */
@@ -73,7 +73,7 @@
   }
 
   /**
-   * Renderiza la grilla con el estado dado.
+   * Renders the grid with the given state.
    * @param {{size:number,digits:number,data:Array<number|null>}} state
    */
   function renderGrid(state) {
@@ -94,8 +94,8 @@
   }
 
   /**
-   * Resalta secuencialmente todas las celdas y marca como found
-   * las posiciones incluidas en `positions1B` (1-based).
+   * Sequentially highlights all cells and marks as found
+   * positions included in `positions1B` (1-based).
    * @param {number} size
    * @param {!Array<number>} positions1B
    * @param {number=} stepMs
@@ -105,12 +105,11 @@
     const grid = document.getElementById("visualization");
     if (!grid) return;
 
-    const foundSet = new Set(positions1B.map((p) => p - 1)); // a 0-based
+    const foundSet = new Set(positions1B.map((p) => p - 1)); // to 0-based
     const cells = /** @type {!NodeListOf<HTMLElement>} */ (
       grid.querySelectorAll(".cell")
     );
 
-    // Limpia estados
     cells.forEach((c) => c.classList.remove("active", "found", "not-found"));
 
     for (let i = 0; i < size; i++) {
@@ -134,7 +133,7 @@
   }
 
   /**
-   * Valida la entrada del valor según dígitos.
+   * Validates the value entry according to digits.
    * @param {HTMLInputElement} input
    * @param {number} digits
    */
@@ -146,10 +145,9 @@
   }
 
   /**
-   * Inicializa eventos y estado. Debe llamarse tras inyectar secuencial.html.
+   * Initializes events and state. It must be called after injecting sequential.html.
    */
   async function initSecuencial() {
-    // Elementos requeridos del DOM
     const sizeEl = /** @type {HTMLInputElement} */ (
       document.getElementById("size")
     );
@@ -170,24 +168,22 @@
       return;
     }
 
-    // Estado cacheado en el front para UI
     /** @type {{size:number,digits:number,data:Array<number|null>}|null} */
     let state = null;
 
     /**
-     * Recarga estado desde backend y re-renderiza.
+     * Reload state from backend and re-render.
      */
     async function reload() {
       try {
         state = await fetchState();
         renderGrid(state);
-        
-        // Ocultar mensaje informativo si hay estructura
+
         const infoMessage = document.querySelector('.message.info');
         if (infoMessage && state.size > 0) {
           infoMessage.style.display = 'none';
         }
-        
+
         if (actions) actions.style.display = state.size > 0 ? "block" : "none";
         if (valueEl && state.digits > 0) {
           valueEl.maxLength = state.digits;
@@ -198,7 +194,6 @@
       }
     }
 
-    // Crear estructura
     async function createStructure() {
       const size = parseInt(sizeEl.value) || 5;
       const digits = parseInt(digitsEl.value) || 2;
@@ -217,7 +212,6 @@
 
         console.log("[secuencial] Estructura creada en backend");
 
-        // Ahora sí, recargar estado desde backend
         await reload();
         showMessage("Estructura creada correctamente.", "success");
       } catch (error) {
@@ -226,10 +220,8 @@
       }
     }
 
-    // Configurar evento para crear estructura
     createBtn.addEventListener("click", createStructure);
 
-    // Validación en vivo del input de valor
     if (valueEl) {
       valueEl.addEventListener("input", () => {
         const d = state?.digits || Math.max(1, parseInt(digitsEl.value, 10) || 0);
@@ -237,21 +229,19 @@
       });
     }
 
-    // Insertar
     if (insertBtn && valueEl) {
       insertBtn.addEventListener("click", async () => {
         if (!state || state.size === 0) {
           showMessage("Primero crea la estructura.", "error");
           return;
         }
-        
+
         enforceNumericDigits(valueEl, state.digits);
         if (!valueEl.value) {
           showMessage("Ingresa un valor.", "error");
           return;
         }
-        
-        // Asegurar que el valor tenga la longitud correcta
+
         let value = valueEl.value.padStart(state.digits, '0');
         console.log("Attempting to insert value:", value);
 
@@ -265,7 +255,7 @@
               value: value
             }),
           });
-          
+
           if (!res.ok) {
             const errorData = await res.json();
             throw new Error(errorData.detail || "No se pudo insertar");
@@ -273,13 +263,12 @@
 
           const body = await res.json();
           await reload();
-          
-          // Resalta donde quedó el valor insertado
+
           const positions = [];
           state.data.forEach((v, i) => {
             if (v === value) positions.push(i + 1);
           });
-          
+
           await scanAnimation(state.size, positions, 300);
           showMessage(
             body.message || `Valor ${value} insertado.`,
@@ -292,31 +281,29 @@
       });
     }
 
-    // Buscar
     if (searchBtn && valueEl) {
       searchBtn.addEventListener("click", async () => {
         if (!state || state.size === 0) {
           showMessage("Primero crea la estructura.", "error");
           return;
         }
-        
+
         enforceNumericDigits(valueEl, state.digits);
         if (!valueEl.value) {
           showMessage("Ingresa un valor.", "error");
           return;
         }
-        
-        // Asegurar que el valor tenga la longitud correcta
+
         let value = valueEl.value.padStart(state.digits, '0');
 
         try {
           const res = await fetch(`${API_BASE}/search/${encodeURIComponent(value)}`);
-          
+
           if (!res.ok) {
             const errorData = await res.json();
             throw new Error(errorData.detail || "Error en la búsqueda");
           }
-          
+
           const body = await res.json();
           const positions = Array.isArray(body.positions) ? body.positions : [];
 
@@ -325,7 +312,7 @@
           if (positions.length) {
             showMessage(
               `Valor ${value} ` +
-                `encontrado en posiciones: ${positions.join(", ")}`,
+              `encontrado en posiciones: ${positions.join(", ")}`,
               "success"
             );
           } else {
@@ -340,25 +327,22 @@
       });
     }
 
-    // Borrar
     if (deleteBtn && valueEl) {
       deleteBtn.addEventListener("click", async () => {
         if (!state || state.size === 0) {
           showMessage("Primero crea la estructura.", "error");
           return;
         }
-        
+
         enforceNumericDigits(valueEl, state.digits);
         if (!valueEl.value) {
           showMessage("Ingresa un valor.", "error");
           return;
         }
-        
-        // Asegurar que el valor tenga la longitud correcta
+
         let value = valueEl.value.padStart(state.digits, '0');
 
         try {
-          // Animación con posiciones actuales antes de borrar
           const preview = [];
           state.data.forEach((v, i) => {
             if (v === value) preview.push(i + 1);
@@ -368,7 +352,7 @@
           const res = await fetch(`${API_BASE}/delete/${encodeURIComponent(value)}`, {
             method: "DELETE",
           });
-          
+
           if (!res.ok) {
             const errorData = await res.json();
             throw new Error(errorData.detail || "No se pudo eliminar");
@@ -376,7 +360,7 @@
 
           const body = await res.json();
           await reload();
-          
+
           showMessage(
             body.deleted_positions?.length
               ? `Eliminado en posiciones: ${body.deleted_positions.join(", ")}`
@@ -390,7 +374,6 @@
       });
     }
 
-    // Intentar cargar estado existente al inicializar
     try {
       await reload();
     } catch (e) {
@@ -398,10 +381,8 @@
     }
   }
 
-  // Exponer para que index.js lo invoque tras inyectar secuencial.html
   window.initSimulator = initSecuencial;
 
-  // Si se abre secuencial.html directo en el navegador, auto-inicia.
   if (document.getElementById("create-structure")) {
     initSecuencial().catch((e) => console.error(e));
   }

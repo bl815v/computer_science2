@@ -1,18 +1,17 @@
-// Objeto para controlar el estado de la aplicación
 const appState = {
     currentTab: null,
     loadedScripts: new Set()
 };
 
 /** 
- * Muestra contenido basado en el tipo seleccionado
- * @param {string} type El tipo de simulación a mostrar
+ * Display content based on the selected type
+ * @param {string} type The type of simulation to show
  */
 function showContent(type) {
     const ribbonElement = document.getElementById('ribbon');
     const contentElement = document.getElementById('content');
     appState.currentTab = type;
-    
+
     if (type === 'busqueda_interna') {
         ribbonElement.innerHTML = `
             <div class="ribbon-buttons">
@@ -33,8 +32,8 @@ function showContent(type) {
 }
 
 /**
- * Establece la pestaña activa basada en el tipo seleccionado
- * @param {string} selectedType El tipo de pestaña seleccionada
+ * Sets the active tab based on the selected type
+ * @param {string} selectedType The type of tab selected
  */
 function setActiveTab(selectedType) {
     const tabs = document.querySelectorAll('.tab');
@@ -48,8 +47,8 @@ function setActiveTab(selectedType) {
 }
 
 /**
- * Maneja el evento de clic en una pestaña
- * @param {string} type El tipo de pestaña clickeada
+ * Handle the click event on a tab
+ * @param {string} type The type of tab clicked
  */
 function handleTabClick(type) {
     setActiveTab(type);
@@ -57,12 +56,12 @@ function handleTabClick(type) {
 }
 
 /**
- * Adjunta eventos de clic a los botones de la cinta
+ * Attach click events to ribbon buttons
  */
 function attachRibbonEvents() {
     const buttons = document.querySelectorAll('.ribbon-btn');
     const contentElement = document.getElementById('content');
-    
+
     buttons.forEach((button) => {
         button.addEventListener('click', () => {
             const page = button.getAttribute('data-page');
@@ -72,16 +71,14 @@ function attachRibbonEvents() {
 }
 
 /**
- * Carga una página externa y sus recursos
- * @param {string} page Nombre de la página a cargar (sin extensión)
+ * Attach click events to ribbon buttons
+ * @param {string} page Name of the page to load (without extension)
  */
 function loadExternalPage(page) {
     const contentElement = document.getElementById('content');
-    
-    // Mostrar mensaje de carga
+
     contentElement.innerHTML = '<p>Cargando simulador...</p>';
-    
-    // Cargar el HTML
+
     fetch(`static/${page}.html`)
         .then((response) => {
             if (!response.ok) {
@@ -91,13 +88,10 @@ function loadExternalPage(page) {
         })
         .then((html) => {
             contentElement.innerHTML = html;
-            
-            // Cargar CSS específico si existe
+
             loadExternalCSS(`static/css/${page}.css`);
-            
-            // Cargar JS específico si existe
+
             loadExternalJS(`static/js/${page}.js`, () => {
-                // Inicializar el script después de cargar
                 if (typeof initSimulator === 'function') {
                     initSimulator();
                 }
@@ -109,19 +103,17 @@ function loadExternalPage(page) {
 }
 
 /**
- * Carga un archivo CSS externo dinámicamente
- * @param {string} url URL del archivo CSS
+ * Load an external CSS file dynamically
+ * @param {string} url CSS file URLb
  */
 function loadExternalCSS(url) {
-    // Verificar si el CSS ya está cargado
     const existingLinks = document.querySelectorAll('link[rel="stylesheet"]');
     for (let link of existingLinks) {
         if (link.getAttribute('href') === url) {
-            return; // Ya está cargado, no hacer nada
+            return;
         }
     }
-    
-    // Crear nuevo elemento link
+
     const link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = url;
@@ -129,18 +121,16 @@ function loadExternalCSS(url) {
 }
 
 /**
- * Carga un archivo JS externo dinámicamente
- * @param {string} url URL del archivo JS
- * @param {function} callback Función a ejecutar después de cargar el script
+ * Load an external JS file dynamically
+ * @param {string} url JS file URL
+ * @param {function} callback Function to execute after loading the script
  */
 function loadExternalJS(url, callback) {
-    // Verificar si el JS ya está cargado
     if (appState.loadedScripts.has(url)) {
         if (callback) callback();
         return;
     }
-    
-    // Crear nuevo elemento script
+
     const script = document.createElement('script');
     script.src = url;
     script.onload = () => {
@@ -154,8 +144,7 @@ function loadExternalJS(url, callback) {
     document.body.appendChild(script);
 }
 
-// Inicialización
-document.addEventListener('DOMContentLoaded', function() {
-    // Establecer la pestaña inicial si es necesario
+document.addEventListener('DOMContentLoaded', function () {
+    // Set the initial tab if necessary
     // handleTabClick('busqueda_interna');
 });
