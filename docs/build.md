@@ -1,13 +1,10 @@
-# Build and Run (Windows)
+# Build and Run
 how to run the application locally and how to generate a Windows executable (.exe).
 
 ## Prerequisites
-- Windows 10 or later  
-- Python 3.14+  
+- Python 3.11.9  
 - [uv](https://docs.astral.sh/uv/getting-started/installation/#__tabbed_1_2) installed
-- Project dependencies installed (`uv sync`)  
 - PyInstaller installed  
-- Visual C++ Build Tools (required on Windows)
 
 ## 1. Create Virtual Environment
 
