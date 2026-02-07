@@ -22,7 +22,7 @@ uv venv
 
 ## 3. Install Dependencies
 ```bash
-uv pip install -r requirements.txt
+uv sync
 ```
 
 ## 4. Run Development Server
@@ -30,8 +30,8 @@ uv pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
-## Build .exe File
-
+## 5. Build .exe File
+Run:
 ```bash
 python -m PyInstaller --noconfirm --onefile --icon=icon.ico --noconsole --name app_launcher --add-data "static;static" app_launcher.py
 ```
