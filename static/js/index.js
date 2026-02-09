@@ -1,150 +1,151 @@
 const appState = {
-    currentTab: null,
-    loadedScripts: new Set()
+  loadedScripts: new Set(),
 };
 
-/** 
- * Display content based on the selected type
- * @param {string} type The type of simulation to show
- */
-function showContent(type) {
-    const ribbonElement = document.getElementById('ribbon');
-    const contentElement = document.getElementById('content');
-    appState.currentTab = type;
+/* ---------------- Tabs ---------------- */
 
-    if (type === 'busqueda_interna') {
-        ribbonElement.innerHTML = `
-            <div class="ribbon-buttons">
-                <button class="ribbon-btn" data-page="secuencial">Secuencial</button>
-                <button class="ribbon-btn" data-page="binaria">Binaria</button>
-                <button class="ribbon-btn" data-page="hashing">Hashing</button>
-            </div>
-        `;
-        contentElement.innerHTML = '<h2>Selecciona un algoritmo en la cinta de opciones</h2>';
-        attachRibbonEvents();
-    } else if (type === 'busqueda_externa') {
-        ribbonElement.innerHTML = '';
-        contentElement.innerHTML = '<h2>Simulador de búsquedas externas próximamente...</h2>';
-    } else if (type === 'grafos') {
-        ribbonElement.innerHTML = '';
-        contentElement.innerHTML = '<h2>Simulador de grafos próximamente...</h2>';
-    }
+function setActiveTab(type) {
+  document.querySelectorAll(".tab").forEach(tab => {
+    tab.classList.toggle("active", tab.dataset.type === type);
+  });
 }
 
-/**
- * Sets the active tab based on the selected type
- * @param {string} selectedType The type of tab selected
- */
-function setActiveTab(selectedType) {
-    const tabs = document.querySelectorAll('.tab');
-    tabs.forEach((tab) => {
-        if (tab.getAttribute('data-type') === selectedType) {
-            tab.classList.add('active');
-        } else {
-            tab.classList.remove('active');
-        }
-    });
-}
-
-/**
- * Handle the click event on a tab
- * @param {string} type The type of tab clicked
- */
 function handleTabClick(type) {
-    setActiveTab(type);
-    showContent(type);
+  setActiveTab(type);
+  showContent(type);
 }
 
-/**
- * Attach click events to ribbon buttons
- */
-function attachRibbonEvents() {
-    const buttons = document.querySelectorAll('.ribbon-btn');
-    const contentElement = document.getElementById('content');
+/* ---------------- Main switch ---------------- */
 
-    buttons.forEach((button) => {
-        button.addEventListener('click', () => {
-            const page = button.getAttribute('data-page');
-            loadExternalPage(page);
-        });
+function showContent(type) {
+  const ribbon = document.getElementById("ribbon");
+  const content = document.getElementById("content");
+
+  if (type === "busquedas") {
+    ribbon.innerHTML = `
+      <div class="ribbon-buttons">
+        <button class="ribbon-btn" id="btn-internas">
+          Internas
+        </button>
+        <button class="ribbon-btn" id="btn-externas">
+          Externas
+        </button>
+      </div>
+    `;
+
+    content.innerHTML = `
+      <h2>Búsquedas</h2>
+      <p>Selecciona el tipo de búsqueda.</p>
+    `;
+
+    document.getElementById("btn-internas")
+      .addEventListener("click", showBusquedaInterna);
+
+    document.getElementById("btn-externas")
+      .addEventListener("click", showBusquedaExterna);
+  }
+
+  if (type === "grafos") {
+    ribbon.innerHTML = "";
+    content.innerHTML = `
+      <h2>Grafos</h2>
+      <p>Simulador próximamente…</p>
+    `;
+  }
+}
+
+/* ---------------- Búsquedas ---------------- */
+
+function showBusquedaInterna() {
+  const ribbon = document.getElementById("ribbon");
+  const content = document.getElementById("content");
+
+  ribbon.innerHTML = `
+    <div class="ribbon-buttons">
+      <button class="ribbon-btn" data-page="secuencial">
+        Secuencial
+      </button>
+      <button class="ribbon-btn" disabled>
+        Binaria
+      </button>
+      <button class="ribbon-btn" disabled>
+        Hashing
+      </button>
+    </div>
+  `;
+
+  content.innerHTML = `
+    <h2>Búsquedas internas</h2>
+    <p>Selecciona un algoritmo.</p>
+  `;
+
+  ribbon.querySelectorAll("[data-page]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      loadExternalPage(btn.dataset.page);
+    });
+  });
+}
+
+function showBusquedaExterna() {
+  document.getElementById("ribbon").innerHTML = "";
+  document.getElementById("content").innerHTML = `
+    <h2>Búsquedas externas</h2>
+    <p>Simulador próximamente…</p>
+  `;
+}
+
+/* ---------------- Loader ---------------- */
+
+function loadExternalPage(page) {
+  const content = document.getElementById("content");
+  content.innerHTML = "<p>Cargando simulador…</p>";
+
+  fetch(`static/${page}.html`)
+    .then(res => {
+      if (!res.ok) throw new Error();
+      return res.text();
+    })
+    .then(html => {
+      content.innerHTML = html;
+      loadExternalCSS(`static/css/${page}.css`);
+      loadExternalJS(`static/js/${page}.js`, () => {
+        if (typeof window.initSimulator === "function") {
+          window.initSimulator();
+        }
+      });
+    })
+    .catch(() => {
+      content.innerHTML =
+        `<p style="color:#d13438">Error cargando ${page}</p>`;
     });
 }
 
-/**
- * Attach click events to ribbon buttons
- * @param {string} page Name of the page to load (without extension)
- */
-function loadExternalPage(page) {
-    const contentElement = document.getElementById('content');
-
-    contentElement.innerHTML = '<p>Cargando simulador...</p>';
-
-    fetch(`static/${page}.html`)
-        .then((response) => {
-            if (!response.ok) {
-                throw new Error('Page not found');
-            }
-            return response.text();
-        })
-        .then((html) => {
-            contentElement.innerHTML = html;
-
-            loadExternalCSS(`static/css/${page}.css`);
-
-            loadExternalJS(`static/js/${page}.js`, () => {
-                if (typeof initSimulator === 'function') {
-                    initSimulator();
-                }
-            });
-        })
-        .catch(() => {
-            contentElement.innerHTML = `<p style="color:red;">Error cargando ${page}.html</p>`;
-        });
-}
-
-/**
- * Load an external CSS file dynamically
- * @param {string} url CSS file URLb
- */
 function loadExternalCSS(url) {
-    const existingLinks = document.querySelectorAll('link[rel="stylesheet"]');
-    for (let link of existingLinks) {
-        if (link.getAttribute('href') === url) {
-            return;
-        }
-    }
+  if ([...document.styleSheets].some(s => s.href?.includes(url))) return;
 
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = url;
-    document.head.appendChild(link);
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = url;
+  document.head.appendChild(link);
 }
 
-/**
- * Load an external JS file dynamically
- * @param {string} url JS file URL
- * @param {function} callback Function to execute after loading the script
- */
 function loadExternalJS(url, callback) {
-    if (appState.loadedScripts.has(url)) {
-        if (callback) callback();
-        return;
-    }
+  if (appState.loadedScripts.has(url)) {
+    if (callback) callback();
+    return;
+  }
 
-    const script = document.createElement('script');
-    script.src = url;
-    script.onload = () => {
-        appState.loadedScripts.add(url);
-        if (callback) callback();
-    };
-    script.onerror = () => {
-        console.error(`Error loading script: ${url}`);
-        if (callback) callback();
-    };
-    document.body.appendChild(script);
+  const script = document.createElement("script");
+  script.src = url;
+  script.onload = () => {
+    appState.loadedScripts.add(url);
+    if (callback) callback();
+  };
+  document.body.appendChild(script);
 }
 
-document.addEventListener('DOMContentLoaded', function () {
-    // Set the initial tab if necessary
-    // handleTabClick('busqueda_interna');
+/* ---------------- Init ---------------- */
+
+document.addEventListener("DOMContentLoaded", () => {
+  handleTabClick("busquedas");
 });

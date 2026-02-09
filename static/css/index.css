@@ -1,79 +1,102 @@
+/* ================================
+   Fluent UI – Main Layout
+   ================================ */
+
+:root {
+  --ms-blue: #0078d4;
+  --ms-blue-hover: #106ebe;
+  --ms-bg: #f3f2f1;
+  --ms-panel: #ffffff;
+  --ms-border: #e1dfdd;
+  --ms-text: #323130;
+  --ms-muted: #605e5c;
+}
+
+/* Base */
 body {
   margin: 0;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  background: #f5f5f5;
-}
-main {
-  margin: auto 20px auto 20px;
-  border-radius: 8px;
-  overflow: hidden;
+  background: var(--ms-bg);
+  color: var(--ms-text);
 }
 
+/* Top title bar */
 .title {
-  background: #2c3e50;
+  background: var(--ms-blue);
   color: white;
-  font-weight: bold;
-  padding: 10px 16px;
-}
-
-.tab-bar {
-  display: flex;
-  background: #2c3e50;
-  color: white;
-  padding: 10px 10px 0px;
-  gap: 10px;
-  user-select: none;
-}
-
-.tab {
-  padding: 10px 20px;
-  cursor: pointer;
-  border-radius: 6px 6px 0 0;
-  background: #34495e;
-  transition: background 0.2s, color 0.2s;
-}
-
-.tab.active {
-  background: #ecf0f1;
-  color: black;
+  padding: 12px 20px;
+  font-size: 18px;
   font-weight: 600;
 }
 
-.tab:hover {
-  background: #1abc9c;
-  color: white;
+/* Tabs (Office-like) */
+.tab-bar {
+  display: flex;
+  background: var(--ms-panel);
+  border-bottom: 1px solid var(--ms-border);
 }
 
+.tab {
+  padding: 12px 20px;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  font-size: 14px;
+  user-select: none;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.tab:hover {
+  background: #f8f8f8;
+}
+
+.tab.active {
+  border-bottom-color: var(--ms-blue);
+  font-weight: 600;
+}
+
+/* Ribbon */
 .ribbon {
-  display: flex;
-  align-items: center;
-  padding: 10px;
-  gap: 12px;
-  background: #ecf0f1;
-  border-bottom: 2px solid #bdc3c7;
+  background: var(--ms-panel);
+  border-bottom: 1px solid var(--ms-border);
+  padding: 10px 16px;
 }
 
 .ribbon-buttons {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
-.ribbon button {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 8px;
-  background: #3498db;
-  color: white;
-  font-size: 14px;
+/* Ribbon buttons */
+.ribbon-btn {
+  padding: 6px 14px;
+  border-radius: 2px;
+  border: 1px solid var(--ms-border);
+  background: white;
   cursor: pointer;
-  transition: transform 0.06s ease, background 0.2s ease;
+  font-size: 13px;
+  transition: background 0.15s, border 0.15s;
 }
 
-.ribbon button:hover {
-  background: #2980b9;
+.ribbon-btn:hover {
+  background: #f3f2f1;
+  border-color: var(--ms-blue);
 }
 
-.ribbon button:active {
-  transform: translateY(1px);
+/* Main content */
+main {
+  padding: 20px;
+}
+
+/* Headings */
+h2 {
+  margin-top: 0;
+  font-weight: 600;
+  font-size: 20px;
+}
+
+/* Paragraphs */
+p {
+  color: var(--ms-muted);
+  line-height: 1.4;
 }
