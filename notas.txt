@@ -48,3 +48,11 @@ Busquedas externas: mismas que internas + dinamica
 Arboles con tabla clave-codigo
 Es mejor claves una a una
 Truncamiento hash definido por usuario
+
+09/02/26
+Equipo 4
+No espacios entre registros de la estructura
+Valor es: clave (corregir a clave)
+Alertas mejor como ventanas emergentes
+Mostrar error en vez de limitar el input
+Limpiar input cada que se hace una opción
