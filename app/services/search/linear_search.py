@@ -70,15 +70,15 @@ class LinearSearchService:
 
 		"""
 		if size <= 0:
-			raise ValueError('Size must be positive')
+			raise ValueError('El tamaño de la estructura debe ser positivo')
 		if digits <= 0:
-			raise ValueError('Digits must be positive')
+			raise ValueError('La cantidad de dígitos debe ser positiva')
 
 		self.size = size
 		self.digits = digits
 		self.data = [None] * size
 		self.initialized = True
-		print(f'Structure created: size={size}, digits={digits}')
+		print(f'Estructura creada: tamaño={size}, digitos={digits}')
 
 	def insert(self, value: str) -> int:
 		"""Insert a value into the first available position in the array.
@@ -99,26 +99,28 @@ class LinearSearchService:
 
 		"""
 		if not self.initialized:
-			raise ValueError('Structure not initialized. Call create() first.')
+			raise ValueError('Estructura no inicializada. Usa create() primero.')
 
 		if len(value) != self.digits:
-			raise ValueError(f'Value must have exactly {self.digits} digits')
+			raise ValueError(f'La clave debe ser de exactamente {self.digits} digitos')
 
 		if not value.isdigit():
-			raise ValueError('Value must be numeric')
+			raise ValueError('La clave debe ser numerica')
 
 		if value in self.data:
-			print(f'Value {value} already exists in data: {self.data}')
-			raise ValueError(f'Value {value} already exists')
+			print(f'Clave {value} ya existe en la estructura: {self.data}')
+			raise ValueError(f'La clave {value} ya existe')
 
 		try:
 			index = self.data.index(None)
 		except ValueError as exc:
-			raise ValueError('No empty space available') from exc
+			raise ValueError('No hay espacio disponible') from exc
 
 		self.data[index] = value
-		print(f'Value {value} inserted at position {index + 1}')
-		return index + 1  # Return 1-based index for user convenience
+		self.sort()
+		print(f'Clave {value} insertada en la dirección {index + 1}')
+		print(f'Clave {value} en la dirección {self.search(value)} luego de ordenar')
+		return index + 1
 
 	def search(self, value: str) -> List[int]:
 		"""Search for all occurrences of a value in the array.
@@ -175,6 +177,25 @@ class LinearSearchService:
 			if v == value:
 				self.data[i] = None
 				positions.append(i + 1)
-
-		print(f'Value {value} deleted from positions: {positions}')
+		self.sort()
+		print(f'Clave {value} eliminada de la dirección: {positions}')
 		return positions
+
+	def sort(self) -> None:
+		"""Sort the values in the array in ascending order.
+
+		Sorts the non-None values in the array while keeping None values at the end.
+		Does not return anything but modifies the internal state of the data structure.
+
+		Returns:
+		    None
+
+		Raises:
+		    ValueError: If the structure is not initialized.
+
+		"""
+		if not self.initialized:
+			raise ValueError('Estructura no inicializada. Usa create() primero.')
+
+		self.data = sorted((v for v in self.data if v is not None)) + [None] * self.data.count(None)
+		print(f'Estructura ordenada: {self.data}')

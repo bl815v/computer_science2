@@ -72,9 +72,9 @@ async def create_structure(request: CreateRequest):
 	try:
 		service.create(request.size, request.digits)
 		return {
-			'message': 'Structure created',
-			'size': request.size,
-			'digits': request.digits,
+			'mensaje': 'Estructura creada',
+			'tamaño': request.size,
+			'digitos': request.digits,
 		}
 	except Exception as e:
 		raise HTTPException(status_code=500, detail=str(e))
@@ -90,9 +90,9 @@ async def get_state():
 
 	"""
 	try:
-		return {'size': service.size, 'digits': service.digits, 'data': service.data}
+		return {'tamaño': service.size, 'digitos': service.digits, 'datos': service.data}
 	except Exception:
-		return {'size': 0, 'digits': 0, 'data': []}
+		return {'tamaño': 0, 'digitos': 0, 'datos': []}
 
 
 @router.post('/insert')
@@ -112,21 +112,25 @@ async def insert_value(request: InsertRequest):
 	"""
 	try:
 		if not service.initialized:
-			raise HTTPException(status_code=400, detail='Structure not initialized')
+			raise HTTPException(status_code=400, detail='Estructura no inicializada')
 
 		if len(request.value) != service.digits:
 			raise HTTPException(
 				status_code=400,
-				detail=f'Value must have exactly {service.digits} digits',
+				detail=f'La clave debe tener exactamente {service.digits} digitos',
 			)
 
 		if not request.value.isdigit():
-			raise HTTPException(status_code=400, detail='Value must be numeric')
+			raise HTTPException(status_code=400, detail='Clave debe ser numerica')
 
 		position = service.insert(request.value)
+		ordered_position = service.search(request.value)
 		return {
-			'message': f'Value {request.value} inserted at position {position}',
-			'position': position,
+			'mensaje': (
+				f'Clave {request.value} insertada en la dirección '
+				f'{ordered_position} luego de ordenar'
+			),
+			'dirección': position,
 		}
 	except ValueError as e:
 		raise HTTPException(status_code=400, detail=str(e))
@@ -150,10 +154,10 @@ async def search_value(value: str):
 	"""
 	try:
 		if not service.initialized:
-			return {'positions': [], 'value': value}
+			return {'dirección': [], 'clave': value}
 
 		result = service.search(value)
-		return {'positions': result, 'value': value}
+		return {'dirección': result, 'clave': value}
 	except Exception as e:
 		raise HTTPException(status_code=500, detail=str(e))
 
@@ -175,11 +179,11 @@ async def delete_value(value: str):
 	"""
 	try:
 		if not service.initialized:
-			return {'message': 'Structure not initialized', 'deleted_positions': []}
+			return {'mensaje': 'Estructura no incializada', 'dirección eliminada': []}
 
 		result = service.delete(value)
 		if not result:
-			return {'message': f'Value {value} not found', 'deleted_positions': []}
-		return {'message': f'Value {value} deleted', 'deleted_positions': result}
+			return {'mensaje': f'Clave {value} no encontrada', 'dirección': []}
+		return {'mensaje': f'Clave {value} eliminada', 'dirección': result}
 	except Exception as e:
 		raise HTTPException(status_code=500, detail=str(e))
