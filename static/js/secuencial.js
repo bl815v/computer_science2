@@ -88,7 +88,7 @@
       const cell = document.createElement("div");
       cell.className = `cell ${val == null ? "empty" : ""}`;
       cell.dataset.index = String(i + 1); // 1-based
-      cell.textContent = val == null ? "−" : toDigits(val, state.digits);
+      cell.textContent = val == null ? "-" : toDigits(val, state.digits);
       grid.appendChild(cell);
     }
   }

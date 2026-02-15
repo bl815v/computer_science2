@@ -61,9 +61,9 @@ async def create_structure(request: CreateRequest):
 	try:
 		service.create(request.size, request.digits)
 		return {
-			'mensaje': 'Estructura creada',
-			'tamaño': request.size,
-			'digitos': request.digits,
+			'message': 'Estructura creada',
+			'size': request.size,
+			'digits': request.digits,
 		}
 	except Exception as e:
 		raise HTTPException(status_code=500, detail=str(e))
@@ -74,12 +74,12 @@ async def get_state():
 	"""Retrieve the current state of the binary search structure."""
 	try:
 		return {
-			'tamaño': service.size,
-			'digitos': service.digits,
-			'datos': service.data,
+			'size': service.size,
+			'digits': service.digits,
+			'data': service.data,
 		}
 	except Exception:
-		return {'tamaño': 0, 'digitos': 0, 'datos': []}
+		return {'size': 0, 'digits': 0, 'data': []}
 
 
 @router.post('/insert')
@@ -102,7 +102,7 @@ async def insert_value(request: InsertRequest):
 		ordered_position = service.search(request.value)
 
 		return {
-			'mensaje': (
+			'message': (
 				f'Clave {request.value} insertada en la dirección '
 				f'{ordered_position} luego de ordenar'
 			),
@@ -120,10 +120,10 @@ async def search_value(value: str):
 	"""Search for a value in the binary search structure."""
 	try:
 		if not service.initialized:
-			return {'dirección': [], 'clave': value}
+			return {'position': [], 'value': value}
 
 		result = service.search(value)
-		return {'dirección': result, 'clave': value}
+		return {'position': result, 'value': value}
 
 	except Exception as e:
 		raise HTTPException(status_code=500, detail=str(e))
@@ -134,14 +134,14 @@ async def delete_value(value: str):
 	"""Delete all occurrences of a value from the binary search structure."""
 	try:
 		if not service.initialized:
-			return {'mensaje': 'Estructura no incializada', 'dirección eliminada': []}
+			return {'message': 'Estructura no incializada', 'position': []}
 
 		result = service.delete(value)
 
 		if not result:
-			return {'mensaje': f'Clave {value} no encontrada', 'dirección': []}
+			return {'message': f'Clave {value} no encontrada', 'position': []}
 
-		return {'mensaje': f'Clave {value} eliminada', 'dirección': result}
+		return {'message': f'Clave {value} eliminada', 'position': result}
 
 	except Exception as e:
 		raise HTTPException(status_code=500, detail=str(e))
