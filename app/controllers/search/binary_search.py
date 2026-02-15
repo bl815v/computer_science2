@@ -54,6 +54,18 @@ class InsertRequest(BaseModel):
 
 	value: str
 
+def normalize_value(value: str, digits: int) -> str:
+    """Normalize value to required digit length."""
+    if not value.isdigit():
+        raise HTTPException(status_code=400, detail="Value must be numeric")
+
+    if len(value) > digits:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Value cannot exceed {digits} digits",
+        )
+
+    return value.zfill(digits)
 
 @router.post('/create')
 async def create_structure(request: CreateRequest):
@@ -84,12 +96,26 @@ async def get_state():
 
 @router.post('/insert')
 async def insert_value(request: InsertRequest):
-	"""Insert a numeric value into the binary search structure."""
+	"""Insert a numeric value into the linear search structure.
+
+	Args:
+	    request (InsertRequest): The request containing the value to insert.
+
+	Returns:
+	    dict: A message confirming insertion with the position where it was inserted.
+
+	Raises:
+	    HTTPException: If the structure is not initialized, value length doesn't match
+	                  digits constraint, value is not numeric, or other errors occur.
+
+	"""
 	try:
 		if not service.initialized:
 			raise HTTPException(status_code=400, detail='Estructura no inicializada')
 
-		if len(request.value) != service.digits:
+		value = normalize_value(request.value, service.digits)
+
+		if value in service.data:
 			raise HTTPException(
 				status_code=400,
 				detail=f'La clave debe tener exactamente {service.digits} digitos',
@@ -98,17 +124,15 @@ async def insert_value(request: InsertRequest):
 		if not request.value.isdigit():
 			raise HTTPException(status_code=400, detail='Clave debe ser numerica')
 
-		position = service.insert(request.value)
+		position = service.insert(value)
 		ordered_position = service.search(request.value)
-
 		return {
 			'message': (
 				f'Clave {request.value} insertada en la dirección '
 				f'{ordered_position} luego de ordenar'
 			),
-			'dirección': position,
+			'position': position,
 		}
-
 	except ValueError as e:
 		raise HTTPException(status_code=400, detail=str(e))
 	except Exception as e:
