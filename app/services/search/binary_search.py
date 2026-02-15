@@ -1,6 +1,6 @@
-"""Provide linear search operations for fixed-size numeric arrays.
+"""Provide binary search operations for fixed-size numeric arrays.
 
-The LinearSearchService provides a simple data structure simulation for linear search
+The BinarySearchService provides a simple data structure simulation for binary search
 with fixed-size arrays and digit-constrained numeric values. It supports creation,
 insertion, search, and deletion operations with proper validation.
 
@@ -25,13 +25,13 @@ along with ComputerScience2. If not, see <https://www.gnu.org/licenses/>.
 from typing import List, Optional
 
 
-class LinearSearchService:
-	"""Service class for linear search operations on a fixed-size numeric array.
+class BinarySearchService:
+	"""Service class for binary search operations on a fixed-size numeric array.
 
 	This class manages a data structure where values are stored in a fixed-size
 	array. All values must be numeric strings with exactly the specified number
 	of digits. The class provides methods to create, insert, search, and delete
-	values using linear search algorithms.
+	values using binary search algorithms.
 
 	Attributes:
 	    data (List[Optional[str]]): The underlying array storing the values.
@@ -42,7 +42,7 @@ class LinearSearchService:
 	"""
 
 	def __init__(self) -> None:
-		"""Initialize a new LinearSearchService instance.
+		"""Initialize a new BinarySearchService instance.
 
 		Sets up an empty data structure with default values and marks it
 		as uninitialized until the create() method is called.
@@ -51,10 +51,10 @@ class LinearSearchService:
 		self.size = 0
 		self.digits = 0
 		self.initialized = False
-		print('LinearSearchService initialized')
+		print('BinarySearchService initialized')
 
 	def create(self, size: int, digits: int) -> None:
-		"""Create and initializes the linear search data structure.
+		"""Create and initializes the binary search data structure.
 
 		Sets up a fixed-size array with the specified dimensions and constraints.
 
@@ -125,7 +125,7 @@ class LinearSearchService:
 	def search(self, value: str) -> List[int]:
 		"""Search for all occurrences of a value in the array.
 
-		Performs a linear search through the array and returns all positions
+		Performs a binary search through the array and returns all positions
 		where the value is found. Returns an empty list if the value is not
 		found or if the structure is not properly initialized.
 
@@ -146,12 +146,44 @@ class LinearSearchService:
 		if not value.isdigit():
 			return []
 
-		return [i + 1 for i, v in enumerate(self.data) if v == value]
+		valid_data = [v for v in self.data if v is not None]
+
+		left = 0
+		right = len(valid_data) - 1
+		found_index = -1
+
+		while left <= right:
+			mid = (left + right) // 2
+
+			if valid_data[mid] == value:
+				found_index = mid
+				break
+			elif valid_data[mid] < value:
+				left = mid + 1
+			else:
+				right = mid - 1
+
+		if found_index == -1:
+			return []
+
+		positions = []
+
+		i = found_index
+		while i >= 0 and valid_data[i] == value:
+			i -= 1
+		i += 1
+
+		while i < len(valid_data) and valid_data[i] == value:
+			positions.append(i + 1)
+			i += 1
+
+		print(f'Clave {value} encontrada en la dirección: {positions}')
+		return positions
 
 	def delete(self, value: str) -> List[int]:
 		"""Delete all occurrences of a value from the array.
 
-		Performs a linear search and removes all instances of the specified value
+		Performs a binary search and removes all instances of the specified value
 		by setting their positions to None. Returns the positions where deletions
 		occurred.
 
