@@ -76,22 +76,25 @@
    * Renders the grid with the given state.
    * @param {{size:number,digits:number,data:Array<number|null>}} state
    */
-  function renderGrid(state) {
-    const grid = document.getElementById("visualization");
-    if (!grid) return;
+function renderGrid(state) {
+  const grid = document.getElementById("visualization");
+  if (!grid) return;
 
-    grid.innerHTML = "";
-    grid.classList.add("grid");
+  grid.innerHTML = "";
+  // Eliminamos cualquier clase extra que pudiera venir de otros lados
+  grid.className = ""; 
 
-    for (let i = 0; i < state.size; i++) {
-      const val = state.data[i];
-      const cell = document.createElement("div");
-      cell.className = `cell ${val == null ? "empty" : ""}`;
-      cell.dataset.index = String(i + 1); // 1-based
-      cell.textContent = val == null ? "-" : toDigits(val, state.digits);
-      grid.appendChild(cell);
-    }
+  for (let i = 0; i < state.size; i++) {
+    const val = state.data[i];
+    const cell = document.createElement("div");
+    cell.className = "cell"; // Solo la clase cell
+    if (val == null) cell.classList.add("empty");
+    
+    cell.dataset.index = String(i + 1);
+    cell.textContent = val == null ? "" : toDigits(val, state.digits);
+    grid.appendChild(cell);
   }
+}
 
   /**
    * Sequentially highlights all cells and marks as found

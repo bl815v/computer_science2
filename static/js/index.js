@@ -18,18 +18,20 @@ function handleTabClick(type) {
 /* ---------------- Main switch ---------------- */
 
 function showContent(type) {
-  const ribbon = document.getElementById("ribbon");
+  const lvl1 = document.getElementById("ribbon-level-1");
+  const lvl2 = document.getElementById("ribbon-level-2");
+  const lvl3 = document.getElementById("ribbon-level-3");
   const content = document.getElementById("content");
 
+  lvl1.innerHTML = "";
+  lvl2.innerHTML = "";
+  lvl3.innerHTML = "";
+
   if (type === "busquedas") {
-    ribbon.innerHTML = `
+    lvl1.innerHTML = `
       <div class="ribbon-buttons">
-        <button class="ribbon-btn" id="btn-internas">
-          Internas
-        </button>
-        <button class="ribbon-btn" id="btn-externas">
-          Externas
-        </button>
+        <button class="ribbon-btn" id="btn-internas">Internas</button>
+        <button class="ribbon-btn" id="btn-externas">Externas</button>
       </div>
     `;
 
@@ -44,42 +46,30 @@ function showContent(type) {
     document.getElementById("btn-externas")
       .addEventListener("click", showBusquedaExterna);
   }
-
-  if (type === "grafos") {
-    ribbon.innerHTML = "";
-    content.innerHTML = `
-      <h2>Grafos</h2>
-      <p>Simulador próximamente…</p>
-    `;
-  }
 }
 
-/* ---------------- Búsquedas ---------------- */
-
 function showBusquedaInterna() {
-  const ribbon = document.getElementById("ribbon");
+  const lvl2 = document.getElementById("ribbon-level-2");
+  const lvl3 = document.getElementById("ribbon-level-3");
   const content = document.getElementById("content");
 
-  ribbon.innerHTML = `
+  lvl2.innerHTML = `
     <div class="ribbon-buttons">
-      <button class="ribbon-btn" data-page="secuencial">
-        Secuencial
-      </button>
-      <button class="ribbon-btn" disabled>
-        Binaria
-      </button>
-      <button class="ribbon-btn" disabled>
-        Hashing
-      </button>
+      <button class="ribbon-btn" data-page="secuencial">Secuencial</button>
+      <button class="ribbon-btn" disabled>Binaria</button>
+      <button class="ribbon-btn" disabled>Hashing</button>
     </div>
   `;
+
+
+  lvl3.innerHTML = ""; // por si luego agregas más niveles
 
   content.innerHTML = `
     <h2>Búsquedas internas</h2>
     <p>Selecciona un algoritmo.</p>
   `;
 
-  ribbon.querySelectorAll("[data-page]").forEach(btn => {
+  lvl2.querySelectorAll("[data-page]").forEach(btn => {
     btn.addEventListener("click", () => {
       loadExternalPage(btn.dataset.page);
     });
@@ -87,7 +77,9 @@ function showBusquedaInterna() {
 }
 
 function showBusquedaExterna() {
-  document.getElementById("ribbon").innerHTML = "";
+  document.getElementById("ribbon-level-2").innerHTML = "";
+  document.getElementById("ribbon-level-3").innerHTML = "";
+
   document.getElementById("content").innerHTML = `
     <h2>Búsquedas externas</h2>
     <p>Simulador próximamente…</p>
