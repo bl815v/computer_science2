@@ -16,11 +16,12 @@
 
 /* Container Principal - CENTRADO */
 .secuencial-container {
+  width: 100%; /* Permite que ocupe el ancho del main */
   max-width: 900px;
-  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  align-items: center; /* Alinea las tarjetas al centro */
+  align-items: center; /* Alinea cards y wrapper al centro */
+  margin: 0 auto;
 }
 
 /* Cards */
@@ -71,49 +72,46 @@ button.danger { border-color: var(--ms-error); color: var(--ms-error); }
    ================================ */
 
 .visual-wrapper {
-  display: flex !important;
-  justify-content: center !important; /* CENTRA LA COLUMNA HORIZONTALMENTE */
-  width: 100% !important;
-  margin-top: 40px !important;
-  padding-bottom: 100px;
+  display: flex;
+  justify-content: center;
+  width: 100%;
 }
 
 #visualization {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  gap: 0 !important; 
-  width: 100px !important; /* Ancho de la columna */
-  margin: 0 auto !important; /* Refuerza el centrado */
-  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  align-items: right; /* Alinea a la derecha */
+  width: fit-content; /* Importante: para que no ocupe todo el ancho */
+  margin: 0 auto;     /* Centra el bloque de celdas */
+  border: 1px solid #c8c6c4; /* Borde exterior para que parezca una tabla */
 }
 
+/* Modifica esto en secuencial.css */
 .cell {
   position: relative !important;
-  width: 100% !important;
+  width: 80px !important;      /* Cambiado de 100% a un valor fijo */
   height: 60px !important;
-  border: 1px solid #c8c6c4 !important;
-  border-bottom: none !important;
+  border: none !important;
+  border-bottom: 1px solid #c8c6c4 !important;
   background: #ffffff !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  font-size: 24px !important; /* Números grandes como en la imagen */
-  font-family: 'Segoe UI', sans-serif;
+  font-size: 24px !important;
+  font-weight: 500 !important;
   box-sizing: border-box !important;
+  margin: 0 !important;
 }
 
 .cell:last-child {
-  border-bottom: 1px solid #c8c6c4 !important;
+  border-bottom: none !important;
 }
 
 /* Números de índice a la izquierda */
 .cell::before {
   content: attr(data-index) !important;
   position: absolute !important;
-  left: -40px !important; /* Espacio para que no se encime */
-  width: 30px;
-  text-align: right;
+  left: -30px !important;         /* Posición a la izquierda fuera de la caja */
   font-weight: bold !important;
   font-size: 14px !important;
   color: #323130 !important;
@@ -121,9 +119,9 @@ button.danger { border-color: var(--ms-error); color: var(--ms-error); }
 
 /* Celda seleccionada/activa (efecto de la imagen) */
 .cell.active {
-  background: #f3f2f1 !important; 
-  outline: 2px solid #605e5c !important;
-  z-index: 2;
+  background: #edebe9 !important; 
+  outline: 2px solid #605e5c !important; /* El borde oscuro que se ve en la imagen */
+  z-index: 2; /* Para que el outline tape los bordes de las celdas vecinas */
 }
 
 .cell.found {

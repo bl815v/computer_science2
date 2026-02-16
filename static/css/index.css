@@ -108,16 +108,12 @@ body {
 */
 main#content {
   width: 100%;
-  max-width: 100vw;
-  min-height: calc(100vh - 160px); /* Resta el espacio del header/ribbon */
-  padding: 30px 20px;
-  box-sizing: border-box;
-  
-  /* Flexbox para centrar TODO lo que cargue dinámicamente */
   display: flex;
   flex-direction: column;
-  align-items: center; 
+  align-items: center; /* Obliga a todos los hijos a ir al centro */
   justify-content: flex-start;
+  padding: 30px 20px;
+  box-sizing: border-box;
 }
 
 /* Títulos dentro del contenido */

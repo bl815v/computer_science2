@@ -56,7 +56,7 @@ function showBusquedaInterna() {
   lvl2.innerHTML = `
     <div class="ribbon-buttons">
       <button class="ribbon-btn" data-page="secuencial">Secuencial</button>
-      <button class="ribbon-btn" disabled>Binaria</button>
+      <button class="ribbon-btn" data-page="binaria">Binaria</button>
       <button class="ribbon-btn" disabled>Hashing</button>
     </div>
   `;
