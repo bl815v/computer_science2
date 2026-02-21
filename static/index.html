@@ -35,7 +35,21 @@
   </div>
 
   <!-- Ribbon -->
-  <div class="ribbon" id="ribbon"></div>
+  <div class="ribbon" id="ribbon">
+
+  <div class="ribbon-row">
+    <div id="ribbon-level-1"></div>
+  </div>
+
+  <div class="ribbon-row">
+    <div id="ribbon-level-2"></div>
+  </div>
+
+  <div class="ribbon-row">
+    <div id="ribbon-level-3"></div>
+  </div>
+</div>
+
 
   <!-- Main content -->
   <main id="content">
@@ -44,5 +58,37 @@
       Selecciona una opción en la cinta para visualizar el simulador.
     </p>
   </main>
+
+  <style>
+  .app-footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background: #f3f2f1;
+    border-top: 1px solid #e1dfdd;
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 15px;
+    align-items: center;
+  }
+  .footer-btns button {
+    background: white;
+    border: 1px solid #c8c6c4;
+    padding: 4px 12px;
+    margin-right: 5px;
+    font-size: 13px;
+  }
+</style>
+
+<div class="app-footer">
+  <div class="footer-btns">
+    <button disabled>Guardar</button>
+    <button disabled>Abrir</button>
+    <button disabled>Imprimir</button>
+  </div>
+  <div style="font-size: 12px; color: #605e5c;">
+    — —————— + 100 %
+  </div>
+</div>
 </body>
 </html>

@@ -1,6 +1,6 @@
-/* ================================
-   Fluent UI – Main Layout
-   ================================ */
+/* =========================================
+   Fluent UI – Main Layout (Global)
+   ========================================= */
 
 :root {
   --ms-blue: #0078d4;
@@ -15,88 +15,134 @@
 /* Base */
 body {
   margin: 0;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  padding: 0;
+  font-family: "Segoe UI", "Segoe UI Web (West European)", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
   background: var(--ms-bg);
   color: var(--ms-text);
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Top title bar */
+/* Barra de título superior */
 .title {
   background: var(--ms-blue);
   color: white;
   padding: 12px 20px;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-/* Tabs (Office-like) */
+/* Tabs (Debajo del título) */
 .tab-bar {
   display: flex;
   background: var(--ms-panel);
   border-bottom: 1px solid var(--ms-border);
+  padding-left: 10px;
 }
 
 .tab {
-  padding: 12px 20px;
+  padding: 10px 20px;
   cursor: pointer;
   border-bottom: 3px solid transparent;
   font-size: 14px;
-  user-select: none;
-  transition: background 0.15s, border-color 0.15s;
+  color: var(--ms-text);
+  transition: background 0.1s, border-color 0.1s;
 }
 
 .tab:hover {
-  background: #f8f8f8;
+  background: #f3f2f1;
 }
 
 .tab.active {
   border-bottom-color: var(--ms-blue);
   font-weight: 600;
+  color: black;
 }
 
-/* Ribbon */
+/* Ribbon (Cinta de opciones) */
 .ribbon {
   background: var(--ms-panel);
   border-bottom: 1px solid var(--ms-border);
-  padding: 10px 16px;
+  padding: 8px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ribbon-row {
+  width: 100%;
 }
 
 .ribbon-buttons {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
-/* Ribbon buttons */
+/* Botones del Ribbon */
 .ribbon-btn {
-  padding: 6px 14px;
+  padding: 6px 12px;
   border-radius: 2px;
-  border: 1px solid var(--ms-border);
-  background: white;
+  border: 1px solid transparent;
+  background: transparent;
   cursor: pointer;
   font-size: 13px;
-  transition: background 0.15s, border 0.15s;
+  color: var(--ms-text);
 }
 
 .ribbon-btn:hover {
-  background: #f3f2f1;
-  border-color: var(--ms-blue);
+  background: #edebe9;
 }
 
-/* Main content */
-main {
-  padding: 20px;
+.ribbon-btn:active {
+  background: #e1dfdd;
 }
 
-/* Headings */
+.ribbon-btn[disabled] {
+  color: #a19f9d;
+  cursor: default;
+}
+
+/* ESTRUCTURA PRINCIPAL DE CONTENIDO
+   Aquí es donde ocurre la magia del centrado
+*/
+main#content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Obliga a todos los hijos a ir al centro */
+  justify-content: flex-start;
+  padding: 30px 20px;
+  box-sizing: border-box;
+}
+
+/* Títulos dentro del contenido */
 h2 {
   margin-top: 0;
+  margin-bottom: 20px;
   font-weight: 600;
   font-size: 20px;
+  text-align: center;
 }
 
-/* Paragraphs */
+/* Párrafos informativos */
 p {
   color: var(--ms-muted);
-  line-height: 1.4;
+  line-height: 1.5;
+  text-align: center;
+  max-width: 600px;
+}
+
+/* Separadores de niveles en el Ribbon */
+#ribbon-level-2 {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid #f3f2f1;
+}
+
+/* Estilo para mensajes de carga */
+.loading {
+  font-style: italic;
+  color: var(--ms-blue);
+  margin-top: 20px;
 }

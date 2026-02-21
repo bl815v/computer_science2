@@ -14,152 +14,117 @@
   --ms-info: #605e5c;
 }
 
-/* Container */
+/* Container Principal - CENTRADO */
 .secuencial-container {
+  width: 100%; /* Permite que ocupe el ancho del main */
   max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Alinea cards y wrapper al centro */
   margin: 0 auto;
 }
 
-/* Panels */
-#setup-section,
-#actions-section {
-  background: var(--ms-panel);
+/* Cards */
+.card {
+  background: #ffffff;
   border: 1px solid var(--ms-border);
   border-radius: 4px;
   padding: 16px;
   margin-bottom: 16px;
+  width: 100%; /* Ocupa el ancho del container */
+  box-sizing: border-box;
 }
 
-/* Labels & inputs */
-label {
-  font-weight: 600;
-  margin-right: 8px;
+/* Filas de botones */
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: center; /* Centra los botones dentro de la card */
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
+/* Inputs y Labels */
+label { font-weight: 600; margin-right: 8px; }
 input {
   padding: 6px 8px;
   border: 1px solid var(--ms-border);
   border-radius: 2px;
-  margin-right: 12px;
   font-family: inherit;
 }
 
-input:focus {
-  outline: none;
-  border-color: var(--ms-blue);
-}
-
-/* Buttons (base) */
+/* Botones */
 button {
-  padding: 6px 14px;
-  border-radius: 2px;
+  padding: 8px 20px !important;
+  border-radius: 2px !important;
   border: 1px solid var(--ms-border);
   background: white;
   cursor: pointer;
   font-family: inherit;
-  transition: background 0.15s, border 0.15s;
+  font-size: 14px !important;
 }
 
-button:hover {
-  background: #f3f2f1;
-  border-color: var(--ms-blue);
-}
+button.primary { background: var(--ms-blue); color: white; border-color: var(--ms-blue); }
+button.danger { border-color: var(--ms-error); color: var(--ms-error); }
 
-/* Primary action */
-#create-structure,
-#insert-btn {
-  background: var(--ms-blue);
-  color: white;
-  border-color: var(--ms-blue);
-}
+/* ================================
+   VISUALIZACIÓN (LA COLUMNA)
+   ================================ */
 
-#create-structure:hover,
-#insert-btn:hover {
-  background: var(--ms-blue-hover);
-}
-
-/* Secondary actions */
-#search-btn {
-  border-color: var(--ms-blue);
-  color: var(--ms-blue);
-}
-
-#search-btn:hover {
-  background: #eff6fc;
-}
-
-/* Destructive */
-#delete-btn {
-  border-color: var(--ms-error);
-  color: var(--ms-error);
-}
-
-#delete-btn:hover {
-  background: #fde7e9;
-}
-
-/* Grid visualization */
-.grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-/* Cells */
-.cell {
-  width: 60px;
-  height: 60px;
-  border: 1px solid var(--ms-border);
-  border-radius: 2px;
+.visual-wrapper {
   display: flex;
   justify-content: center;
-  align-items: center;
-  font-weight: 600;
-  background: white;
-  transition: background 0.2s, transform 0.2s;
+  width: 100%;
 }
 
-.cell.empty {
-  background: #faf9f8;
-  color: #a19f9d;
+#visualization {
+  display: flex;
+  flex-direction: column;
+  align-items: right; /* Alinea a la derecha */
+  width: fit-content; /* Importante: para que no ocupe todo el ancho */
+  margin: 0 auto;     /* Centra el bloque de celdas */
+  border: 1px solid #c8c6c4; /* Borde exterior para que parezca una tabla */
 }
 
+/* Modifica esto en secuencial.css */
+.cell {
+  position: relative !important;
+  width: 80px !important;      /* Cambiado de 100% a un valor fijo */
+  height: 60px !important;
+  border: none !important;
+  border-bottom: 1px solid #c8c6c4 !important;
+  background: #ffffff !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 24px !important;
+  font-weight: 500 !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+}
+
+.cell:last-child {
+  border-bottom: none !important;
+}
+
+/* Números de índice a la izquierda */
+.cell::before {
+  content: attr(data-index) !important;
+  position: absolute !important;
+  left: -30px !important;         /* Posición a la izquierda fuera de la caja */
+  font-weight: bold !important;
+  font-size: 14px !important;
+  color: #323130 !important;
+}
+
+/* Celda seleccionada/activa (efecto de la imagen) */
 .cell.active {
-  background: var(--ms-blue);
-  color: white;
-  transform: scale(1.05);
+  background: #edebe9 !important; 
+  outline: 2px solid #605e5c !important; /* El borde oscuro que se ve en la imagen */
+  z-index: 2; /* Para que el outline tape los bordes de las celdas vecinas */
 }
 
 .cell.found {
-  background: var(--ms-success);
-  color: white;
-}
-
-.cell.not-found {
-  background: var(--ms-error);
-  color: white;
-}
-
-/* Messages */
-.message {
-  padding: 10px 14px;
-  border-radius: 2px;
-  margin-bottom: 12px;
-  border: 1px solid var(--ms-border);
-  background: #f3f2f1;
-}
-
-.message.info {
-  color: var(--ms-info);
-}
-
-.message.success {
-  color: var(--ms-success);
-  border-color: var(--ms-success);
-}
-
-.message.error {
-  color: var(--ms-error);
-  border-color: var(--ms-error);
+  background: #dff6dd !important; 
+  color: #107c10 !important;
 }
