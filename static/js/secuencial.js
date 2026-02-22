@@ -19,6 +19,11 @@
     return String(v).padStart(digits, "0");
   }
 
+  function resetInput(input) {
+  input.value = "";
+  input.focus();
+  }
+
   async function fetchState() {
     try {
       const res = await fetch(`${API_BASE}/state`);
@@ -136,6 +141,7 @@
         notifySuccess("Estructura creada correctamente.");
       } catch (error) {
         notifyError(error.message);
+        resetInput(valueEl);
       }
     }
 
@@ -198,6 +204,7 @@
 
     } catch (error) {
       notifyError(error.message);
+      resetInput(valueEl);
     } finally {
 
       insertBtn.disabled = false;
@@ -249,6 +256,7 @@
           }
         } catch (error) {
           notifyError(error.message);
+          resetInput(valueEl);
         }
       });
     }
@@ -301,6 +309,7 @@
           valueEl.value = "";
         } catch (error) {
           notifyError(error.message);
+          resetInput(valueEl);
         }
       });
     }
@@ -309,6 +318,7 @@
       await reload();
     } catch {
       console.info("[secuencial] Esperando creación de estructura…");
+      resetInput(valueEl);
     }
   }
 

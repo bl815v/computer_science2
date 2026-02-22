@@ -18,6 +18,11 @@
     }
   }
 
+  function resetInput(input) {
+  input.value = "";
+  input.focus();
+  }
+
   function renderGrid(state) {
     const grid = document.getElementById("bin-visualization");
     if (!grid) return;
@@ -109,6 +114,7 @@
         }
       } catch (error) {
         notifyError(error.message);
+        resetInput(valInput);
       }
     }
 
@@ -137,6 +143,7 @@
         notifySuccess("Estructura creada correctamente.");
       } catch (error) {
         notifyError(error.message);
+        resetInput(valInput);
       }
     });
 
@@ -176,6 +183,7 @@
         valInput.value = "";
       } catch (error) {
         notifyError(error.message);
+        resetInput(valInput);
       }
     });
 
