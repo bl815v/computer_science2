@@ -146,3 +146,25 @@ p {
   color: var(--ms-blue);
   margin-top: 20px;
 }
+
+/* Footer */
+
+.app-footer {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  background: #f3f2f1;
+  border-top: 1px solid #e1dfdd;
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 15px;
+  align-items: center;
+}
+
+.footer-btns button {
+  background: white;
+  border: 1px solid #c8c6c4;
+  padding: 4px 12px;
+  margin-right: 5px;
+  font-size: 13px;
+}
