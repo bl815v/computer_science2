@@ -113,14 +113,16 @@ function loadExternalPage(page) {
   content.innerHTML = "<p>Cargando simulador…</p>";
 
   fetch(`static/${page}.html`)
+
     .then(res => {
       if (!res.ok) throw new Error();
       return res.text();
     })
     .then(html => {
       content.innerHTML = html;
-      loadExternalCSS(`static/css/${page}.css`);
-      loadExternalJS(`static/js/${page}.js`, () => {
+      const version = Date.now();
+      loadExternalCSS(`static/css/${page}.css?v=${version}`);
+      loadExternalJS(`static/js/${page}.js?v=${version}`, () => {
         if (typeof window.initSimulator === "function") {
           window.initSimulator();
         }
