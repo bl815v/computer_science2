@@ -158,7 +158,7 @@
         enforceNumericDigits(valueEl, state.digits);
 
         if (!valueEl.value) {
-          notifyError("Ingresa un valor.");
+          notifyError("Ingresa una clave.");
           return;
         }
 
@@ -185,7 +185,7 @@
 
           await scanAnimation(state.size, positions, 300);
 
-          notifySuccess(`Valor ${value} insertado.`);
+          notifySuccess(`Clave ${value} insertada en la dirección ${positions[0]}`);
           valueEl.value = "";
         } catch (error) {
           notifyError(error.message);
@@ -203,7 +203,7 @@
         enforceNumericDigits(valueEl, state.digits);
 
         if (!valueEl.value) {
-          notifyError("Ingresa un valor.");
+          notifyError("Ingresa una clave.");
           return;
         }
 
@@ -228,10 +228,10 @@
 
           if (positions.length) {
             notifySuccess(
-              `Valor ${value} encontrado en posiciones: ${positions.join(", ")}`
+              `Clave ${value} encontrada en posiciones: ${positions.join(", ")}`
             );
           } else {
-            notifyError(`Valor ${value} no encontrado.`);
+            notifyError(`Clave ${value} no encontrada.`);
           }
         } catch (error) {
           notifyError(error.message);
@@ -249,7 +249,7 @@
         enforceNumericDigits(valueEl, state.digits);
 
         if (!valueEl.value) {
-          notifyError("Ingresa un valor.");
+          notifyError("Ingresa una clave.");
           return;
         }
 
