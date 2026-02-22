@@ -30,7 +30,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.controllers import binary_search_router, linear_search_router
+from app.controllers import binary_search_router, hash_router, linear_search_router
 
 app = FastAPI(
 	title='ComputerScience2',
@@ -46,6 +46,7 @@ app.add_middleware(
 )
 app.include_router(linear_search_router)
 app.include_router(binary_search_router)
+app.include_router(hash_router)
 
 if getattr(sys, 'frozen', False):
 	BASE_PATH = getattr(sys, '_MEIPASS', os.path.abspath('.'))
