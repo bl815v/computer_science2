@@ -10,6 +10,8 @@
   "use strict";
 
   const API_BASE = "http://127.0.0.1:8000/linear-search";
+  // Variable de control para no saturar con múltiples modales
+  let isNotifying = false;
 
   function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -20,8 +22,8 @@
   }
 
   function resetInput(input) {
-  input.value = "";
-  input.focus();
+    input.value = "";
+    input.focus();
   }
 
   async function fetchState() {
@@ -85,10 +87,30 @@
     }
   }
 
+  /**
+   * Valida la entrada numérica y dispara notificación si excede los dígitos
+   */
   function enforceNumericDigits(input, digits) {
+    const originalValue = input.value;
+    
+    // Solo permitimos números
     input.value = input.value.replace(/\D+/g, "");
-    if (digits > 0 && input.value.length > digits) {
-      input.value = input.value.slice(0, digits);
+
+    // Si el largo actual supera el límite permitido
+    if (digits > 0 && originalValue.length > digits) {
+      input.value = originalValue.slice(0, digits);
+
+      // Si no hay una notificación activa en este momento, la mostramos
+      if (!isNotifying) {
+        isNotifying = true;
+        notifyError(`La clave solo puede tener ${digits} dígitos.`);
+        
+        // Pequeño delay para permitir que el usuario cierre la ventana 
+        // antes de poder activar otra por error
+        setTimeout(() => {
+          isNotifying = false;
+        }, 500);
+      }
     }
   }
 
@@ -116,7 +138,7 @@
       if (actions) actions.style.display = state.size > 0 ? "block" : "none";
 
       if (valueEl && state.digits > 0) {
-        valueEl.maxLength = state.digits;
+        valueEl.maxLength = state.digits + 1; // +1 para capturar el exceso y detonar el error
         valueEl.placeholder = `Ej: ${toDigits(1, state.digits)}`;
       }
     }
@@ -141,7 +163,7 @@
         notifySuccess("Estructura creada correctamente.");
       } catch (error) {
         notifyError(error.message);
-        resetInput(valueEl);
+        if (valueEl) resetInput(valueEl);
       }
     }
 
@@ -155,64 +177,55 @@
     }
 
     if (insertBtn && valueEl) {
-  insertBtn.addEventListener("click", async () => {
+      insertBtn.addEventListener("click", async () => {
+        if (insertBtn.dataset.loading === "true") return;
+        insertBtn.dataset.loading = "true";
+        insertBtn.disabled = true;
 
-    if (insertBtn.dataset.loading === "true") return;
-    insertBtn.dataset.loading = "true";
-    insertBtn.disabled = true;
+        try {
+          if (!state || state.size === 0) {
+            notifyError("Primero crea la estructura.");
+            return;
+          }
 
-    try {
-      if (!state || state.size === 0) {
-        notifyError("Primero crea la estructura.");
-        return;
-      }
+          if (!valueEl.value) {
+            notifyError("Ingresa una clave.");
+            return;
+          }
 
-      enforceNumericDigits(valueEl, state.digits);
+          const value = valueEl.value.padStart(state.digits, "0");
 
-      if (!valueEl.value) {
-        notifyError("Ingresa una clave.");
-        return;
-      }
+          const res = await fetch(`${API_BASE}/insert`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ value }),
+          });
 
-      const value = valueEl.value.padStart(state.digits, "0");
+          if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.detail || "No se pudo insertar");
+          }
 
-      const res = await fetch(`${API_BASE}/insert`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value }),
+          await reload();
+
+          const positions = [];
+          state.data.forEach((v, i) => {
+            if (v === value) positions.push(i + 1);
+          });
+
+          await scanAnimation(state.size, positions, 300);
+          notifySuccess(`Clave ${value} insertada en la dirección ${positions[0]}`);
+          valueEl.value = "";
+
+        } catch (error) {
+          notifyError(error.message);
+          resetInput(valueEl);
+        } finally {
+          insertBtn.disabled = false;
+          insertBtn.dataset.loading = "false";
+        }
       });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.detail || "No se pudo insertar");
-      }
-
-      await reload();
-
-      const positions = [];
-      state.data.forEach((v, i) => {
-        if (v === value) positions.push(i + 1);
-      });
-
-      await scanAnimation(state.size, positions, 300);
-
-      notifySuccess(
-        `Clave ${value} insertada en la dirección ${positions[0]}`
-      );
-
-      valueEl.value = "";
-
-    } catch (error) {
-      notifyError(error.message);
-      resetInput(valueEl);
-    } finally {
-
-      insertBtn.disabled = false;
-      insertBtn.dataset.loading = "false";
     }
-
-  });
-}
 
     if (searchBtn && valueEl) {
       searchBtn.addEventListener("click", async () => {
@@ -220,8 +233,6 @@
           notifyError("Primero crea la estructura.");
           return;
         }
-
-        enforceNumericDigits(valueEl, state.digits);
 
         if (!valueEl.value) {
           notifyError("Ingresa una clave.");
@@ -231,26 +242,19 @@
         const value = valueEl.value.padStart(state.digits, "0");
 
         try {
-          const res = await fetch(
-            `${API_BASE}/search/${encodeURIComponent(value)}`
-          );
-
+          const res = await fetch(`${API_BASE}/search/${encodeURIComponent(value)}`);
           if (!res.ok) {
             const errorData = await res.json();
             throw new Error(errorData.detail || "Error en la búsqueda");
           }
 
           const body = await res.json();
-          const positions = Array.isArray(body.positions)
-            ? body.positions
-            : [];
+          const positions = Array.isArray(body.positions) ? body.positions : [];
 
           await scanAnimation(state.size, positions, 350);
 
           if (positions.length) {
-            notifySuccess(
-              `Clave ${value} encontrada en posiciones: ${positions.join(", ")}`
-            );
+            notifySuccess(`Clave ${value} encontrada en posiciones: ${positions.join(", ")}`);
           } else {
             notifyError(`Clave ${value} no encontrada.`);
           }
@@ -268,8 +272,6 @@
           return;
         }
 
-        enforceNumericDigits(valueEl, state.digits);
-
         if (!valueEl.value) {
           notifyError("Ingresa una clave.");
           return;
@@ -285,11 +287,7 @@
 
           await scanAnimation(state.size, preview, 300);
 
-          const res = await fetch(
-            `${API_BASE}/delete/${encodeURIComponent(value)}`,
-            { method: "DELETE" }
-          );
-
+          const res = await fetch(`${API_BASE}/delete/${encodeURIComponent(value)}`, { method: "DELETE" });
           if (!res.ok) {
             const errorData = await res.json();
             throw new Error(errorData.detail || "No se pudo eliminar");
@@ -299,13 +297,10 @@
           await reload();
 
           if (body.deleted_positions?.length) {
-            notifySuccess(
-              `Eliminado en posiciones: ${body.deleted_positions.join(", ")}`
-            );
+            notifySuccess(`Eliminado en posiciones: ${body.deleted_positions.join(", ")}`);
           } else {
             notifyInfo("No había ocurrencias para eliminar.");
           }
-
           valueEl.value = "";
         } catch (error) {
           notifyError(error.message);
@@ -318,7 +313,6 @@
       await reload();
     } catch {
       console.info("[secuencial] Esperando creación de estructura…");
-      resetInput(valueEl);
     }
   }
 

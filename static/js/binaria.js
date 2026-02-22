@@ -2,6 +2,7 @@
   "use strict";
 
   const API_BASE = "http://127.0.0.1:8000/binary-search";
+  let isAlertActive = false; // Control para no saturar de notificaciones
 
   function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -11,16 +12,36 @@
     return String(v).padStart(digits, "0");
   }
 
+  /**
+   * Valida la entrada numérica y dispara la notificación si excede los dígitos
+   */
   function enforceNumeric(input, digits) {
-    input.value = input.value.replace(/\D+/g, "");
-    if (digits > 0 && input.value.length > digits) {
-      input.value = input.value.slice(0, digits);
+    const originalValue = input.value;
+    // Eliminar cualquier cosa que no sea número
+    const numericValue = originalValue.replace(/\D+/g, "");
+
+    if (digits > 0 && numericValue.length > digits) {
+      // Recortamos el valor al máximo permitido
+      input.value = numericValue.slice(0, digits);
+
+      // Si no hay una alerta mostrándose, la lanzamos
+      if (!isAlertActive) {
+        isAlertActive = true;
+        notifyError(`La clave solo puede tener ${digits} dígitos.`);
+        
+        // Desbloqueamos después de un breve tiempo para permitir futuras alertas
+        setTimeout(() => {
+          isAlertActive = false;
+        }, 1500);
+      }
+    } else {
+      input.value = numericValue;
     }
   }
 
   function resetInput(input) {
-  input.value = "";
-  input.focus();
+    input.value = "";
+    input.focus();
   }
 
   function renderGrid(state) {
@@ -45,7 +66,6 @@
 
   async function binarySearchAnimation(targetValue, state) {
     const cells = document.querySelectorAll("#bin-visualization .cell");
-
     const validLength = state.data.filter((v) => v !== null).length;
 
     let left = 0;
@@ -109,8 +129,10 @@
         renderGrid(currentState);
 
         if (valInput && currentState.digits > 0) {
-          valInput.maxLength = currentState.digits;
-          valInput.placeholder = `Ej: ${toDigits(1, currentState.digits)}`;
+          // Quitamos el maxLength nativo para que el evento 'input' detecte el exceso
+          // y podamos disparar nuestra propia notificación.
+          valInput.removeAttribute("maxlength"); 
+          valInput.placeholder = `Máx: ${currentState.digits} dígitos`;
         }
       } catch (error) {
         notifyError(error.message);
@@ -149,7 +171,9 @@
 
     if (valInput) {
       valInput.addEventListener("input", () => {
-        enforceNumeric(valInput, currentState.digits);
+        // Usamos la cantidad de dígitos definida en la estructura actual
+        const limit = currentState.digits || parseInt(digitsEl.value) || 0;
+        enforceNumeric(valInput, limit);
       });
     }
 
@@ -199,7 +223,6 @@
       }
 
       const val = toDigits(valInput.value, currentState.digits);
-
       await binarySearchAnimation(val, currentState);
     });
 
