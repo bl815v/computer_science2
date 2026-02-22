@@ -151,7 +151,7 @@ class HashTable(BaseSearchService):
 				if self.data[index] == value:
 					raise ValueError(f'La clave {value} ya existe')
 				raise CollisionWithoutStrategyError(
-					f'Colisión en la dirección {index} para la clave {value}. '
+					f'Colisión en la dirección {index + 1} para la clave {value}. '
 					'Define una solución de colisión.'
 				)
 

@@ -3,6 +3,7 @@
 It integrates:
 - Linear search endpoints
 - Binary search endpoints
+- Hash table endpoints
 
 These routers are later included in the main FastAPI application
 to expose search functionalities via HTTP endpoints.
@@ -26,4 +27,5 @@ along with ComputerScience2. If not, see <https://www.gnu.org/licenses/>.
 """
 
 from app.controllers.search.binary_search import router as binary_search_router
+from app.controllers.search.hash.router import router as hash_router
 from app.controllers.search.linear_search import router as linear_search_router
