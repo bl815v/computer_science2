@@ -149,49 +149,63 @@
     }
 
     if (insertBtn && valueEl) {
-      insertBtn.addEventListener("click", async () => {
-        if (!state || state.size === 0) {
-          notifyError("Primero crea la estructura.");
-          return;
-        }
+  insertBtn.addEventListener("click", async () => {
 
-        enforceNumericDigits(valueEl, state.digits);
+    if (insertBtn.dataset.loading === "true") return;
+    insertBtn.dataset.loading = "true";
+    insertBtn.disabled = true;
 
-        if (!valueEl.value) {
-          notifyError("Ingresa una clave.");
-          return;
-        }
+    try {
+      if (!state || state.size === 0) {
+        notifyError("Primero crea la estructura.");
+        return;
+      }
 
-        const value = valueEl.value.padStart(state.digits, "0");
+      enforceNumericDigits(valueEl, state.digits);
 
-        try {
-          const res = await fetch(`${API_BASE}/insert`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ value }),
-          });
+      if (!valueEl.value) {
+        notifyError("Ingresa una clave.");
+        return;
+      }
 
-          if (!res.ok) {
-            const errorData = await res.json();
-            throw new Error(errorData.detail || "No se pudo insertar");
-          }
+      const value = valueEl.value.padStart(state.digits, "0");
 
-          await reload();
-
-          const positions = [];
-          state.data.forEach((v, i) => {
-            if (v === value) positions.push(i + 1);
-          });
-
-          await scanAnimation(state.size, positions, 300);
-
-          notifySuccess(`Clave ${value} insertada en la dirección ${positions[0]}`);
-          valueEl.value = "";
-        } catch (error) {
-          notifyError(error.message);
-        }
+      const res = await fetch(`${API_BASE}/insert`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value }),
       });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.detail || "No se pudo insertar");
+      }
+
+      await reload();
+
+      const positions = [];
+      state.data.forEach((v, i) => {
+        if (v === value) positions.push(i + 1);
+      });
+
+      await scanAnimation(state.size, positions, 300);
+
+      notifySuccess(
+        `Clave ${value} insertada en la dirección ${positions[0]}`
+      );
+
+      valueEl.value = "";
+
+    } catch (error) {
+      notifyError(error.message);
+    } finally {
+
+      insertBtn.disabled = false;
+      insertBtn.dataset.loading = "false";
     }
+
+  });
+}
 
     if (searchBtn && valueEl) {
       searchBtn.addEventListener("click", async () => {
@@ -299,8 +313,4 @@
   }
 
   window.initSimulator = initSecuencial;
-
-  if (document.getElementById("create-structure")) {
-    initSecuencial().catch(console.error);
-  }
 })();

@@ -2,6 +2,13 @@
   "use strict";
 
   function createModal(message, type = "info") {
+
+    //Eliminar modal anterior si existe
+    const existing = document.querySelector(".modal-overlay");
+    if (existing) {
+      existing.remove();
+    }
+
     // Overlay
     const overlay = document.createElement("div");
     overlay.className = "modal-overlay";

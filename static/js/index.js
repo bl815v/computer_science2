@@ -2,6 +2,19 @@ const appState = {
   loadedScripts: new Set(),
 };
 
+
+function setActiveRibbonButton(button) {
+  const container = button.closest(".ribbon-buttons");
+
+  if (container) {
+    container.querySelectorAll(".ribbon-btn").forEach(btn =>
+      btn.classList.remove("active")
+    );
+  }
+
+  button.classList.add("active");
+}
+
 /* ---------------- Tabs ---------------- */
 
 function setActiveTab(type) {
@@ -41,10 +54,16 @@ function showContent(type) {
     `;
 
     document.getElementById("btn-internas")
-      .addEventListener("click", showBusquedaInterna);
+      .addEventListener("click", function () {
+        setActiveRibbonButton(this);
+        showBusquedaInterna();
+      });
 
     document.getElementById("btn-externas")
-      .addEventListener("click", showBusquedaExterna);
+      .addEventListener("click", function () {
+        setActiveRibbonButton(this);
+        showBusquedaExterna();
+      });
   }
 }
 
@@ -70,8 +89,9 @@ function showBusquedaInterna() {
   `;
 
   lvl2.querySelectorAll("[data-page]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      loadExternalPage(btn.dataset.page);
+    btn.addEventListener("click", function () {
+      setActiveRibbonButton(this);
+      loadExternalPage(this.dataset.page);
     });
   });
 }

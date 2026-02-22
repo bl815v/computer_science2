@@ -168,3 +168,35 @@ p {
   margin-right: 5px;
   font-size: 13px;
 }
+
+/* Botones del ribbon */
+.ribbon-btn {
+  background: transparent;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+/* Hover suave */
+.ribbon-btn:hover:not(:disabled) {
+  background: #e5f1fb;
+}
+
+/* Activo principal */
+.ribbon-btn.active {
+  background: #cfe8ff;
+  color: #0078d4;
+  font-weight: 600;
+}
+
+/* Opcional: línea inferior azul tipo Word */
+.ribbon-btn.active::after {
+  content: "";
+  display: block;
+  height: 3px;
+  background: #0078d4;
+  margin-top: 4px;
+  border-radius: 2px;
+}
