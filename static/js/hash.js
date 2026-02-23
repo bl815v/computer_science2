@@ -17,7 +17,11 @@
 
   function toDigits(v, digits) {
     if (v === null || v === undefined || v === "") return "";
-    return String(v).padStart(digits, "0");
+    // Si el valor es numérico o string numérico, rellenar con ceros
+    if (!isNaN(v) && v !== "DELETED") {
+        return String(v).padStart(digits, "0");
+    }
+    return v;
   }
 
   function enforceNumericDigits(input, digits) {
@@ -158,7 +162,6 @@
           collisionMenu.style.display = "none";
           clearInput();
         } else {
-          // Detectar error de colisión específico
           if (data.detail && data.detail.includes("Colisión")) {
             notifyError(data.detail);
             collisionMenu.style.display = "flex";
@@ -167,7 +170,7 @@
           }
           clearInput();
         }
-      } catch (e) { notifyError("Error de conexión."); clearInput(); }
+      } catch (e) { notifyError("Error de conexión al insertar."); clearInput(); }
     });
 
     // --- Aplicar Colisión ---
@@ -194,7 +197,7 @@
       } catch (e) { notifyError("Error al aplicar estrategia."); clearInput(); }
     });
 
-    // --- BUSCAR (Reforzado) ---
+    // --- Buscar ---
     searchBtn.addEventListener("click", async () => {
       const rawValue = valInp.value.trim();
       if (!rawValue) { notifyError("Ingresa una clave."); clearInput(); return; }
@@ -207,20 +210,19 @@
         
         if (res.ok) {
           if (data.found) {
-            // Ajustamos las direcciones para que sean 0-based como la tabla visual
             const dirs = data.positions.map(p => p - 1).join(", ");
             notifySuccess(`Clave ${value} encontrada en Dir(s): ${dirs}`);
           } else {
-            notifyError(`La clave ${value} no existe en la tabla.`);
+            notifyError(`La clave ${value} no existe.`);
           }
         } else {
           notifyError(data.detail || "Error en la búsqueda.");
         }
-      } catch (e) { notifyError("Error de conexión."); }
+      } catch (e) { notifyError("Error de conexión al buscar."); }
       clearInput();
     });
 
-    // --- BORRAR (Reforzado) ---
+    // --- Borrar (CORREGIDO) ---
     deleteBtn.addEventListener("click", async () => {
       const rawValue = valInp.value.trim();
       if (!rawValue) { notifyError("Ingresa una clave."); clearInput(); return; }
@@ -232,16 +234,24 @@
         const data = await res.json();
 
         if (res.ok) {
+          // Refrescar tabla
           const stateRes = await fetch(`${API_BASE}/state`);
           renderGrid(await stateRes.json());
-          // Mostramos la dirección de donde se borró
-          const dirs = data.positions.map(p => p - 1).join(", ");
-          notifySuccess(`Clave ${value} eliminada de Dir: ${dirs}`);
+          
+          // Verificación segura de data.positions para evitar el crash
+          if (data && data.positions && Array.isArray(data.positions) && data.positions.length > 0) {
+            const dirs = data.positions.map(p => p - 1).join(", ");
+            notifySuccess(`Clave ${value} eliminada de Dir: ${dirs}`);
+          } else {
+            notifySuccess(`Clave ${value} eliminada.`);
+          }
         } else {
-          // Aquí saldrán mensajes como "El elemento no existe"
           notifyError(data.detail || "Error al eliminar.");
         }
-      } catch (e) { notifyError("Error de conexión."); }
+      } catch (e) { 
+        console.error("Error Delete:", e);
+        notifyError("Error al procesar la eliminación."); 
+      }
       clearInput();
     });
   }
