@@ -10,6 +10,7 @@
   }
 
   function toDigits(v, digits) {
+    if (v === null || v === undefined || v === "") return "";
     return String(v).padStart(digits, "0");
   }
 
@@ -37,31 +38,35 @@
       const val = state.data[i];
       const cell = document.createElement("div");
       cell.className = "cell";
-      if (val == null) cell.classList.add("empty");
+      if (val == null || val === "") cell.classList.add("empty");
       cell.dataset.index = String(i + 1);
-      cell.textContent = val == null ? "" : toDigits(val, state.digits);
+      cell.textContent = (val == null || val === "") ? "" : toDigits(val, state.digits);
       grid.appendChild(cell);
     }
   }
 
-  async function scanAnimation(size, positions1B, stepMs = 450) {
+  // --- ANIMACIÓN CON DETECCIÓN VISUAL ---
+  async function scanAnimation(targetValue, state, stepMs = 450) {
     const grid = document.getElementById("visualization");
-    if (!grid) return;
-
-    // CORRECCIÓN: Convertimos a números explícitamente y restamos 1 para el índice 0
-    const foundSet = new Set(positions1B.map((p) => Number(p) - 1));
+    if (!grid) return { found: false, position: -1 };
     const cells = grid.querySelectorAll(".cell");
+    let foundAny = false;
+    let foundIndex = -1;
 
-    // Limpieza inicial
     cells.forEach((c) => c.classList.remove("active", "found", "not-found", "visited"));
 
-    for (let i = 0; i < size; i++) {
+    for (let i = 0; i < state.size; i++) {
       cells.forEach((c) => c.classList.remove("active"));
       cells[i].classList.add("active");
 
-      // Verificamos si el índice actual está en el Set de encontrados
-      if (foundSet.has(i)) {
+      const cellContent = cells[i].textContent.trim();
+      const normalizedTarget = String(targetValue).trim();
+
+      if (cellContent !== "" && cellContent === normalizedTarget) {
         cells[i].classList.add("found");
+        foundAny = true;
+        foundIndex = i + 1;
+        break;
       } else {
         cells[i].classList.add("visited");
       }
@@ -69,8 +74,7 @@
       await sleep(stepMs);
     }
 
-    // Al terminar el recorrido
-    if (foundSet.size === 0) {
+    if (!foundAny) {
       cells.forEach((c) => {
         c.classList.remove("active");
         c.classList.add("not-found");
@@ -78,23 +82,26 @@
       await sleep(1000);
       cells.forEach((c) => c.classList.remove("not-found", "visited"));
     } else {
-      // Si encontró algo, quitamos el foco activo pero dejamos el éxito visible un momento
       cells.forEach((c) => c.classList.remove("active"));
       await sleep(1500); 
       cells.forEach((c) => c.classList.remove("found", "visited"));
     }
+    return { found: foundAny, position: foundIndex };
   }
 
   function enforceNumericDigits(input, digits) {
     const originalValue = input.value;
-    input.value = input.value.replace(/\D+/g, "");
-    if (digits > 0 && originalValue.length > digits) {
-      input.value = originalValue.slice(0, digits);
+    const numericValue = originalValue.replace(/\D+/g, "");
+    
+    if (digits > 0 && numericValue.length > digits) {
+      input.value = numericValue.slice(0, digits);
       if (!isNotifying) {
         isNotifying = true;
         notifyError(`La clave solo puede tener ${digits} dígitos.`);
-        setTimeout(() => { isNotifying = false; }, 500);
+        setTimeout(() => { isNotifying = false; }, 1500);
       }
+    } else {
+      input.value = numericValue;
     }
   }
 
@@ -110,15 +117,15 @@
 
     if (!sizeEl || !digitsEl || !createBtn) return;
 
-    let state = null;
+    let state = { size: 0, digits: 0, data: [] };
 
     async function reload() {
       state = await fetchState();
       renderGrid(state);
       if (actions) actions.style.display = state.size > 0 ? "block" : "none";
-      if (valueEl && state.digits > 0) {
-        valueEl.maxLength = state.digits + 1;
-        valueEl.placeholder = `Ej: ${toDigits(1, state.digits)}`;
+      if (valueEl) {
+        valueEl.removeAttribute("maxlength");
+        valueEl.placeholder = state.digits > 0 ? `Máx: ${state.digits} dígitos` : "Clave";
       }
     }
 
@@ -131,7 +138,7 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ size, digits }),
         });
-        if (!response.ok) throw new Error("Error creando estructura");
+        if (!response.ok) throw new Error("Error al crear estructura");
         await reload();
         notifySuccess("Estructura creada correctamente.");
       } catch (error) {
@@ -141,22 +148,22 @@
 
     if (valueEl) {
       valueEl.addEventListener("input", () => {
-        const d = state?.digits || parseInt(digitsEl.value) || 0;
+        const d = state.digits || parseInt(digitsEl.value) || 0;
         enforceNumericDigits(valueEl, d);
       });
     }
 
+    // INSERTAR
     if (insertBtn && valueEl) {
       insertBtn.addEventListener("click", async () => {
-        if (insertBtn.dataset.loading === "true") return;
+        if (insertBtn.disabled) return;
         try {
-          if (!state || state.size === 0) throw new Error("Primero crea la estructura.");
+          if (!state.size) throw new Error("Primero crea la estructura.");
           if (!valueEl.value) throw new Error("Ingresa una clave.");
 
-          insertBtn.dataset.loading = "true";
           insertBtn.disabled = true;
+          const value = toDigits(valueEl.value, state.digits);
 
-          const value = valueEl.value.padStart(state.digits, "0");
           const res = await fetch(`${API_BASE}/insert`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -168,68 +175,63 @@
             throw new Error(errorData.detail || "No se pudo insertar");
           }
 
-          // Obtenemos el nuevo estado ANTES de la animación para ver el valor puesto
-          state = await fetchState();
-          renderGrid(state);
-
-          const positions = [];
-          state.data.forEach((v, i) => {
-            if (v === value) positions.push(i + 1);
-          });
-
-          await scanAnimation(state.size, positions, 300);
-          notifySuccess(`Clave ${value} insertada correctamente.`);
+          await reload(); 
+          const result = await scanAnimation(value, state, 300); 
+          notifySuccess(`Clave ${value} insertada correctamente en la dirección ${result.position}.`);
           valueEl.value = "";
         } catch (error) {
           notifyError(error.message);
         } finally {
           insertBtn.disabled = false;
-          insertBtn.dataset.loading = "false";
         }
       });
     }
 
+    // BUSCAR
     if (searchBtn && valueEl) {
       searchBtn.addEventListener("click", async () => {
-        if (!state || state.size === 0) return notifyError("Primero crea la estructura.");
+        if (!state.size) return notifyError("Estructura no inicializada.");
         if (!valueEl.value) return notifyError("Ingresa una clave.");
-        const value = valueEl.value.padStart(state.digits, "0");
-        try {
-          const res = await fetch(`${API_BASE}/search/${encodeURIComponent(value)}`);
-          const body = await res.json();
-          const positions = Array.isArray(body.positions) ? body.positions : [];
+        
+        const value = toDigits(valueEl.value, state.digits);
+        const result = await scanAnimation(value, state, 350);
 
-          await scanAnimation(state.size, positions, 350);
-
-          if (positions.length) {
-            notifySuccess(`Clave ${value} encontrada.`);
-          } else {
-            notifyError(`Clave ${value} no encontrada.`);
-          }
-        } catch (error) {
-          notifyError("Error en la búsqueda");
+        if (result.found) {
+          notifySuccess(`Clave ${value} encontrada en la dirección ${result.position}.`);
+        } else {
+          notifyError(`Clave ${value} no encontrada.`);
         }
       });
     }
 
+    // BORRAR
     if (deleteBtn && valueEl) {
       deleteBtn.addEventListener("click", async () => {
-        if (!state || state.size === 0) return;
+        if (!state.size) return;
         if (!valueEl.value) return;
-        const value = valueEl.value.padStart(state.digits, "0");
+        
+        const value = toDigits(valueEl.value, state.digits);
+        
         try {
-          const preview = [];
-          state.data.forEach((v, i) => { if (v === value) preview.push(i + 1); });
-          await scanAnimation(state.size, preview, 300);
+          const result = await scanAnimation(value, state, 300);
+          if (!result.found) {
+            notifyError("No se encontró el valor para eliminar.");
+            return;
+          }
 
-          const res = await fetch(`${API_BASE}/delete/${encodeURIComponent(value)}`, { method: "DELETE" });
-          const body = await res.json();
-          await reload();
-          if (body.deleted_positions?.length) notifySuccess("Eliminado correctamente.");
-          else notifyError("No se encontró el valor.");
-          valueEl.value = "";
+          const res = await fetch(`${API_BASE}/delete/${encodeURIComponent(value)}`, { 
+            method: "DELETE" 
+          });
+          
+          if (res.ok) {
+            await reload();
+            notifySuccess(`Clave ${value} eliminada de la dirección ${result.position}.`);
+            valueEl.value = "";
+          } else {
+            notifyError("Error al procesar la eliminación.");
+          }
         } catch (error) {
-          notifyError("Error al borrar");
+          notifyError("Error de conexión.");
         }
       });
     }
