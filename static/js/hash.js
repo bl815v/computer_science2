@@ -39,12 +39,12 @@
   function validateKey(val) {
     if (!val) {
       notifyError("Ingresa una clave.");
-      clearInput(); // Limpiar si está vacío (por si acaso)
+      clearInput();
       return false;
     }
     if (val.length !== currentDigits) {
       notifyError(`La clave debe tener exactamente ${currentDigits} dígitos.`);
-      clearInput(); // Limpiar si la longitud es incorrecta
+      clearInput();
       return false;
     }
     return true;
@@ -119,7 +119,10 @@
           body: JSON.stringify({ size, digits })
         });
 
-        if (!res.ok) throw new Error();
+        if (!res.ok) {
+           const errData = await res.json();
+           throw new Error(errData.detail || "Error al crear");
+        }
 
         const stateRes = await fetch(`${API_BASE}/state`);
         renderGrid(await stateRes.json());
@@ -128,21 +131,15 @@
         document.getElementById("actions-section").style.display = "block";
         notifySuccess(`Estructura lista para ${digits} dígitos.`);
         clearInput();
-      } catch (err) { notifyError("Error al inicializar."); }
+      } catch (err) { notifyError(err.message); }
     });
 
     // --- Insertar ---
     insertBtn.addEventListener("click", async () => {
       const rawValue = valInp.value.trim();
-      if (!rawValue) {
-        notifyError("Ingresa una clave.");
-        clearInput();
-        return;
-      }
-      
+      if (!rawValue) { notifyError("Ingresa una clave."); clearInput(); return; }
       const value = toDigits(rawValue, currentDigits);
       if (!validateKey(value)) return;
-      
       lastValueAttempt = rawValue;
 
       try {
@@ -161,19 +158,16 @@
           collisionMenu.style.display = "none";
           clearInput();
         } else {
-          // Si hay error (colisión o tabla llena), notificamos y LIMPIAMOS
-          if (data.detail.includes("Colisión")) {
-            notifyError("¡Colisión! Elige estrategia.");
+          // Detectar error de colisión específico
+          if (data.detail && data.detail.includes("Colisión")) {
+            notifyError(data.detail);
             collisionMenu.style.display = "flex";
           } else {
-            notifyError(data.detail);
+            notifyError(data.detail || "Error al insertar");
           }
-          clearInput(); // Agiliza el reintento o nueva entrada
+          clearInput();
         }
-      } catch (e) { 
-        notifyError("Error en la petición."); 
-        clearInput();
-      }
+      } catch (e) { notifyError("Error de conexión."); clearInput(); }
     });
 
     // --- Aplicar Colisión ---
@@ -191,57 +185,64 @@
         if (res.ok) {
           collisionMenu.style.display = "none";
           notifySuccess(`Estrategia aplicada. Reintentando...`);
-          // Aquí ponemos el valor que falló para que el usuario no lo escriba de nuevo
           valInp.value = lastValueAttempt;
           insertBtn.click();
+        } else {
+           const data = await res.json();
+           notifyError(data.detail || "No se pudo aplicar la estrategia.");
         }
-      } catch (e) { 
-        notifyError("Error al aplicar estrategia."); 
-        clearInput();
-      }
+      } catch (e) { notifyError("Error al aplicar estrategia."); clearInput(); }
     });
 
-    // --- Buscar ---
+    // --- BUSCAR (Reforzado) ---
     searchBtn.addEventListener("click", async () => {
       const rawValue = valInp.value.trim();
-      if (!rawValue) {
-        notifyError("Ingresa una clave.");
-        clearInput();
-        return;
-      }
-      
+      if (!rawValue) { notifyError("Ingresa una clave."); clearInput(); return; }
       const value = toDigits(rawValue, currentDigits);
       if (!validateKey(value)) return;
 
-      const res = await fetch(`${API_BASE}/search/${value}`);
-      const data = await res.json();
-      if (data.found) notifySuccess(`Encontrado ${value} en Dir(s): ${data.positions.map(p => p-1).join(", ")}`);
-      else notifyError("No encontrado.");
-      
-      clearInput(); // Siempre limpiar después de buscar
+      try {
+        const res = await fetch(`${API_BASE}/search/${value}`);
+        const data = await res.json();
+        
+        if (res.ok) {
+          if (data.found) {
+            // Ajustamos las direcciones para que sean 0-based como la tabla visual
+            const dirs = data.positions.map(p => p - 1).join(", ");
+            notifySuccess(`Clave ${value} encontrada en Dir(s): ${dirs}`);
+          } else {
+            notifyError(`La clave ${value} no existe en la tabla.`);
+          }
+        } else {
+          notifyError(data.detail || "Error en la búsqueda.");
+        }
+      } catch (e) { notifyError("Error de conexión."); }
+      clearInput();
     });
 
-    // --- Borrar ---
+    // --- BORRAR (Reforzado) ---
     deleteBtn.addEventListener("click", async () => {
       const rawValue = valInp.value.trim();
-      if (!rawValue) {
-        notifyError("Ingresa una clave.");
-        clearInput();
-        return;
-      }
-
+      if (!rawValue) { notifyError("Ingresa una clave."); clearInput(); return; }
       const value = toDigits(rawValue, currentDigits);
       if (!validateKey(value)) return;
 
-      const res = await fetch(`${API_BASE}/delete/${value}`, { method: "DELETE" });
-      if (res.ok) {
-        const stateRes = await fetch(`${API_BASE}/state`);
-        renderGrid(await stateRes.json());
-        notifySuccess(`Clave ${value} eliminada.`);
-      } else {
-        notifyError("No se pudo eliminar.");
-      }
-      clearInput(); // Siempre limpiar después de borrar
+      try {
+        const res = await fetch(`${API_BASE}/delete/${value}`, { method: "DELETE" });
+        const data = await res.json();
+
+        if (res.ok) {
+          const stateRes = await fetch(`${API_BASE}/state`);
+          renderGrid(await stateRes.json());
+          // Mostramos la dirección de donde se borró
+          const dirs = data.positions.map(p => p - 1).join(", ");
+          notifySuccess(`Clave ${value} eliminada de Dir: ${dirs}`);
+        } else {
+          // Aquí saldrán mensajes como "El elemento no existe"
+          notifyError(data.detail || "Error al eliminar.");
+        }
+      } catch (e) { notifyError("Error de conexión."); }
+      clearInput();
     });
   }
 
