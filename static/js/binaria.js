@@ -40,24 +40,29 @@
       const val = state.data[i];
       const cell = document.createElement("div");
       cell.className = "cell";
-      if (val == null) cell.classList.add("empty");
-      cell.dataset.index = i + 1;
-      cell.textContent = val == null ? "" : val;
+      
+      // Si la celda es null o está vacía, aplicamos clase empty
+      if (val == null || val === "") {
+        cell.classList.add("empty");
+        cell.textContent = ""; 
+      } else {
+        cell.dataset.index = i + 1;
+        cell.textContent = val;
+      }
       grid.appendChild(cell);
     }
   }
 
-  // --- ANIMACIÓN ACTUALIZADA CON RESET FINAL ---
   async function binarySearchAnimation(targetValue, state) {
     const cells = document.querySelectorAll("#bin-visualization .cell");
-    const validData = state.data.filter((v) => v !== null);
+    // Solo tomamos en cuenta los datos que no son null para el algoritmo
+    const validData = state.data.filter((v) => v !== null && v !== "");
     const validLength = validData.length;
 
     let left = 0;
     let right = validLength - 1;
     let found = false;
 
-    // Limpieza previa antes de empezar una nueva búsqueda
     cells.forEach((c) => c.classList.remove("active", "found", "discarded"));
 
     while (left <= right) {
@@ -66,28 +71,25 @@
       cells[mid].classList.add("active");
       await sleep(800);
 
-      // Usamos trim() y String() para asegurar que la comparación sea exacta
       const midValue = String(state.data[mid]).trim();
       const searchValue = String(targetValue).trim();
 
       if (midValue === searchValue) {
         cells[mid].classList.remove("active");
         cells[mid].classList.add("found");
-        notifySuccess(`Valor ${targetValue} encontrado en posición ${mid + 1}.`);
+        notifySuccess(`Valor ${targetValue} encontrado en dirección ${mid + 1}.`);
         found = true;
-        break; // Salimos del bucle si lo encontramos
+        break; 
       }
 
       cells[mid].classList.remove("active");
 
       if (midValue < searchValue) {
-        // Descartar lado izquierdo
         for (let i = left; i <= mid; i++) {
           cells[i].classList.add("discarded");
         }
         left = mid + 1;
       } else {
-        // Descartar lado derecho
         for (let i = mid; i <= right; i++) {
           cells[i].classList.add("discarded");
         }
@@ -100,14 +102,12 @@
       notifyError(`Valor ${targetValue} no encontrado.`);
     }
 
-    // --- BLOQUE DE RESET FINAL ---
-    // Esperamos 2 segundos para que el cliente vea el resultado final
     await sleep(2000);
-
-    // Removemos todas las clases para que la tabla vuelva a la normalidad
     cells.forEach((c) => {
       c.classList.remove("active", "found", "discarded");
     });
+
+    return found;
   }
 
   async function initBinaria() {
@@ -117,6 +117,7 @@
     const createBtn = document.getElementById("bin-create-btn");
     const insertBtn = document.getElementById("bin-insert-btn");
     const searchBtn = document.getElementById("bin-search-btn");
+    const deleteBtn = document.getElementById("bin-delete-btn");
 
     if (!sizeEl || !digitsEl || !createBtn) return;
 
@@ -142,7 +143,7 @@
       const digits = parseInt(digitsEl.value);
       if (!size || !digits) return notifyError("Datos incompletos.");
       try {
-        const res = await fetch(`${API_BASE}/create`, {
+        await fetch(`${API_BASE}/create`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ size, digits }),
@@ -161,20 +162,32 @@
       });
     }
 
+    // --- LOGICA DE INSERCIÓN CORREGIDA ---
     insertBtn.addEventListener("click", async () => {
       if (!currentState.size) return notifyError("Crea la estructura primero.");
       if (!valInput.value) return notifyError("Ingresa un valor.");
+      
       const val = toDigits(valInput.value, currentState.digits);
+
       try {
-        await fetch(`${API_BASE}/insert`, {
+        const res = await fetch(`${API_BASE}/insert`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ value: val }),
         });
+
+        // Verificamos si la respuesta es exitosa (200-299)
+        if (!res.ok) {
+          const err = await res.json();
+          // Lanza el error del backend (Estructura llena / Duplicado)
+          throw new Error(err.detail || "Error en la inserción");
+        }
+
         await reload();
         notifySuccess(`Valor ${val} insertado.`);
         valInput.value = "";
       } catch (error) {
+        // Muestra el mensaje de error específico en el modal
         notifyError(error.message);
       }
     });
@@ -183,9 +196,39 @@
       if (!currentState.size) return notifyError("Crea la estructura.");
       if (!valInput.value) return notifyError("Ingresa valor.");
       const val = toDigits(valInput.value, currentState.digits);
-      // Llamamos a la animación que ahora tiene reset incluido
       await binarySearchAnimation(val, currentState);
     });
+
+    if (deleteBtn) {
+      deleteBtn.addEventListener("click", async () => {
+        if (!currentState.size) return notifyError("Crea la estructura.");
+        if (!valInput.value) return notifyError("Ingresa el valor a eliminar.");
+
+        const val = toDigits(valInput.value, currentState.digits);
+
+        try {
+          const found = await binarySearchAnimation(val, currentState);
+
+          if (found) {
+            const res = await fetch(`${API_BASE}/delete/${encodeURIComponent(val)}`, {
+              method: "DELETE",
+            });
+
+            if (!res.ok) {
+              const err = await res.json();
+              throw new Error(err.detail || "Error al eliminar");
+            }
+
+            const data = await res.json();
+            await reload();
+            notifySuccess(`Valor ${val} eliminado.`);
+            valInput.value = "";
+          }
+        } catch (error) {
+          notifyError(error.message);
+        }
+      });
+    }
 
     await reload();
   }
