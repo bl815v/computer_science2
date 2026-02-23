@@ -1,16 +1,8 @@
 /* eslint-disable no-console */
-/**
- * Sequential (frontend)
- * - Supported by FastAPI backend (/linear-search)
- * - UI + animations only
- * - Uses global notification system (notifications.js)
- */
-
 (() => {
   "use strict";
 
   const API_BASE = "http://127.0.0.1:8000/linear-search";
-  // Variable de control para no saturar con múltiples modales
   let isNotifying = false;
 
   function sleep(ms) {
@@ -40,16 +32,12 @@
   function renderGrid(state) {
     const grid = document.getElementById("visualization");
     if (!grid) return;
-
     grid.innerHTML = "";
-    grid.className = "";
-
     for (let i = 0; i < state.size; i++) {
       const val = state.data[i];
       const cell = document.createElement("div");
       cell.className = "cell";
       if (val == null) cell.classList.add("empty");
-
       cell.dataset.index = String(i + 1);
       cell.textContent = val == null ? "" : toDigits(val, state.digits);
       grid.appendChild(cell);
@@ -60,56 +48,52 @@
     const grid = document.getElementById("visualization");
     if (!grid) return;
 
-    const foundSet = new Set(positions1B.map((p) => p - 1));
+    // CORRECCIÓN: Convertimos a números explícitamente y restamos 1 para el índice 0
+    const foundSet = new Set(positions1B.map((p) => Number(p) - 1));
     const cells = grid.querySelectorAll(".cell");
 
-    cells.forEach((c) => c.classList.remove("active", "found", "not-found"));
+    // Limpieza inicial
+    cells.forEach((c) => c.classList.remove("active", "found", "not-found", "visited"));
 
     for (let i = 0; i < size; i++) {
       cells.forEach((c) => c.classList.remove("active"));
       cells[i].classList.add("active");
 
-      if (foundSet.has(i)) cells[i].classList.add("found");
+      // Verificamos si el índice actual está en el Set de encontrados
+      if (foundSet.has(i)) {
+        cells[i].classList.add("found");
+      } else {
+        cells[i].classList.add("visited");
+      }
 
       await sleep(stepMs);
     }
 
+    // Al terminar el recorrido
     if (foundSet.size === 0) {
       cells.forEach((c) => {
         c.classList.remove("active");
         c.classList.add("not-found");
       });
-      await sleep(800);
-      cells.forEach((c) => c.classList.remove("not-found"));
+      await sleep(1000);
+      cells.forEach((c) => c.classList.remove("not-found", "visited"));
     } else {
-      await sleep(600);
-      cells.forEach((c) => c.classList.remove("active", "found"));
+      // Si encontró algo, quitamos el foco activo pero dejamos el éxito visible un momento
+      cells.forEach((c) => c.classList.remove("active"));
+      await sleep(1500); 
+      cells.forEach((c) => c.classList.remove("found", "visited"));
     }
   }
 
-  /**
-   * Valida la entrada numérica y dispara notificación si excede los dígitos
-   */
   function enforceNumericDigits(input, digits) {
     const originalValue = input.value;
-    
-    // Solo permitimos números
     input.value = input.value.replace(/\D+/g, "");
-
-    // Si el largo actual supera el límite permitido
     if (digits > 0 && originalValue.length > digits) {
       input.value = originalValue.slice(0, digits);
-
-      // Si no hay una notificación activa en este momento, la mostramos
       if (!isNotifying) {
         isNotifying = true;
         notifyError(`La clave solo puede tener ${digits} dígitos.`);
-        
-        // Pequeño delay para permitir que el usuario cierre la ventana 
-        // antes de poder activar otra por error
-        setTimeout(() => {
-          isNotifying = false;
-        }, 500);
+        setTimeout(() => { isNotifying = false; }, 500);
       }
     }
   }
@@ -124,50 +108,36 @@
     const searchBtn = document.getElementById("search-btn");
     const deleteBtn = document.getElementById("delete-btn");
 
-    if (!sizeEl || !digitsEl || !createBtn) {
-      console.warn("[secuencial] Faltan elementos del DOM.");
-      return;
-    }
+    if (!sizeEl || !digitsEl || !createBtn) return;
 
     let state = null;
 
     async function reload() {
       state = await fetchState();
       renderGrid(state);
-
       if (actions) actions.style.display = state.size > 0 ? "block" : "none";
-
       if (valueEl && state.digits > 0) {
-        valueEl.maxLength = state.digits + 1; // +1 para capturar el exceso y detonar el error
+        valueEl.maxLength = state.digits + 1;
         valueEl.placeholder = `Ej: ${toDigits(1, state.digits)}`;
       }
     }
 
-    async function createStructure() {
+    createBtn.addEventListener("click", async () => {
       const size = parseInt(sizeEl.value) || 5;
       const digits = parseInt(digitsEl.value) || 2;
-
       try {
         const response = await fetch(`${API_BASE}/create`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ size, digits }),
         });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.detail || "Error creando estructura");
-        }
-
+        if (!response.ok) throw new Error("Error creando estructura");
         await reload();
         notifySuccess("Estructura creada correctamente.");
       } catch (error) {
         notifyError(error.message);
-        if (valueEl) resetInput(valueEl);
       }
-    }
-
-    createBtn.addEventListener("click", createStructure);
+    });
 
     if (valueEl) {
       valueEl.addEventListener("input", () => {
@@ -179,22 +149,14 @@
     if (insertBtn && valueEl) {
       insertBtn.addEventListener("click", async () => {
         if (insertBtn.dataset.loading === "true") return;
-        insertBtn.dataset.loading = "true";
-        insertBtn.disabled = true;
-
         try {
-          if (!state || state.size === 0) {
-            notifyError("Primero crea la estructura.");
-            return;
-          }
+          if (!state || state.size === 0) throw new Error("Primero crea la estructura.");
+          if (!valueEl.value) throw new Error("Ingresa una clave.");
 
-          if (!valueEl.value) {
-            notifyError("Ingresa una clave.");
-            return;
-          }
+          insertBtn.dataset.loading = "true";
+          insertBtn.disabled = true;
 
           const value = valueEl.value.padStart(state.digits, "0");
-
           const res = await fetch(`${API_BASE}/insert`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -206,7 +168,9 @@
             throw new Error(errorData.detail || "No se pudo insertar");
           }
 
-          await reload();
+          // Obtenemos el nuevo estado ANTES de la animación para ver el valor puesto
+          state = await fetchState();
+          renderGrid(state);
 
           const positions = [];
           state.data.forEach((v, i) => {
@@ -214,12 +178,10 @@
           });
 
           await scanAnimation(state.size, positions, 300);
-          notifySuccess(`Clave ${value} insertada en la dirección ${positions[0]}`);
+          notifySuccess(`Clave ${value} insertada correctamente.`);
           valueEl.value = "";
-
         } catch (error) {
           notifyError(error.message);
-          resetInput(valueEl);
         } finally {
           insertBtn.disabled = false;
           insertBtn.dataset.loading = "false";
@@ -229,91 +191,50 @@
 
     if (searchBtn && valueEl) {
       searchBtn.addEventListener("click", async () => {
-        if (!state || state.size === 0) {
-          notifyError("Primero crea la estructura.");
-          return;
-        }
-
-        if (!valueEl.value) {
-          notifyError("Ingresa una clave.");
-          return;
-        }
-
+        if (!state || state.size === 0) return notifyError("Primero crea la estructura.");
+        if (!valueEl.value) return notifyError("Ingresa una clave.");
         const value = valueEl.value.padStart(state.digits, "0");
-
         try {
           const res = await fetch(`${API_BASE}/search/${encodeURIComponent(value)}`);
-          if (!res.ok) {
-            const errorData = await res.json();
-            throw new Error(errorData.detail || "Error en la búsqueda");
-          }
-
           const body = await res.json();
           const positions = Array.isArray(body.positions) ? body.positions : [];
 
           await scanAnimation(state.size, positions, 350);
 
           if (positions.length) {
-            notifySuccess(`Clave ${value} encontrada en posiciones: ${positions.join(", ")}`);
+            notifySuccess(`Clave ${value} encontrada.`);
           } else {
             notifyError(`Clave ${value} no encontrada.`);
           }
         } catch (error) {
-          notifyError(error.message);
-          resetInput(valueEl);
+          notifyError("Error en la búsqueda");
         }
       });
     }
 
     if (deleteBtn && valueEl) {
       deleteBtn.addEventListener("click", async () => {
-        if (!state || state.size === 0) {
-          notifyError("Primero crea la estructura.");
-          return;
-        }
-
-        if (!valueEl.value) {
-          notifyError("Ingresa una clave.");
-          return;
-        }
-
+        if (!state || state.size === 0) return;
+        if (!valueEl.value) return;
         const value = valueEl.value.padStart(state.digits, "0");
-
         try {
           const preview = [];
-          state.data.forEach((v, i) => {
-            if (v === value) preview.push(i + 1);
-          });
-
+          state.data.forEach((v, i) => { if (v === value) preview.push(i + 1); });
           await scanAnimation(state.size, preview, 300);
 
           const res = await fetch(`${API_BASE}/delete/${encodeURIComponent(value)}`, { method: "DELETE" });
-          if (!res.ok) {
-            const errorData = await res.json();
-            throw new Error(errorData.detail || "No se pudo eliminar");
-          }
-
           const body = await res.json();
           await reload();
-
-          if (body.deleted_positions?.length) {
-            notifySuccess(`Eliminado en posiciones: ${body.deleted_positions.join(", ")}`);
-          } else {
-            notifyInfo("No había ocurrencias para eliminar.");
-          }
+          if (body.deleted_positions?.length) notifySuccess("Eliminado correctamente.");
+          else notifyError("No se encontró el valor.");
           valueEl.value = "";
         } catch (error) {
-          notifyError(error.message);
-          resetInput(valueEl);
+          notifyError("Error al borrar");
         }
       });
     }
 
-    try {
-      await reload();
-    } catch {
-      console.info("[secuencial] Esperando creación de estructura…");
-    }
+    await reload();
   }
 
   window.initSimulator = initSecuencial;

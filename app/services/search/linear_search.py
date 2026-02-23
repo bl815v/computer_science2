@@ -55,4 +55,4 @@ class LinearSearchService(BaseSearchService):
 		if len(value) != self.digits or not value.isdigit():
 			return []
 
-		return [i + 1 for i, v in enumerate(self.data) if v == value]
+		return [i + 1 for i, v in enumerate(self.data) if str(v).zfill(self.digits) == value]

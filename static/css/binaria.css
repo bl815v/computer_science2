@@ -45,4 +45,11 @@
 
 .cell {
   animation: slideIn 0.3s ease forwards;
+  transition: background-color 0.5s ease, color 0.5s ease, opacity 0.5s ease;
+}
+
+.cell.discarded {
+  background-color: #f3f2f1 !important;
+  color: #c8c6c4 !important;
+  opacity: 0.5;
 }

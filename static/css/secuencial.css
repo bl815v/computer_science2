@@ -34,3 +34,18 @@
   transform: scale(1.02);
   z-index: 10;
 }
+
+/* Animación de éxito cuando se encuentra el valor */
+@keyframes successPulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 rgba(16, 124, 16, 0); }
+  50% { transform: scale(1.1); box-shadow: 0 0 20px rgba(16, 124, 16, 0.4); }
+  100% { transform: scale(1); box-shadow: 0 0 0 rgba(16, 124, 16, 0); }
+}
+
+.cell.found {
+  background-color: #dff6dd !important; 
+  color: #107c10 !important;
+  border: 2px solid #107c10 !important;
+  z-index: 20;
+  animation: successPulse 0.6s ease-out; /* Se dispara al añadir la clase */
+}

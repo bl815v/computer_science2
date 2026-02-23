@@ -235,3 +235,9 @@ button.danger:hover { background: var(--ms-error); color: white; }
   margin-right: 5px;
   font-size: 13px;
 }
+
+/* Celdas ya escaneadas que no fueron el objetivo */
+.cell.visited {
+    background-color: #faf9f8;
+    color: #a19f9d;
+}
