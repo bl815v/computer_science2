@@ -1,130 +1,36 @@
-/* ================================
-   Fluent UI – Secuencial Simulator
-   ================================ */
+/* =======================================================
+   Fluent UI – Sequential Search Specific Styles
+   ======================================================= */
 
-:root {
-  --ms-blue: #0078d4;
-  --ms-blue-hover: #106ebe;
-  --ms-bg: #ffffff;
-  --ms-panel: #faf9f8;
-  --ms-border: #e1dfdd;
-  --ms-text: #323130;
-  --ms-success: #107c10;
-  --ms-error: #d13438;
-  --ms-info: #605e5c;
-}
-
-/* Container Principal - CENTRADO */
+/* Contenedor específico */
 .secuencial-container {
-  width: 100%; /* Permite que ocupe el ancho del main */
+  width: 100%;
   max-width: 900px;
   display: flex;
   flex-direction: column;
-  align-items: center; /* Alinea cards y wrapper al centro */
+  align-items: center;
   margin: 0 auto;
 }
 
-/* Cards */
-.card {
-  background: #ffffff;
-  border: 1px solid var(--ms-border);
-  border-radius: 4px;
-  padding: 16px;
-  margin-bottom: 16px;
-  width: 100%; /* Ocupa el ancho del container */
-  box-sizing: border-box;
+/* --- Estados de Celda exclusivos de Secuencial --- */
+
+/* Efecto cuando no se encuentra el valor tras el escaneo */
+.cell.not-found {
+  background-color: #fde7e9 !important; /* Rojo muy claro estilo Excel/Word */
+  color: var(--ms-error) !important;
+  transition: background-color 0.5s ease;
 }
 
-/* Filas de botones */
-.row {
-  display: flex;
-  align-items: center;
-  justify-content: center; /* Centra los botones dentro de la card */
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-/* Inputs y Labels */
-label { font-weight: 600; margin-right: 8px; }
-input {
-  padding: 6px 8px;
-  border: 1px solid var(--ms-border);
-  border-radius: 2px;
-  font-family: inherit;
-}
-
-/* Botones */
-button {
-  padding: 8px 20px !important;
-  border-radius: 2px !important;
-  border: 1px solid var(--ms-border);
-  background: white;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 14px !important;
-}
-
-button.primary { background: var(--ms-blue); color: white; border-color: var(--ms-blue); }
-button.danger { border-color: var(--ms-error); color: var(--ms-error); }
-
-/* ================================
-   VISUALIZACIÓN (LA COLUMNA)
-   ================================ */
-
-.visual-wrapper {
-  display: flex;
-  justify-content: center;
-  width: 100%;
-}
-
+/* Ajuste de visualización */
 #visualization {
-  display: flex;
-  flex-direction: column;
-  align-items: right; /* Alinea a la derecha */
-  width: fit-content; /* Importante: para que no ocupe todo el ancho */
-  margin: 0 auto;     /* Centra el bloque de celdas */
-  border: 1px solid #c8c6c4; /* Borde exterior para que parezca una tabla */
+  /* Estilos base heredados de index.css, aquí solo definimos márgenes */
+  margin-bottom: 40px;
 }
 
-/* Modifica esto en secuencial.css */
-.cell {
-  position: relative !important;
-  width: 80px !important;      /* Cambiado de 100% a un valor fijo */
-  height: 60px !important;
-  border: none !important;
-  border-bottom: 1px solid #c8c6c4 !important;
-  background: #ffffff !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  font-size: 24px !important;
-  font-weight: 500 !important;
-  box-sizing: border-box !important;
-  margin: 0 !important;
-}
-
-.cell:last-child {
-  border-bottom: none !important;
-}
-
-/* Números de índice a la izquierda */
-.cell::before {
-  content: attr(data-index) !important;
-  position: absolute !important;
-  left: -30px !important;         /* Posición a la izquierda fuera de la caja */
-  font-weight: bold !important;
-  font-size: 14px !important;
-  color: #323130 !important;
-}
-
-/* Celda seleccionada/activa (efecto de la imagen) */
+/* Animación de "latido" para la celda activa durante el escaneo */
 .cell.active {
-  background: #edebe9 !important; 
-  outline: 2px solid #605e5c !important; /* El borde oscuro que se ve en la imagen */
-  z-index: 2; /* Para que el outline tape los bordes de las celdas vecinas */
-}
-
-.cell.found {
-  background: #dff6dd !important; 
-  color: #107c10 !important;
+  /* Hereda el borde de index.css, añadimos una pequeña sombra para resaltar el paso */
+  box-shadow: 0 0 8px rgba(0, 120, 212, 0.3);
+  transform: scale(1.02);
+  z-index: 10;
 }

@@ -1,8 +1,9 @@
 /* =========================================
-   Fluent UI – Main Layout (Global)
+   Fluent UI – Global System (Word Style)
    ========================================= */
 
 :root {
+  /* Paleta de colores oficial */
   --ms-blue: #0078d4;
   --ms-blue-hover: #106ebe;
   --ms-bg: #f3f2f1;
@@ -10,6 +11,8 @@
   --ms-border: #e1dfdd;
   --ms-text: #323130;
   --ms-muted: #605e5c;
+  --ms-success: #107c10;
+  --ms-error: #d13438;
 }
 
 /* Base */
@@ -22,7 +25,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Barra de título superior */
+/* --- Layout Superior (Title & Tabs) --- */
 .title {
   background: var(--ms-blue);
   color: white;
@@ -32,7 +35,6 @@ body {
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-/* Tabs (Debajo del título) */
 .tab-bar {
   display: flex;
   background: var(--ms-panel);
@@ -46,20 +48,17 @@ body {
   border-bottom: 3px solid transparent;
   font-size: 14px;
   color: var(--ms-text);
-  transition: background 0.1s, border-color 0.1s;
+  transition: background 0.1s;
 }
 
-.tab:hover {
-  background: #f3f2f1;
-}
-
+.tab:hover { background: #f3f2f1; }
 .tab.active {
-  border-bottom-color: var(--ms-blue);
+  border-bottom: 3px solid var(--ms-blue);
   font-weight: 600;
   color: black;
 }
 
-/* Ribbon (Cinta de opciones) */
+/* --- Ribbon (Cinta de opciones) --- */
 .ribbon {
   background: var(--ms-panel);
   border-bottom: 1px solid var(--ms-border);
@@ -69,96 +68,164 @@ body {
   gap: 8px;
 }
 
-.ribbon-row {
-  width: 100%;
-}
-
 .ribbon-buttons {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
 
-/* Botones del Ribbon */
 .ribbon-btn {
-  padding: 6px 12px;
-  border-radius: 2px;
-  border: 1px solid transparent;
+  padding: 8px 14px;
+  border-radius: 4px;
+  border: none;
   background: transparent;
   cursor: pointer;
   font-size: 13px;
   color: var(--ms-text);
+  transition: background 0.2s ease;
 }
 
-.ribbon-btn:hover {
-  background: #edebe9;
+.ribbon-btn:hover:not(:disabled) { background: #e5f1fb; }
+.ribbon-btn.active {
+  background: #cfe8ff;
+  color: var(--ms-blue);
+  font-weight: 600;
 }
 
-.ribbon-btn:active {
-  background: #e1dfdd;
-}
+.ribbon-btn[disabled] { color: #a19f9d; cursor: default; }
 
-.ribbon-btn[disabled] {
-  color: #a19f9d;
-  cursor: default;
-}
-
-/* ESTRUCTURA PRINCIPAL DE CONTENIDO
-   Aquí es donde ocurre la magia del centrado
-*/
+/* --- Contenedores de Contenido --- */
 main#content {
   width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center; /* Obliga a todos los hijos a ir al centro */
-  justify-content: flex-start;
+  align-items: center;
   padding: 30px 20px;
+  box-sizing: border-box;
+  margin-bottom: 60px; /* Espacio para el footer */
+}
+
+h2 { margin-bottom: 20px; font-weight: 600; font-size: 20px; text-align: center; }
+p { color: var(--ms-muted); line-height: 1.5; text-align: center; max-width: 600px; }
+
+/* --- Componentes UI Reutilizables (Cards & Form) --- */
+.card {
+  background: var(--ms-panel);
+  border: 1px solid var(--ms-border);
+  border-radius: 2px;
+  padding: 16px;
+  margin-bottom: 16px;
+  width: 100%;
+  max-width: 900px;
   box-sizing: border-box;
 }
 
-/* Títulos dentro del contenido */
-h2 {
-  margin-top: 0;
-  margin-bottom: 20px;
-  font-weight: 600;
-  font-size: 20px;
-  text-align: center;
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
-/* Párrafos informativos */
-p {
-  color: var(--ms-muted);
-  line-height: 1.5;
-  text-align: center;
-  max-width: 600px;
+label { font-weight: 600; font-size: 14px; }
+
+input {
+  padding: 6px 8px;
+  border: 1px solid var(--ms-border);
+  border-radius: 2px;
+  font-family: inherit;
 }
 
-/* Separadores de niveles en el Ribbon */
-#ribbon-level-2 {
-  margin-top: 4px;
-  padding-top: 8px;
-  border-top: 1px solid #f3f2f1;
+input:focus {
+  outline: none;
+  border: 1px solid var(--ms-blue);
+  box-shadow: 0 0 0 1px var(--ms-blue);
 }
 
-/* Estilo para mensajes de carga */
-.loading {
-  font-style: italic;
-  color: var(--ms-blue);
+button {
+  padding: 8px 20px;
+  border: 1px solid var(--ms-border);
+  background: white;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+button:hover:not(.primary):not(.danger) { background: #f3f2f1; }
+button.primary { background: var(--ms-blue); color: white; border-color: var(--ms-blue); }
+button.primary:hover { background: var(--ms-blue-hover); }
+button.danger { border-color: var(--ms-error); color: var(--ms-error); }
+button.danger:hover { background: var(--ms-error); color: white; }
+
+/* --- Sistema de Visualización (Celdas) --- */
+.visual-wrapper {
+  display: flex;
+  justify-content: center;
+  width: 100%;
   margin-top: 20px;
 }
 
-/* Footer */
+/* Contenedor de la cuadrícula vertical */
+#visualization, #bin-visualization {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #c8c6c4;
+  width: fit-content;
+  background: white;
+}
 
+.cell {
+  position: relative;
+  width: 80px;
+  height: 55px;
+  border-bottom: 1px solid var(--ms-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  background: white;
+  transition: all 0.3s ease;
+}
+
+.cell:last-child { border-bottom: none; }
+
+/* Índices a la izquierda */
+.cell::before {
+  content: attr(data-index);
+  position: absolute;
+  left: -35px;
+  font-size: 12px;
+  color: var(--ms-muted);
+  font-weight: bold;
+}
+
+/* Estados de animación globales */
+.cell.active { 
+  outline: 2px solid #605e5c; 
+  background: #edebe9 !important; 
+  z-index: 2; 
+}
+
+.cell.found { 
+  background-color: #dff6dd !important; 
+  color: var(--ms-success) !important; 
+  font-weight: bold; 
+}
+
+/* --- Footer --- */
 .app-footer {
   position: fixed;
   bottom: 0;
   width: 100%;
   background: #f3f2f1;
-  border-top: 1px solid #e1dfdd;
+  border-top: 1px solid var(--ms-border);
   display: flex;
   justify-content: space-between;
   padding: 5px 15px;
   align-items: center;
+  z-index: 1000;
 }
 
 .footer-btns button {
@@ -167,36 +234,4 @@ p {
   padding: 4px 12px;
   margin-right: 5px;
   font-size: 13px;
-}
-
-/* Botones del ribbon */
-.ribbon-btn {
-  background: transparent;
-  border: none;
-  padding: 8px 14px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-/* Hover suave */
-.ribbon-btn:hover:not(:disabled) {
-  background: #e5f1fb;
-}
-
-/* Activo principal */
-.ribbon-btn.active {
-  background: #cfe8ff;
-  color: #0078d4;
-  font-weight: 600;
-}
-
-/* Opcional: línea inferior azul tipo Word */
-.ribbon-btn.active::after {
-  content: "";
-  display: block;
-  height: 3px;
-  background: #0078d4;
-  margin-top: 4px;
-  border-radius: 2px;
 }
