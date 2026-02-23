@@ -19,6 +19,7 @@ st.insert('P')
 st.insert('R')
 st.insert('U')
 st.insert('E')
+st.delete('P')
 st.plot('simple.png')
 
 # Múltiple

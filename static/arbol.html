@@ -1,0 +1,51 @@
+<h2>Árboles Digitales / Residuo</h2>
+
+<div class="arbol-container">
+
+  <!-- Selector de tipo de árbol (en español) -->
+  <div class="card">
+    <div class="row">
+      <button id="btn-digital" class="ribbon-btn active">Digital</button>
+      <button id="btn-simple" class="ribbon-btn">Residuo Simple</button>
+      <button id="btn-multiple" class="ribbon-btn">Residuo Múltiple</button>
+    </div>
+  </div>
+
+  <!-- Creación de estructura (valores fijos) -->
+  <div class="card">
+    <div class="row">
+      <button id="create-structure" class="primary">Crear estructura</button>
+      <div id="m-field" style="display: none;">
+        <label>m (solo múltiple):</label>
+        <input type="number" id="m" value="2" min="2" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Operaciones con letras (oculto inicialmente) -->
+  <div class="card" id="operations-card" style="display: none;">
+    <div class="row">
+      <label>Letra:</label>
+      <input type="text" id="letter-input" placeholder="A-Z, Ñ" maxlength="1" />
+      <button id="insert-btn" class="primary">Insertar</button>
+      <button id="search-btn">Buscar</button>
+      <button id="delete-btn" class="danger">Eliminar</button>
+      <button id="view-tree-btn">Ver árbol</button>
+    </div>
+  </div>
+
+  <!-- Control de tamaño de la imagen (oculto inicialmente) -->
+  <div class="card" id="slider-card" style="display: none;">
+    <div class="row">
+      <label for="image-size-slider">Tamaño de imagen:</label>
+      <input type="range" id="image-size-slider" min="200" max="1200" value="600" step="10">
+      <span id="image-size-value">600px</span>
+    </div>
+  </div>
+
+  <!-- Visualización del árbol (imagen) -->
+  <div class="visual-wrapper">
+    <img id="tree-image" src="" alt="Árbol" style="max-width: 100%; border: 1px solid #ccc; background: white;" />
+  </div>
+
+</div>

@@ -77,6 +77,7 @@ function showBusquedaInterna() {
       <button class="ribbon-btn" data-page="secuencial">Secuencial</button>
       <button class="ribbon-btn" data-page="binaria">Binaria</button>
       <button class="ribbon-btn" data-page="hash">Hash</button>
+      <button class="ribbon-btn" data-page="arbol">Árboles</button>
     </div>
   `;
 

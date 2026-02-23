@@ -63,7 +63,7 @@
     currentState.data.forEach((val, i) => {
       const cell = document.createElement("div");
       cell.className = "cell";
-      cell.dataset.index = `Dir: ${i}`; 
+      cell.dataset.index = `Dir: ${i+1}`; 
 
       if (Array.isArray(val)) {
         cell.innerHTML = val.length > 0 
