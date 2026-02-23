@@ -83,7 +83,7 @@
       cells.forEach((c) => c.classList.remove("not-found", "visited"));
     } else {
       cells.forEach((c) => c.classList.remove("active"));
-      await sleep(1500); 
+      await sleep(1000); 
       cells.forEach((c) => c.classList.remove("found", "visited"));
     }
     return { found: foundAny, position: foundIndex };

@@ -1,0 +1,104 @@
+/* --- Contenedor de la Tabla --- */
+#visualization {
+    display: flex;
+    flex-direction: column;
+    gap: 4px; /* Separación sutil entre slots */
+    padding: 10px;
+    background: #faf9f8;
+    border-radius: 4px;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.05);
+}
+
+/* --- Estilo de cada Slot (Celda) --- */
+.cell {
+    min-width: 120px;
+    min-height: 45px;
+    background: white;
+    border: 1px solid var(--ms-border);
+    border-left: 4px solid var(--ms-blue); /* Indicador lateral tipo Excel/Word */
+    display: flex;
+    align-items: center;
+    padding: 0 15px;
+    font-weight: 500;
+    font-size: 15px;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+/* --- Índice a la izquierda --- */
+.cell::before {
+    content: attr(data-index); /* Mostrará "Dir: 0", "Dir: 1", etc. */
+    position: absolute;
+    left: -100px;
+    width: 80px;
+    text-align: right;
+    font-family: 'Courier New', Courier, monospace; /* Estilo técnico */
+    font-size: 13px;
+    color: var(--ms-blue);
+    font-weight: bold;
+}
+
+/* --- Estado Vacío --- */
+.cell.empty {
+    border-left-color: #c8c6c4;
+    color: #a19f9d;
+    font-style: italic;
+    background: #fdfdfd;
+}
+
+.cell.empty::after {
+    content: "Vacío";
+    font-size: 12px;
+}
+
+/* --- Estilo especial para Chaining (Listas) --- */
+.cell:contains("[") {
+    background: #f3f9ff;
+    border-left-color: #107c10; /* Verde para indicar que es una lista/cubeta */
+}
+
+/* --- Animaciones de Interacción --- */
+.cell:hover {
+    transform: translateX(5px);
+    box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+    border-color: var(--ms-blue);
+    z-index: 10;
+}
+
+/* --- Resaltado de búsqueda --- */
+.cell.found {
+    background-color: #dff6dd !important;
+    border-color: var(--ms-success) !important;
+    color: var(--ms-success) !important;
+    animation: pulse-success 1s infinite;
+}
+
+@keyframes pulse-success {
+    0% { box-shadow: 0 0 0 0px rgba(16, 124, 16, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(16, 124, 16, 0); }
+    100% { box-shadow: 0 0 0 0px rgba(16, 124, 16, 0); }
+}
+
+/* --- Inputs específicos del simulador --- */
+#hash-type, #collision-type {
+    padding: 5px;
+    border: 1px solid var(--ms-border);
+    border-radius: 2px;
+    font-family: inherit;
+    background: white;
+}
+
+.hash-item {
+    background: var(--ms-blue);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-right: 5px;
+    font-size: 13px;
+    display: inline-block;
+}
+
+.cell {
+    flex-wrap: wrap; /* Por si hay muchos elementos en chaining */
+    gap: 5px;
+}

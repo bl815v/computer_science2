@@ -1,0 +1,43 @@
+<div class="card">
+  <h3>Configuración de Tabla Hash</h3>
+  <div class="row">
+    <label>Función:</label>
+    <select id="hash-type">
+      <option value="mod">Módulo </option>
+      <option value="square">Cuadrático </option>
+      <option value="truncation">Truncamiento</option>
+      <option value="folding">Plegamiento</option>
+    </select>
+    
+    <label>Tamaño:</label>
+    <input type="number" id="size" value="10" style="width: 60px" />
+    <label>Dígitos:</label>
+    <input type="number" id="digits" value="3" style="width: 60px" />
+    <button id="create-structure" class="primary">Inicializar Tabla</button>
+  </div>
+
+  <div id="collision-menu" class="row" style="margin-top:15px; display:none; border-top: 1px solid #eee; padding-top: 10px;">
+    <label style="color: var(--ms-error)">⚠️ Colisión detectada. Elige estrategia:</label>
+    <select id="collision-type">
+      <option value="linear">Lineal</option>
+      <option value="quadratic">Cuadrática</option>
+      <option value="double">Doble Hashing</option>
+      <option value="chaining">Encadenamiento</option>
+    </select>
+    <button id="apply-collision" class="primary">Aplicar y Reintentar</button>
+  </div>
+</div>
+
+<div id="actions-section" class="card" style="display:none;">
+  <div class="row">
+    <label>Clave:</label>
+    <input type="text" id="value-input" placeholder="Clave" />
+    <button id="insert-btn" class="primary">Insertar</button>
+    <button id="search-btn">Buscar</button>
+    <button id="delete-btn" class="danger">Borrar</button>
+  </div>
+</div>
+
+<div class="visual-wrapper" style="margin-left: 120px;">
+  <div id="visualization"></div>
+</div>
