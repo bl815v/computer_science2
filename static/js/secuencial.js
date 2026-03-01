@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const API_BASE = "http://127.0.0.1:8000/linear-search";
+  const API_BASE = getApiUrl(API_CONFIG.ENDPOINTS.LINEAR_SEARCH);
   let isNotifying = false;
 
   function sleep(ms) {
@@ -15,13 +15,15 @@
   }
 
   function resetInput(input) {
-    input.value = "";
-    input.focus();
+    if (input) {
+      input.value = "";
+      input.focus();
+    }
   }
 
   async function fetchState() {
     try {
-      const res = await fetch(`${API_BASE}/state`);
+      const res = await fetchWithTimeout(`${API_BASE}/state`);
       if (!res.ok) return { size: 0, digits: 0, data: [] };
       return await res.json();
     } catch (error) {
@@ -45,29 +47,32 @@
     }
   }
 
-  // --- ANIMACIÓN CON DETECCIÓN VISUAL ---
-  async function scanAnimation(targetValue, state, stepMs = 450) {
+  async function scanAnimation(targetValue, state, stepMs = API_CONFIG.ANIMATION_SPEED.NORMAL) {
     const grid = document.getElementById("visualization");
     if (!grid) return { found: false, position: -1 };
+    
     const cells = grid.querySelectorAll(".cell");
     let foundAny = false;
     let foundIndex = -1;
+    
+    cells.forEach(c => {
+      c.classList.remove("active", "found", "not-found", "visited");
+    });
 
-    cells.forEach((c) => c.classList.remove("active", "found", "not-found", "visited"));
-
-    for (let i = 0; i < state.size; i++) {
-      cells.forEach((c) => c.classList.remove("active"));
+    for (let i = 0; i < Math.min(state.size, cells.length); i++) {
+      cells.forEach(c => c.classList.remove("active"));
       cells[i].classList.add("active");
 
       const cellContent = cells[i].textContent.trim();
       const normalizedTarget = String(targetValue).trim();
 
       if (cellContent !== "" && cellContent === normalizedTarget) {
+        cells[i].classList.remove("active");
         cells[i].classList.add("found");
         foundAny = true;
         foundIndex = i + 1;
         break;
-      } else {
+      } else if (cellContent !== "") {
         cells[i].classList.add("visited");
       }
 
@@ -75,29 +80,33 @@
     }
 
     if (!foundAny) {
-      cells.forEach((c) => {
+      cells.forEach(c => {
         c.classList.remove("active");
-        c.classList.add("not-found");
+        if (c.textContent.trim() !== "") {
+          c.classList.add("not-found");
+        }
       });
-      await sleep(1000);
-      cells.forEach((c) => c.classList.remove("not-found", "visited"));
+      await sleep(1500);
+      cells.forEach(c => c.classList.remove("not-found", "visited"));
     } else {
-      cells.forEach((c) => c.classList.remove("active"));
-      await sleep(1000); 
-      cells.forEach((c) => c.classList.remove("found", "visited"));
+      await sleep(1500);
+      cells.forEach(c => c.classList.remove("found", "visited", "active"));
     }
+    
     return { found: foundAny, position: foundIndex };
   }
 
   function enforceNumericDigits(input, digits) {
+    if (!input || digits <= 0) return;
+    
     const originalValue = input.value;
     const numericValue = originalValue.replace(/\D+/g, "");
     
-    if (digits > 0 && numericValue.length > digits) {
+    if (numericValue.length > digits) {
       input.value = numericValue.slice(0, digits);
       if (!isNotifying) {
         isNotifying = true;
-        notifyError(`La clave solo puede tener ${digits} dígitos.`);
+        window.notifyError(`La clave solo puede tener ${digits} dígitos.`, true);
         setTimeout(() => { isNotifying = false; }, 1500);
       }
     } else {
@@ -109,7 +118,7 @@
     const sizeEl = document.getElementById("size");
     const digitsEl = document.getElementById("digits");
     const createBtn = document.getElementById("create-structure");
-    const actions = document.getElementById("actions-section");
+    const actionsSection = document.getElementById("actions-section");
     const valueEl = document.getElementById("value-input");
     const insertBtn = document.getElementById("insert-btn");
     const searchBtn = document.getElementById("search-btn");
@@ -122,9 +131,7 @@
     async function reload() {
       state = await fetchState();
       renderGrid(state);
-      if (actions) actions.style.display = state.size > 0 ? "block" : "none";
       if (valueEl) {
-        valueEl.removeAttribute("maxlength");
         valueEl.placeholder = state.digits > 0 ? `Máx: ${state.digits} dígitos` : "Clave";
       }
     }
@@ -133,27 +140,32 @@
       const size = parseInt(sizeEl.value) || 5;
       const digits = parseInt(digitsEl.value) || 2;
       try {
-        const response = await fetch(`${API_BASE}/create`, {
+        const response = await fetchWithTimeout(`${API_BASE}/create`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ size, digits }),
         });
         if (!response.ok) throw new Error("Error al crear estructura");
         await reload();
-        notifySuccess("Estructura creada correctamente.");
+        
+        // Mostrar acciones después de crear la estructura
+        if (actionsSection) {
+          actionsSection.style.display = "block";
+        }
+        
+        window.notifySuccess("Estructura creada correctamente.", true);
       } catch (error) {
-        notifyError(error.message);
+        window.notifyError(error.message, true);
       }
     });
 
     if (valueEl) {
       valueEl.addEventListener("input", () => {
-        const d = state.digits || parseInt(digitsEl.value) || 0;
+        const d = state.digits || parseInt(digitsEl?.value) || 0;
         enforceNumericDigits(valueEl, d);
       });
     }
 
-    // INSERTAR
     if (insertBtn && valueEl) {
       insertBtn.addEventListener("click", async () => {
         if (insertBtn.disabled) return;
@@ -164,7 +176,7 @@
           insertBtn.disabled = true;
           const value = toDigits(valueEl.value, state.digits);
 
-          const res = await fetch(`${API_BASE}/insert`, {
+          const res = await fetchWithTimeout(`${API_BASE}/insert`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ value }),
@@ -175,63 +187,73 @@
             throw new Error(errorData.detail || "No se pudo insertar");
           }
 
-          await reload(); 
-          const result = await scanAnimation(value, state, 300); 
-          notifySuccess(`Clave ${value} insertada correctamente en la dirección ${result.position}.`);
+          await reload();
+          const result = await scanAnimation(value, state, API_CONFIG.ANIMATION_SPEED.FAST);
+          window.notifySuccess(`Clave ${value} insertada correctamente en la dirección ${result.position}.`, true);
           valueEl.value = "";
         } catch (error) {
-          notifyError(error.message);
+          window.notifyError(error.message, true);
         } finally {
           insertBtn.disabled = false;
         }
       });
     }
 
-    // BUSCAR
     if (searchBtn && valueEl) {
       searchBtn.addEventListener("click", async () => {
-        if (!state.size) return notifyError("Estructura no inicializada.");
-        if (!valueEl.value) return notifyError("Ingresa una clave.");
+        if (!state.size) {
+          window.notifyError("Estructura no inicializada.", true);
+          return;
+        }
+        if (!valueEl.value) {
+          window.notifyError("Ingresa una clave.", true);
+          return;
+        }
         
         const value = toDigits(valueEl.value, state.digits);
-        const result = await scanAnimation(value, state, 350);
+        const result = await scanAnimation(value, state, API_CONFIG.ANIMATION_SPEED.NORMAL);
 
         if (result.found) {
-          notifySuccess(`Clave ${value} encontrada en la dirección ${result.position}.`);
+          window.notifySuccess(`Clave ${value} encontrada en la dirección ${result.position}.`, true);
         } else {
-          notifyError(`Clave ${value} no encontrada.`);
+          window.notifyError(`Clave ${value} no encontrada.`, true);
         }
       });
     }
 
-    // BORRAR
     if (deleteBtn && valueEl) {
       deleteBtn.addEventListener("click", async () => {
-        if (!state.size) return;
-        if (!valueEl.value) return;
+        if (!state.size) {
+          window.notifyError("Estructura no inicializada.", true);
+          return;
+        }
+        if (!valueEl.value) {
+          window.notifyError("Ingresa una clave.", true);
+          return;
+        }
         
         const value = toDigits(valueEl.value, state.digits);
         
         try {
-          const result = await scanAnimation(value, state, 300);
+          const result = await scanAnimation(value, state, API_CONFIG.ANIMATION_SPEED.FAST);
           if (!result.found) {
-            notifyError("No se encontró el valor para eliminar.");
+            window.notifyError("No se encontró el valor para eliminar.", true);
             return;
           }
 
-          const res = await fetch(`${API_BASE}/delete/${encodeURIComponent(value)}`, { 
+          const res = await fetchWithTimeout(`${API_BASE}/delete/${encodeURIComponent(value)}`, { 
             method: "DELETE" 
           });
           
           if (res.ok) {
             await reload();
-            notifySuccess(`Clave ${value} eliminada de la dirección ${result.position}.`);
+            window.notifySuccess(`Clave ${value} eliminada de la dirección ${result.position}.`, true);
             valueEl.value = "";
           } else {
-            notifyError("Error al procesar la eliminación.");
+            window.notifyError("Error al procesar la eliminación.", true);
           }
         } catch (error) {
-          notifyError("Error de conexión.");
+          window.notifyError("Error de conexión.", true);
         }
       });
     }

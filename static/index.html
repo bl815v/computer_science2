@@ -8,6 +8,8 @@
   <link rel="stylesheet" href="static/css/index.css" />
   <link rel="stylesheet" href="static/css/notificaciones.css" />
 
+  <!-- API Config primero -->
+  <script src="static/js/api-config.js"></script>
   <script src="static/js/notificaciones.js"></script>
   <script src="static/js/index.js" defer></script>
 
@@ -37,21 +39,8 @@
     </div>
   </div>
 
-  <!-- Ribbon -->
-  <div class="ribbon" id="ribbon">
-
-  <div class="ribbon-row">
-    <div id="ribbon-level-1"></div>
-  </div>
-
-  <div class="ribbon-row">
-    <div id="ribbon-level-2"></div>
-  </div>
-
-  <div class="ribbon-row">
-    <div id="ribbon-level-3"></div>
-  </div>
-</div>
+  <!-- Ribbon - Se llenará dinámicamente -->
+  <div class="ribbon" id="ribbon"></div>
 
   <!-- Main content -->
   <main id="content">
@@ -61,12 +50,12 @@
     </p>
   </main>
 
-<div class="app-footer">
-  <div class="footer-btns">
-    <button disabled>Guardar</button>
-    <button disabled>Abrir</button>
-    <button disabled>Imprimir</button>
+  <div class="app-footer">
+    <div class="footer-btns">
+      <button disabled>Guardar</button>
+      <button disabled>Abrir</button>
+      <button disabled>Imprimir</button>
+    </div>
   </div>
-</div>
 </body>
 </html>
