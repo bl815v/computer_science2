@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const API_BASE = getApiUrl(API_CONFIG.ENDPOINTS.BINARY_SEARCH);
+  const API_BASE = "http://127.0.0.1:8000/binary-search";
   let isAlertActive = false;
 
   function sleep(ms) {
@@ -13,20 +13,23 @@
   }
 
   function enforceNumeric(input, digits) {
-    if (!input || digits <= 0) return;
-    
     const originalValue = input.value;
     const numericValue = originalValue.replace(/\D+/g, "");
     if (digits > 0 && numericValue.length > digits) {
       input.value = numericValue.slice(0, digits);
       if (!isAlertActive) {
         isAlertActive = true;
-        window.notifyError(`La clave solo puede tener ${digits} dígitos.`, true);
+        notifyError(`La clave solo puede tener ${digits} dígitos.`);
         setTimeout(() => { isAlertActive = false; }, 1500);
       }
     } else {
       input.value = numericValue;
     }
+  }
+
+  function resetInput(input) {
+    input.value = "";
+    input.focus();
   }
 
   function renderGrid(state) {
@@ -38,6 +41,7 @@
       const cell = document.createElement("div");
       cell.className = "cell";
       
+      // Si la celda es null o está vacía, aplicamos clase empty
       if (val == null || val === "") {
         cell.classList.add("empty");
         cell.textContent = ""; 
@@ -51,13 +55,13 @@
 
   async function binarySearchAnimation(targetValue, state) {
     const cells = document.querySelectorAll("#bin-visualization .cell");
+    // Solo tomamos en cuenta los datos que no son null para el algoritmo
     const validData = state.data.filter((v) => v !== null && v !== "");
     const validLength = validData.length;
 
     let left = 0;
     let right = validLength - 1;
     let found = false;
-    let foundIndex = -1;
 
     cells.forEach((c) => c.classList.remove("active", "found", "discarded"));
 
@@ -65,7 +69,7 @@
       let mid = Math.floor((left + right) / 2);
       
       cells[mid].classList.add("active");
-      await sleep(API_CONFIG.ANIMATION_SPEED.SLOW);
+      await sleep(800);
 
       const midValue = String(state.data[mid]).trim();
       const searchValue = String(targetValue).trim();
@@ -73,8 +77,8 @@
       if (midValue === searchValue) {
         cells[mid].classList.remove("active");
         cells[mid].classList.add("found");
+        notifySuccess(`Valor ${targetValue} encontrado en dirección ${mid + 1}.`);
         found = true;
-        foundIndex = mid + 1;
         break; 
       }
 
@@ -82,26 +86,20 @@
 
       if (midValue < searchValue) {
         for (let i = left; i <= mid; i++) {
-          if (state.data[i] !== null && state.data[i] !== "") {
-            cells[i].classList.add("discarded");
-          }
+          cells[i].classList.add("discarded");
         }
         left = mid + 1;
       } else {
         for (let i = mid; i <= right; i++) {
-          if (state.data[i] !== null && state.data[i] !== "") {
-            cells[i].classList.add("discarded");
-          }
+          cells[i].classList.add("discarded");
         }
         right = mid - 1;
       }
-      await sleep(API_CONFIG.ANIMATION_SPEED.NORMAL);
+      await sleep(500);
     }
 
     if (!found) {
-      window.notifyError(`Valor ${targetValue} no encontrado.`, true);
-    } else {
-      window.notifySuccess(`Valor ${targetValue} encontrado en dirección ${foundIndex}.`, true);
+      notifyError(`Valor ${targetValue} no encontrado.`);
     }
 
     await sleep(2000);
@@ -117,7 +115,6 @@
     const digitsEl = document.getElementById("bin-digits");
     const valInput = document.getElementById("bin-value-input");
     const createBtn = document.getElementById("bin-create-btn");
-    const actionsSection = document.getElementById("actions-section");
     const insertBtn = document.getElementById("bin-insert-btn");
     const searchBtn = document.getElementById("bin-search-btn");
     const deleteBtn = document.getElementById("bin-delete-btn");
@@ -128,42 +125,33 @@
 
     async function reload() {
       try {
-        const res = await fetchWithTimeout(`${API_BASE}/state`);
+        const res = await fetch(`${API_BASE}/state`);
         if (!res.ok) throw new Error("No se pudo obtener el estado");
         currentState = await res.json();
         renderGrid(currentState);
         if (valInput && currentState.digits > 0) {
+          valInput.removeAttribute("maxlength"); 
           valInput.placeholder = `Máx: ${currentState.digits} dígitos`;
         }
       } catch (error) {
         console.error(error);
-        window.notifyError("Error al cargar el estado", true);
       }
     }
 
     createBtn.addEventListener("click", async () => {
       const size = parseInt(sizeEl.value);
       const digits = parseInt(digitsEl.value);
-      if (!size || !digits) {
-        window.notifyError("Datos incompletos.", true);
-        return;
-      }
+      if (!size || !digits) return notifyError("Datos incompletos.");
       try {
-        await fetchWithTimeout(`${API_BASE}/create`, {
+        await fetch(`${API_BASE}/create`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ size, digits }),
         });
         await reload();
-        
-        // Mostrar acciones después de crear la estructura
-        if (actionsSection) {
-          actionsSection.style.display = "block";
-        }
-        
-        window.notifySuccess("Estructura creada.", true);
+        notifySuccess("Estructura creada.");
       } catch (error) {
-        window.notifyError(error.message, true);
+        notifyError(error.message);
       }
     });
 
@@ -174,65 +162,47 @@
       });
     }
 
-    if (insertBtn) {
-      insertBtn.addEventListener("click", async () => {
-        if (!currentState.size) {
-          window.notifyError("Crea la estructura primero.", true);
-          return;
-        }
-        if (!valInput?.value) {
-          window.notifyError("Ingresa un valor.", true);
-          return;
-        }
-        
-        const val = toDigits(valInput.value, currentState.digits);
+    // --- LOGICA DE INSERCIÓN CORREGIDA ---
+    insertBtn.addEventListener("click", async () => {
+      if (!currentState.size) return notifyError("Crea la estructura primero.");
+      if (!valInput.value) return notifyError("Ingresa un valor.");
+      
+      const val = toDigits(valInput.value, currentState.digits);
 
-        try {
-          const res = await fetchWithTimeout(`${API_BASE}/insert`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ value: val }),
-          });
+      try {
+        const res = await fetch(`${API_BASE}/insert`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ value: val }),
+        });
 
-          if (!res.ok) {
-            const err = await res.json();
-            throw new Error(err.detail || "Error en la inserción");
-          }
+        // Verificamos si la respuesta es exitosa (200-299)
+        if (!res.ok) {
+          const err = await res.json();
+          // Lanza el error del backend (Estructura llena / Duplicado)
+          throw new Error(err.detail || "Error en la inserción");
+        }
 
-          await reload();
-          window.notifySuccess(`Valor ${val} insertado.`, true);
-          valInput.value = "";
-        } catch (error) {
-          window.notifyError(error.message, true);
-        }
-      });
-    }
+        await reload();
+        notifySuccess(`Valor ${val} insertado.`);
+        valInput.value = "";
+      } catch (error) {
+        // Muestra el mensaje de error específico en el modal
+        notifyError(error.message);
+      }
+    });
 
-    if (searchBtn) {
-      searchBtn.addEventListener("click", async () => {
-        if (!currentState.size) {
-          window.notifyError("Crea la estructura.", true);
-          return;
-        }
-        if (!valInput?.value) {
-          window.notifyError("Ingresa valor.", true);
-          return;
-        }
-        const val = toDigits(valInput.value, currentState.digits);
-        await binarySearchAnimation(val, currentState);
-      });
-    }
+    searchBtn.addEventListener("click", async () => {
+      if (!currentState.size) return notifyError("Crea la estructura.");
+      if (!valInput.value) return notifyError("Ingresa valor.");
+      const val = toDigits(valInput.value, currentState.digits);
+      await binarySearchAnimation(val, currentState);
+    });
 
     if (deleteBtn) {
       deleteBtn.addEventListener("click", async () => {
-        if (!currentState.size) {
-          window.notifyError("Crea la estructura.", true);
-          return;
-        }
-        if (!valInput?.value) {
-          window.notifyError("Ingresa el valor a eliminar.", true);
-          return;
-        }
+        if (!currentState.size) return notifyError("Crea la estructura.");
+        if (!valInput.value) return notifyError("Ingresa el valor a eliminar.");
 
         const val = toDigits(valInput.value, currentState.digits);
 
@@ -240,7 +210,7 @@
           const found = await binarySearchAnimation(val, currentState);
 
           if (found) {
-            const res = await fetchWithTimeout(`${API_BASE}/delete/${encodeURIComponent(val)}`, {
+            const res = await fetch(`${API_BASE}/delete/${encodeURIComponent(val)}`, {
               method: "DELETE",
             });
 
@@ -249,12 +219,13 @@
               throw new Error(err.detail || "Error al eliminar");
             }
 
+            const data = await res.json();
             await reload();
-            window.notifySuccess(`Valor ${val} eliminado.`, true);
+            notifySuccess(`Valor ${val} eliminado.`);
             valInput.value = "";
           }
         } catch (error) {
-          window.notifyError(error.message, true);
+          notifyError(error.message);
         }
       });
     }

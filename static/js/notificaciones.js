@@ -1,9 +1,9 @@
-// static/js/notificaciones.js
 (function () {
   "use strict";
 
-  function createModal(message, type = "info", autoClose = true) {
-    // Eliminar modal anterior si existe
+  function createModal(message, type = "info") {
+
+    //Eliminar modal anterior si existe
     const existing = document.querySelector(".modal-overlay");
     if (existing) {
       existing.remove();
@@ -25,12 +25,13 @@
     btn.className = "modal-btn";
     btn.textContent = "Aceptar";
 
-    const closeModal = () => overlay.remove();
+    btn.addEventListener("click", () => {
+      overlay.remove();
+    });
 
-    btn.addEventListener("click", closeModal);
-    
+    // Cerrar si se hace click fuera
     overlay.addEventListener("click", (e) => {
-      if (e.target === overlay) closeModal();
+      if (e.target === overlay) overlay.remove();
     });
 
     box.appendChild(msg);
@@ -38,15 +39,10 @@
     overlay.appendChild(box);
 
     document.body.appendChild(overlay);
-
-    // Auto-cierre después de 3 segundos (ahora activado por defecto)
-    if (autoClose) {
-      setTimeout(closeModal, 3000);
-    }
   }
 
-  // Por defecto todas se cierran automáticamente
-  window.notifySuccess = (msg, autoClose = true) => createModal(msg, "success", autoClose);
-  window.notifyError = (msg, autoClose = true) => createModal(msg, "error", autoClose);
-  window.notifyInfo = (msg, autoClose = true) => createModal(msg, "info", autoClose);
+  // Exponemos funciones globales
+  window.notifySuccess = (msg) => createModal(msg, "success");
+  window.notifyError = (msg) => createModal(msg, "error");
+  window.notifyInfo = (msg) => createModal(msg, "info");
 })();
