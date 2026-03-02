@@ -172,10 +172,10 @@ class BaseTree(BaseSearchService):
 
 	def _normalize_letter(self, letter: str) -> str:
 		letter = letter.upper()
-		alfabeto = 'ABCDEFGHIJKLMNÑOPQRSTUVWXYZ'
+		alfabeto = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 		if letter not in alfabeto:
 			raise ValueError(
-				f"Letra '{letter}' no válida. Use solo letras del alfabeto español (incluye Ñ)."
+				f"Letra '{letter}' no válida. Use solo letras del alfabeto americano."
 			)
 		return letter
 
@@ -190,7 +190,7 @@ class BaseTree(BaseSearchService):
 
 		"""
 		if self.encoding == 'ABC':
-			alfabeto = 'ABCDEFGHIJKLMNÑOPQRSTUVWXYZ'
+			alfabeto = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 			pos = alfabeto.index(letter) + 1
 			return format(pos, 'b').zfill(self.digits)
 		elif self.encoding == 'ASCII':
