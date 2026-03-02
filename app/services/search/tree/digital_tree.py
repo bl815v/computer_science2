@@ -137,30 +137,7 @@ class DigitalTree(BaseTree):
 			binary: Binary representation of the node to remove.
 
 		"""
-
-		def remove(
-			node: Optional[DigitalNode], bits: List[str], depth: int
-		) -> Optional[DigitalNode]:
-			if node is None:
-				return None
-			if node.binary == binary:
-				node.letter = None
-				node.binary = None
-				node.index = None
-				if node.left is None and node.right is None:
-					return None
-				return node
-			if depth < len(bits):
-				bit = bits[depth]
-				if bit == '0':
-					node.left = remove(node.left, bits, depth + 1)
-				else:
-					node.right = remove(node.right, bits, depth + 1)
-			if node.letter is None and node.left is None and node.right is None:
-				return None
-			return node
-
-		self.root = remove(self.root, list(binary), 0)
+		pass
 
 	def _build_graph(
 		self,
