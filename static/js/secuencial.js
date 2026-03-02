@@ -45,6 +45,7 @@
     }
   }
 
+  // (La función renderEmptyGrid se puede eliminar o dejar, pero ya no se usa)
   function renderEmptyGrid(size, digits) {
     const grid = document.getElementById("visualization");
     if (!grid) return;
@@ -131,11 +132,9 @@
 
     let state = { size: 0, digits: 0, data: [] };
 
-    // Mostrar grid vacía al inicio
-    const initialSize = parseInt(sizeEl.value) || 5;
-    const initialDigits = parseInt(digitsEl.value) || 2;
-    renderEmptyGrid(initialSize, initialDigits);
+    // Asegurar que los botones de acción estén ocultos al inicio
     if (actions) actions.style.display = "none";
+    // El contenedor de visualización se deja vacío (sin celdas)
 
     async function reload() {
       state = await fetchState();
