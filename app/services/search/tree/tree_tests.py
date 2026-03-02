@@ -16,7 +16,7 @@ dt.delete('D')
 # print(dt.search('A'))
 dt.plot('digital.png')
 dt.search_plot('I', 'digital_destacado.png')
-
+"""
 # Simple
 st = SimpleResidueTree(encoding='ABC')
 st.create()
@@ -26,9 +26,19 @@ st.insert('S')
 st.insert('I')
 st.insert('H')
 st.delete('H')
-print(st.search('H'))
+print(st.search('I'))
 st.plot('simple.png')
 st.search_plot('I', 'simple_destacado.png')
+"""
+st = SimpleResidueTree(encoding='ABC')
+st.create()
+st.insert('A')
+st.insert('B')
+st.delete('A')
+print(st.search('A'))
+st.plot('simple.png')
+st.search_plot('B', 'simple_destacado.png')
+
 
 # Múltiple
 mt = MultipleResidueTree(m=2, encoding='ABC')

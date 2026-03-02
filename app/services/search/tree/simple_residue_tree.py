@@ -89,38 +89,41 @@ class SimpleResidueTree(BaseTree):
 				self.root.right = SimpleNode(letter, binary, index)
 			return
 
-		def insert_rec(node: SimpleNode, bits: List[str], depth: int) -> None:
+		def insert_rec(node: SimpleNode, depth: int) -> None:
 			if depth == len(bits):
 				raise ValueError('Profundidad excedida')
 			bit = bits[depth]
 			if bit == '0':
 				child = node.left
-
-				def set_child(n):
-					return setattr(node, 'left', n)
 			else:
 				child = node.right
 
-				def set_child(n):
-					return setattr(node, 'right', n)
-
 			if child is None:
-				set_child(SimpleNode(letter, binary, index))
+				new_leaf = SimpleNode(letter, binary, index)
+				if bit == '0':
+					node.left = new_leaf
+				else:
+					node.right = new_leaf
 				return
 			else:
 				if child.letter is not None:
+					if depth == len(bits) - 1:
+						raise ValueError("Inconsistencia: colisión en el último nivel")
 					new_internal = SimpleNode()
-					set_child(new_internal)
+					if bit == '0':
+						node.left = new_internal
+					else:
+						node.right = new_internal
 					existing_bits = list(child.binary)
-					if existing_bits[depth + 1] == '0':
+					if existing_bits[depth] == '0':
 						new_internal.left = child
 					else:
 						new_internal.right = child
-					insert_rec(new_internal, bits, depth + 1)
+					insert_rec(new_internal, depth + 1)
 				else:
-					insert_rec(child, bits, depth + 1)
+					insert_rec(child, depth + 1)
 
-		insert_rec(self.root, bits, 0)
+		insert_rec(self.root, 0)
 
 	def _search_binary(self, binary: str) -> List[int]:
 		"""
@@ -141,11 +144,16 @@ class SimpleResidueTree(BaseTree):
 		for bit in bits:
 			if current is None:
 				return []
+			if current.letter is not None:
+				if current.binary == binary:
+					return [current.index + 1]
+				else:
+					return []
 			if bit == '0':
 				current = current.left
 			else:
 				current = current.right
-		if current and current.binary == binary:
+		if current and current.letter is not None and current.binary == binary:
 			return [current.index + 1]
 		return []
 
@@ -164,17 +172,21 @@ class SimpleResidueTree(BaseTree):
 		def remove(node: Optional[SimpleNode], depth: int) -> Optional[SimpleNode]:
 			if node is None:
 				return None
-			if depth == len(bits):
-				if node.binary == binary:
-					return None
-				return node
-			bit = bits[depth]
-			if bit == '0':
-				node.left = remove(node.left, depth + 1)
-			else:
-				node.right = remove(node.right, depth + 1)
-			if node.letter is None and node.left is None and node.right is None:
+			if node.letter is not None and node.binary == binary:
 				return None
+			if depth < len(bits):
+				bit = bits[depth]
+				if bit == '0':
+					node.left = remove(node.left, depth + 1)
+				else:
+					node.right = remove(node.right, depth + 1)
+			if node.letter is None:
+				if node.left is None and node.right is None:
+					return None
+				if node.left is not None and node.right is None:
+					return node.left
+				if node.right is not None and node.left is None:
+					return node.right
 			return node
 
 		self.root = remove(self.root, 0)

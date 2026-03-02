@@ -162,6 +162,21 @@ class MultipleResidueTree(BaseTree):
 			return [current.index + 1]
 		return []
 
+	def delete(self, letter: str) -> List[int]:
+		"""Delete a letter from the tree and return its positions.
+
+		Override the base delete method to include tree restructuring
+		after deletion.
+
+		Args:
+			letter: The letter to delete.
+
+		Returns:
+			List[int]: List of positions where the letter was found and deleted.
+
+		"""
+		return super().delete(letter)
+
 	def _delete_node(self, binary: str) -> None:
 		"""
 		Remove a node matching the given binary value.
