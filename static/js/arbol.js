@@ -63,7 +63,7 @@
 
   // Validación de letra (solo una del alfabeto español)
   function isValidLetter(letter) {
-    return /^[A-ZÑ]$/i.test(letter);
+    return /^[A-Z]$/i.test(letter);
   }
 
   function normalizeLetter(letter) {
@@ -74,7 +74,7 @@
   function enforceSingleLetter(input) {
     const raw = input.value;
     // Expresión regular para una sola letra válida (mayúscula o minúscula)
-    const singleValidLetterRegex = /^[A-ZÑ]$/i;
+    const singleValidLetterRegex = /^[A-Z]$/i;
 
     // Si está vacío, no hacemos nada
     if (raw === '') return;
@@ -87,12 +87,12 @@
 
     // Si no es válido (número, símbolo, múltiples caracteres), limpiamos y mostramos error
     // Extraemos solo letras válidas y tomamos la primera si existe
-    const cleaned = raw.toUpperCase().replace(/[^A-ZÑ]/g, '');
+    const cleaned = raw.toUpperCase().replace(/[^A-Z]/g, '');
     const newValue = cleaned.length > 0 ? cleaned.charAt(0) : '';
     input.value = newValue;
 
     // Mostramos notificación solo si el usuario había ingresado algo no vacío
-    window.notifyError?.('Solo se permite una letra del alfabeto español (A-Z, Ñ)');
+    window.notifyError?.('Solo se permite una letra del alfabeto americano (A-Z)');
   }
 
   // Control deslizante para el tamaño de la imagen
@@ -155,7 +155,7 @@
   async function insertLetter() {
     const letterRaw = letterInput.value.trim();
     if (!isValidLetter(letterRaw)) {
-      return notify('Ingresa una sola letra válida (A-Z, Ñ)', 'error');
+      return notify('Ingresa una sola letra válida (A-Z)', 'error');
     }
     const letter = normalizeLetter(letterRaw);
 
@@ -180,7 +180,7 @@
   async function searchLetter(showHighlighted = true) {
     const letterRaw = letterInput.value.trim();
     if (!isValidLetter(letterRaw)) {
-      return notify('Ingresa una sola letra válida (A-Z, Ñ)', 'error');
+      return notify('Ingresa una sola letra válida (A-Z)', 'error');
     }
     const letter = normalizeLetter(letterRaw);
 
@@ -210,7 +210,7 @@
   async function deleteLetter() {
     const letterRaw = letterInput.value.trim();
     if (!isValidLetter(letterRaw)) {
-      return notify('Ingresa una sola letra válida (A-Z, Ñ)', 'error');
+      return notify('Ingresa una sola letra válida (A-Z)', 'error');
     }
     const letter = normalizeLetter(letterRaw);
 
