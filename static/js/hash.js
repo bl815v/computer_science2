@@ -74,22 +74,38 @@
 
   // --- Función para extraer número de dirección de un mensaje de colisión ---
   function extractPositionFromMessage(message) {
-    // Busca un número en el mensaje, ej: "Colisión detectada en la dirección 5"
     const match = message.match(/\d+/);
     return match ? [parseInt(match[0], 10)] : null;
   }
 
-  // --- Renderizado (usa currentState) ---
+  // --- Renderizado dinámico con puntos suspensivos ---
   function renderGrid() {
     const grid = document.getElementById("visualization");
     if (!grid) return;
     grid.innerHTML = "";
-    
-    currentState.data.forEach((val, i) => {
+
+    const data = currentState.data;
+    const totalSize = data.length;
+    const OCCUPIED_THRESHOLD = 1; // Número de celdas vacías consecutivas que provocan un "..."
+
+    // Encontrar índices ocupados
+    const occupied = [];
+    for (let i = 0; i < totalSize; i++) {
+      const val = data[i];
+      const isOccupied = (
+        (typeof val === 'string' && val !== "DELETED" && val !== "") ||
+        (Array.isArray(val) && val.length > 0)
+      );
+      if (isOccupied) occupied.push(i);
+    }
+
+    // Función auxiliar para crear y añadir una celda en el índice dado
+    const appendCell = (index) => {
+      const val = data[index];
       const cell = document.createElement("div");
       cell.className = "cell";
-      cell.dataset.index = `Dir: ${i+1}`;
-      cell.dataset.pos = i + 1; // Para búsqueda por posición
+      cell.dataset.index = `Dir: ${index+1}`;
+      cell.dataset.pos = index + 1;
 
       if (Array.isArray(val)) {
         cell.innerHTML = val.length > 0 
@@ -105,7 +121,54 @@
         cell.classList.add("empty");
       }
       grid.appendChild(cell);
-    });
+    };
+
+    // Si no hay ocupados, mostrar un pequeño conjunto de celdas vacías (primeras 5)
+    if (occupied.length === 0) {
+      const end = Math.min(5, totalSize) - 1;
+      for (let i = 0; i <= end; i++) {
+        appendCell(i);
+      }
+      return;
+    }
+
+    // Mostrar contexto inicial: desde 0 hasta el primer ocupado, pero limitado
+    const firstOcc = occupied[0];
+    const lastOcc = occupied[occupied.length - 1];
+
+    // Contexto inicial: mostrar desde max(0, firstOcc - 2) hasta firstOcc
+    const start = Math.max(0, firstOcc - 2);
+    for (let i = start; i < firstOcc; i++) {
+      appendCell(i);
+    }
+
+    // Mostrar ocupados con puntos suspensivos entre saltos grandes
+    for (let idx = 0; idx < occupied.length; idx++) {
+      const i = occupied[idx];
+      appendCell(i);
+
+      // Si hay siguiente ocupado y hay un salto grande, poner "..."
+      if (idx < occupied.length - 1) {
+        const next = occupied[idx + 1];
+        if (next - i > OCCUPIED_THRESHOLD) {
+          const dots = document.createElement("div");
+          dots.className = "cell dots";
+          dots.textContent = "...";
+          grid.appendChild(dots);
+        } else if (next - i > 1) {
+          // Mostrar las celdas intermedias vacías (para mantener continuidad)
+          for (let j = i + 1; j < next; j++) {
+            appendCell(j);
+          }
+        }
+      }
+    }
+
+    // Contexto final: desde lastOcc hasta min(totalSize-1, lastOcc+2)
+    const end = Math.min(totalSize - 1, lastOcc + 2);
+    for (let i = lastOcc + 1; i <= end; i++) {
+      appendCell(i);
+    }
   }
 
   // --- Cargar estado desde el backend ---
@@ -306,7 +369,7 @@
       clearInput();
     });
 
-    // --- Borrar (ACTUALIZACIÓN LOCAL CON MARCADOR "DELETED") ---
+    // --- Borrar (CORREGIDO: verifica si realmente se eliminó) ---
     deleteBtn.addEventListener("click", async () => {
       const rawValue = valInp.value.trim();
       if (!rawValue) { notifyError("Ingresa una clave."); clearInput(); return; }
@@ -323,40 +386,36 @@
         console.log("Respuesta completa:", data);
 
         if (res.ok) {
-          // Mostrar mensaje de éxito con la posición si existe
-          if (data.position && Array.isArray(data.position) && data.position.length > 0) {
+          // Verificar si realmente se eliminó (presencia de position)
+          const hasPosition = data.position && Array.isArray(data.position) && data.position.length > 0;
+          
+          if (hasPosition) {
+            // Éxito real
             const dirs = data.position.join(", ");
             notifySuccess(`Clave ${value} eliminada de Dir: ${dirs}`);
             highlightCells(data.position, 'highlight-delete');
-          } else {
-            notifySuccess(`Clave ${value} eliminada.`);
-          }
 
-          // Actualizar el estado local usando la información de la respuesta
-          if (data.position && Array.isArray(data.position)) {
+            // Actualizar estado local
             for (const pos of data.position) {
-              const index = pos - 1; // Convertir a 0-based
+              const index = pos - 1;
               if (index >= 0 && index < currentState.data.length) {
                 const cell = currentState.data[index];
                 if (Array.isArray(cell)) {
-                  // Es una celda de encadenamiento: filtrar el valor eliminado
                   currentState.data[index] = cell.filter(item => String(item) !== value);
                 } else {
-                  // Es una celda simple: marcar como "DELETED"
                   currentState.data[index] = "DELETED";
                 }
               }
             }
-            // Refrescar la vista con el estado local actualizado
             renderGrid();
           } else {
-            // Si no hay información de posición, recargamos del backend como fallback
-            console.warn("No se recibió posición, recargando estado...");
-            await loadState();
+            // Respuesta ok pero sin position → probablemente no se encontró
+            const errorMsg = data.message || data.detail || `La clave ${value} no existe.`;
+            notifyError(errorMsg);
           }
         } else {
-          // Si el servidor responde con error (ej. 404 no encontrada)
-          notifyError(data.detail || "Error al eliminar.");
+          // Error HTTP (ej. 404)
+          notifyError(data.detail || `Error al eliminar (${res.status})`);
         }
       } catch (e) { 
         console.error("Error Delete:", e);
