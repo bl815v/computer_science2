@@ -61,7 +61,6 @@
     const grid = document.getElementById("visualization");
     if (!grid) return;
     positions.forEach(pos => {
-      // Buscar celda por el atributo data-pos (número de dirección 1-based)
       const cell = grid.querySelector(`[data-pos="${pos}"]`);
       if (cell) {
         cell.classList.add(className);
@@ -86,9 +85,8 @@
 
     const data = currentState.data;
     const totalSize = data.length;
-    const OCCUPIED_THRESHOLD = 1; // Número de celdas vacías consecutivas que provocan un "..."
+    const OCCUPIED_THRESHOLD = 1;
 
-    // Encontrar índices ocupados
     const occupied = [];
     for (let i = 0; i < totalSize; i++) {
       const val = data[i];
@@ -99,7 +97,6 @@
       if (isOccupied) occupied.push(i);
     }
 
-    // Función auxiliar para crear y añadir una celda en el índice dado
     const appendCell = (index) => {
       const val = data[index];
       const cell = document.createElement("div");
@@ -123,7 +120,6 @@
       grid.appendChild(cell);
     };
 
-    // Si no hay ocupados, mostrar un pequeño conjunto de celdas vacías (primeras 5)
     if (occupied.length === 0) {
       const end = Math.min(5, totalSize) - 1;
       for (let i = 0; i <= end; i++) {
@@ -132,22 +128,18 @@
       return;
     }
 
-    // Mostrar contexto inicial: desde 0 hasta el primer ocupado, pero limitado
     const firstOcc = occupied[0];
     const lastOcc = occupied[occupied.length - 1];
 
-    // Contexto inicial: mostrar desde max(0, firstOcc - 2) hasta firstOcc
     const start = Math.max(0, firstOcc - 2);
     for (let i = start; i < firstOcc; i++) {
       appendCell(i);
     }
 
-    // Mostrar ocupados con puntos suspensivos entre saltos grandes
     for (let idx = 0; idx < occupied.length; idx++) {
       const i = occupied[idx];
       appendCell(i);
 
-      // Si hay siguiente ocupado y hay un salto grande, poner "..."
       if (idx < occupied.length - 1) {
         const next = occupied[idx + 1];
         if (next - i > OCCUPIED_THRESHOLD) {
@@ -156,7 +148,6 @@
           dots.textContent = "...";
           grid.appendChild(dots);
         } else if (next - i > 1) {
-          // Mostrar las celdas intermedias vacías (para mantener continuidad)
           for (let j = i + 1; j < next; j++) {
             appendCell(j);
           }
@@ -164,7 +155,6 @@
       }
     }
 
-    // Contexto final: desde lastOcc hasta min(totalSize-1, lastOcc+2)
     const end = Math.min(totalSize - 1, lastOcc + 2);
     for (let i = lastOcc + 1; i <= end; i++) {
       appendCell(i);
@@ -193,6 +183,31 @@
     const applyCollisionBtn = document.getElementById("apply-collision");
     const valInp = document.getElementById("value-input");
 
+    // Elementos de truncamiento
+    const hashTypeSelect = document.getElementById("hash-type");
+    const truncationOptions = document.getElementById("truncation-options");
+    const truncationMethod = document.getElementById("truncation-method");
+    const truncationValue = document.getElementById("truncation-value");
+    const truncationParams = document.getElementById("truncation-params");
+
+    // Mostrar/ocultar opciones de truncamiento según el tipo seleccionado
+    hashTypeSelect.addEventListener("change", () => {
+      if (hashTypeSelect.value === "truncation") {
+        truncationOptions.style.display = "block";
+      } else {
+        truncationOptions.style.display = "none";
+      }
+    });
+
+    // Cambiar el placeholder según el método de truncamiento
+    truncationMethod.addEventListener("change", () => {
+      if (truncationMethod.value === "positions") {
+        truncationValue.placeholder = "Ej: 1,3,5";
+      } else {
+        truncationValue.placeholder = "Ej: 2";
+      }
+    });
+
     if (valInp) {
       valInp.addEventListener("input", () => {
         const d = currentDigits || parseInt(document.getElementById("digits").value) || 0;
@@ -202,12 +217,34 @@
 
     // --- Inicializar ---
     createBtn.addEventListener("click", async () => {
-      const hType = document.getElementById("hash-type").value;
+      const hType = hashTypeSelect.value;
       const size = parseInt(document.getElementById("size").value);
       const digits = parseInt(document.getElementById("digits").value);
 
       if (isNaN(size) || size <= 0) return notifyError("Tamaño inválido.");
       if (isNaN(digits) || digits <= 0) return notifyError("Dígitos inválidos.");
+
+      // Preparar body para set-hash
+      let setHashBody = { type: hType, positions: [1, 2], group_size: 2 };
+
+      // Si es truncamiento, agregar parámetros
+      if (hType === "truncation") {
+        const method = truncationMethod.value;
+        const value = truncationValue.value.trim();
+        if (!value) return notifyError("Especifica los parámetros de truncamiento.");
+
+        if (method === "first" || method === "last") {
+          const n = parseInt(value, 10);
+          if (isNaN(n) || n <= 0) return notifyError("Ingresa un número válido de dígitos.");
+          setHashBody.truncation_method = method;
+          setHashBody.truncation_n = n;
+        } else if (method === "positions") {
+          const positions = value.split(',').map(p => parseInt(p.trim(), 10)).filter(p => !isNaN(p) && p > 0);
+          if (positions.length === 0) return notifyError("Ingresa posiciones válidas (ej: 1,3,5).");
+          setHashBody.truncation_method = method;
+          setHashBody.truncation_positions = positions;
+        }
+      }
 
       try {
         currentDigits = digits;
@@ -216,7 +253,7 @@
         await fetch(`${API_BASE}/set-hash`, {
           method: "POST",
           headers: {"Content-Type": "application/json"},
-          body: JSON.stringify({ type: hType, positions: [1, 2], group_size: 2 })
+          body: JSON.stringify(setHashBody)
         });
 
         const res = await fetch(`${API_BASE}/create`, {
@@ -230,7 +267,7 @@
            throw new Error(errData.detail || "Error al crear");
         }
 
-        await loadState(); // Carga el estado inicial
+        await loadState();
         
         collisionMenu.style.display = "none";
         document.getElementById("actions-section").style.display = "block";
@@ -257,7 +294,6 @@
         const data = await res.json();
 
         if (res.ok) {
-          // Insert exitoso
           let positionsToHighlight = [];
           if (data.position && Array.isArray(data.position)) {
             positionsToHighlight = data.position;
@@ -265,19 +301,16 @@
             positionsToHighlight = [data.position];
           }
 
-          // Actualizar estado local
           if (positionsToHighlight.length > 0) {
             for (const pos of positionsToHighlight) {
               const index = pos - 1;
               if (index >= 0 && index < currentState.data.length) {
                 const cell = currentState.data[index];
                 if (Array.isArray(cell)) {
-                  // Encadenamiento: agregar el valor a la lista
                   if (!cell.includes(value)) {
                     currentState.data[index] = [...cell, value];
                   }
                 } else {
-                  // Celda simple: reemplazar con el valor (incluso si estaba DELETED)
                   currentState.data[index] = value;
                 }
               }
@@ -286,7 +319,6 @@
             notifySuccess(`Clave ${value} insertada en Dir: ${positionsToHighlight.join(", ")}`);
             highlightCells(positionsToHighlight, 'highlight-insert');
           } else {
-            // Si no hay posición, recargamos
             await loadState();
             notifySuccess(`Clave ${value} insertada.`);
           }
@@ -294,10 +326,8 @@
           collisionMenu.style.display = "none";
           clearInput();
         } else {
-          // Error, posible colisión
           if (data.detail && data.detail.includes("Colisión")) {
             notifyError(data.detail);
-            // Intentar resaltar la celda donde ocurrió la colisión
             const collisionPos = extractPositionFromMessage(data.detail);
             if (collisionPos) {
               highlightCells(collisionPos, 'highlight-collision', 2000);
@@ -369,7 +399,7 @@
       clearInput();
     });
 
-    // --- Borrar (CORREGIDO: verifica si realmente se eliminó) ---
+    // --- Borrar ---
     deleteBtn.addEventListener("click", async () => {
       const rawValue = valInp.value.trim();
       if (!rawValue) { notifyError("Ingresa una clave."); clearInput(); return; }
@@ -386,16 +416,13 @@
         console.log("Respuesta completa:", data);
 
         if (res.ok) {
-          // Verificar si realmente se eliminó (presencia de position)
           const hasPosition = data.position && Array.isArray(data.position) && data.position.length > 0;
           
           if (hasPosition) {
-            // Éxito real
             const dirs = data.position.join(", ");
             notifySuccess(`Clave ${value} eliminada de Dir: ${dirs}`);
             highlightCells(data.position, 'highlight-delete');
 
-            // Actualizar estado local
             for (const pos of data.position) {
               const index = pos - 1;
               if (index >= 0 && index < currentState.data.length) {
@@ -409,12 +436,10 @@
             }
             renderGrid();
           } else {
-            // Respuesta ok pero sin position → probablemente no se encontró
             const errorMsg = data.message || data.detail || `La clave ${value} no existe.`;
             notifyError(errorMsg);
           }
         } else {
-          // Error HTTP (ej. 404)
           notifyError(data.detail || `Error al eliminar (${res.status})`);
         }
       } catch (e) { 

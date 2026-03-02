@@ -2,23 +2,41 @@
   <h3>Configuración de Tabla Hash</h3>
   <div class="row">
     <label>Función:</label>
-    <select id="hash-type">
-      <option value="mod">Módulo </option>
-      <option value="square">Cuadrático </option>
+    <select id="hash-type" class="hash-select">
+      <option value="mod">Módulo</option>
+      <option value="square">Cuadrático</option>
       <option value="truncation">Truncamiento</option>
       <option value="folding">Plegamiento</option>
     </select>
     
     <label>Tamaño:</label>
-    <input type="number" id="size" value="10" style="width: 60px" />
+    <input type="number" id="size" class="hash-input" value="10" min="1" />
+    
     <label>Dígitos:</label>
-    <input type="number" id="digits" value="3" style="width: 60px" />
+    <input type="number" id="digits" class="hash-input" value="3" min="1" />
+    
     <button id="create-structure" class="primary">Inicializar Tabla</button>
   </div>
 
-  <div id="collision-menu" class="row" style="margin-top:15px; display:none; border-top: 1px solid #eee; padding-top: 10px;">
-    <label style="color: var(--ms-error)">⚠️ Colisión detectada. Elige estrategia:</label>
-    <select id="collision-type">
+  <!-- Submenú de truncamiento (oculto por defecto) -->
+  <div id="truncation-options" class="truncation-submenu" style="display: none;">
+    <div class="row">
+      <label>Método:</label>
+      <select id="truncation-method" class="hash-select">
+        <option value="first">Primeros N dígitos</option>
+        <option value="last">Últimos N dígitos</option>
+        <option value="positions">Dígitos en posiciones específicas</option>
+      </select>
+    </div>
+    <div class="row truncation-params">
+      <label>N / Posiciones:</label>
+      <input type="text" id="truncation-value" class="hash-input" value="2" placeholder="Ej: 2 o 1,3,5" />
+    </div>
+  </div>
+
+  <div id="collision-menu" class="row collision-menu" style="display:none;">
+    <label class="collision-label">⚠️ Colisión detectada. Elige estrategia:</label>
+    <select id="collision-type" class="hash-select">
       <option value="linear">Lineal</option>
       <option value="quadratic">Cuadrática</option>
       <option value="double">Doble Hashing</option>
@@ -31,13 +49,13 @@
 <div id="actions-section" class="card" style="display:none;">
   <div class="row">
     <label>Clave:</label>
-    <input type="text" id="value-input" placeholder="Clave" />
+    <input type="text" id="value-input" class="hash-input" placeholder="Clave" />
     <button id="insert-btn" class="primary">Insertar</button>
     <button id="search-btn">Buscar</button>
     <button id="delete-btn" class="danger">Borrar</button>
   </div>
 </div>
 
-<div class="visual-wrapper" style="margin-left: 120px;">
+<div class="visual-wrapper">
   <div id="visualization"></div>
 </div>
