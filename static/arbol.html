@@ -22,24 +22,27 @@
     </div>
   </div>
 
-  <!-- Operaciones con letras (oculto inicialmente) -->
-  <div class="card" id="operations-card" style="display: none;">
-    <div class="row">
-      <label>Letra:</label>
-      <input type="text" id="letter-input" placeholder="A-Z, Ñ" maxlength="1" />
-      <button id="insert-btn" class="primary">Insertar</button>
-      <button id="search-btn">Buscar</button>
-      <button id="delete-btn" class="danger">Eliminar</button>
-      <button id="view-tree-btn">Ver árbol</button>
+  <!-- Actions (operaciones y slider unificados, oculto inicialmente) -->
+  <div id="actions-section" style="display: none;">
+    <!-- Operaciones con letras -->
+    <div class="card">
+      <div class="row">
+        <label>Letra:</label>
+        <input type="text" id="letter-input" placeholder="A-Z, Ñ" maxlength="1" />
+        <button id="insert-btn" class="primary">Insertar</button>
+        <button id="search-btn">Buscar</button>
+        <button id="delete-btn" class="danger">Eliminar</button>
+        <button id="view-tree-btn">Ver árbol</button>
+      </div>
     </div>
-  </div>
 
-  <!-- Control de tamaño de la imagen (oculto inicialmente) -->
-  <div class="card" id="slider-card" style="display: none;">
-    <div class="row">
-      <label for="image-size-slider">Tamaño de imagen:</label>
-      <input type="range" id="image-size-slider" min="200" max="1200" value="600" step="10">
-      <span id="image-size-value">600px</span>
+    <!-- Control de tamaño de la imagen -->
+    <div class="card">
+      <div class="row">
+        <label for="image-size-slider">Tamaño de imagen:</label>
+        <input type="range" id="image-size-slider" min="200" max="1200" value="600" step="10">
+        <span id="image-size-value">600px</span>
+      </div>
     </div>
   </div>
 

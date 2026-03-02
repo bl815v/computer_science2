@@ -41,7 +41,6 @@
       const cell = document.createElement("div");
       cell.className = "cell";
       
-      // Si la celda es null o está vacía, aplicamos clase empty
       if (val == null || val === "") {
         cell.classList.add("empty");
         cell.textContent = ""; 
@@ -53,9 +52,22 @@
     }
   }
 
+  // (La función renderEmptyGrid se puede eliminar o dejar, pero ya no se usa)
+  function renderEmptyGrid(size) {
+    const grid = document.getElementById("bin-visualization");
+    if (!grid) return;
+    grid.innerHTML = "";
+    for (let i = 0; i < size; i++) {
+      const cell = document.createElement("div");
+      cell.className = "cell empty";
+      cell.dataset.index = i + 1;
+      cell.textContent = "";
+      grid.appendChild(cell);
+    }
+  }
+
   async function binarySearchAnimation(targetValue, state) {
     const cells = document.querySelectorAll("#bin-visualization .cell");
-    // Solo tomamos en cuenta los datos que no son null para el algoritmo
     const validData = state.data.filter((v) => v !== null && v !== "");
     const validLength = validData.length;
 
@@ -118,10 +130,15 @@
     const insertBtn = document.getElementById("bin-insert-btn");
     const searchBtn = document.getElementById("bin-search-btn");
     const deleteBtn = document.getElementById("bin-delete-btn");
+    const actionsSection = document.getElementById("actions-section");
 
     if (!sizeEl || !digitsEl || !createBtn) return;
 
     let currentState = { size: 0, digits: 0, data: [] };
+
+    // Asegurar que los botones de acción estén ocultos al inicio
+    if (actionsSection) actionsSection.style.display = "none";
+    // El contenedor de visualización se deja vacío (sin celdas)
 
     async function reload() {
       try {
@@ -132,6 +149,9 @@
         if (valInput && currentState.digits > 0) {
           valInput.removeAttribute("maxlength"); 
           valInput.placeholder = `Máx: ${currentState.digits} dígitos`;
+        }
+        if (actionsSection) {
+          actionsSection.style.display = currentState.size > 0 ? "block" : "none";
         }
       } catch (error) {
         console.error(error);
@@ -162,7 +182,6 @@
       });
     }
 
-    // --- LOGICA DE INSERCIÓN CORREGIDA ---
     insertBtn.addEventListener("click", async () => {
       if (!currentState.size) return notifyError("Crea la estructura primero.");
       if (!valInput.value) return notifyError("Ingresa un valor.");
@@ -176,10 +195,8 @@
           body: JSON.stringify({ value: val }),
         });
 
-        // Verificamos si la respuesta es exitosa (200-299)
         if (!res.ok) {
           const err = await res.json();
-          // Lanza el error del backend (Estructura llena / Duplicado)
           throw new Error(err.detail || "Error en la inserción");
         }
 
@@ -187,7 +204,6 @@
         notifySuccess(`Valor ${val} insertado.`);
         valInput.value = "";
       } catch (error) {
-        // Muestra el mensaje de error específico en el modal
         notifyError(error.message);
       }
     });
@@ -219,7 +235,6 @@
               throw new Error(err.detail || "Error al eliminar");
             }
 
-            const data = await res.json();
             await reload();
             notifySuccess(`Valor ${val} eliminado.`);
             valInput.value = "";
@@ -229,8 +244,6 @@
         }
       });
     }
-
-    await reload();
   }
 
   window.initSimulator = initBinaria;

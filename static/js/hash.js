@@ -5,6 +5,7 @@
   let lastValueAttempt = ""; 
   let currentDigits = 0;
   let isNotifying = false;
+  let currentState = { size: 0, digits: 0, data: [] }; // Estado local
 
   // --- Utilidades ---
   function clearInput() {
@@ -54,8 +55,32 @@
     return true;
   }
 
-  // --- Renderizado ---
-  function renderGrid(currentState) {
+  // --- Función para resaltar celdas ---
+  function highlightCells(positions, className, duration = 1500) {
+    if (!positions || !Array.isArray(positions) || positions.length === 0) return;
+    const grid = document.getElementById("visualization");
+    if (!grid) return;
+    positions.forEach(pos => {
+      // Buscar celda por el atributo data-pos (número de dirección 1-based)
+      const cell = grid.querySelector(`[data-pos="${pos}"]`);
+      if (cell) {
+        cell.classList.add(className);
+        setTimeout(() => {
+          cell.classList.remove(className);
+        }, duration);
+      }
+    });
+  }
+
+  // --- Función para extraer número de dirección de un mensaje de colisión ---
+  function extractPositionFromMessage(message) {
+    // Busca un número en el mensaje, ej: "Colisión detectada en la dirección 5"
+    const match = message.match(/\d+/);
+    return match ? [parseInt(match[0], 10)] : null;
+  }
+
+  // --- Renderizado (usa currentState) ---
+  function renderGrid() {
     const grid = document.getElementById("visualization");
     if (!grid) return;
     grid.innerHTML = "";
@@ -63,7 +88,8 @@
     currentState.data.forEach((val, i) => {
       const cell = document.createElement("div");
       cell.className = "cell";
-      cell.dataset.index = `Dir: ${i+1}`; 
+      cell.dataset.index = `Dir: ${i+1}`;
+      cell.dataset.pos = i + 1; // Para búsqueda por posición
 
       if (Array.isArray(val)) {
         cell.innerHTML = val.length > 0 
@@ -80,6 +106,19 @@
       }
       grid.appendChild(cell);
     });
+  }
+
+  // --- Cargar estado desde el backend ---
+  async function loadState() {
+    try {
+      const res = await fetch(`${API_BASE}/state`);
+      if (!res.ok) throw new Error("Error al cargar estado");
+      currentState = await res.json();
+      renderGrid();
+    } catch (err) {
+      console.error(err);
+      notifyError("No se pudo cargar el estado.");
+    }
   }
 
   async function initHashing() {
@@ -128,8 +167,7 @@
            throw new Error(errData.detail || "Error al crear");
         }
 
-        const stateRes = await fetch(`${API_BASE}/state`);
-        renderGrid(await stateRes.json());
+        await loadState(); // Carga el estado inicial
         
         collisionMenu.style.display = "none";
         document.getElementById("actions-section").style.display = "block";
@@ -138,7 +176,7 @@
       } catch (err) { notifyError(err.message); }
     });
 
-    // --- Insertar ---
+    // --- Insertar (ACTUALIZACIÓN LOCAL) ---
     insertBtn.addEventListener("click", async () => {
       const rawValue = valInp.value.trim();
       if (!rawValue) { notifyError("Ingresa una clave."); clearInput(); return; }
@@ -156,21 +194,63 @@
         const data = await res.json();
 
         if (res.ok) {
-          const stateRes = await fetch(`${API_BASE}/state`);
-          renderGrid(await stateRes.json());
-          notifySuccess(`Clave ${value} insertada en Dir: ${data.position - 1}`);
+          // Insert exitoso
+          let positionsToHighlight = [];
+          if (data.position && Array.isArray(data.position)) {
+            positionsToHighlight = data.position;
+          } else if (data.position && typeof data.position === 'number') {
+            positionsToHighlight = [data.position];
+          }
+
+          // Actualizar estado local
+          if (positionsToHighlight.length > 0) {
+            for (const pos of positionsToHighlight) {
+              const index = pos - 1;
+              if (index >= 0 && index < currentState.data.length) {
+                const cell = currentState.data[index];
+                if (Array.isArray(cell)) {
+                  // Encadenamiento: agregar el valor a la lista
+                  if (!cell.includes(value)) {
+                    currentState.data[index] = [...cell, value];
+                  }
+                } else {
+                  // Celda simple: reemplazar con el valor (incluso si estaba DELETED)
+                  currentState.data[index] = value;
+                }
+              }
+            }
+            renderGrid();
+            notifySuccess(`Clave ${value} insertada en Dir: ${positionsToHighlight.join(", ")}`);
+            highlightCells(positionsToHighlight, 'highlight-insert');
+          } else {
+            // Si no hay posición, recargamos
+            await loadState();
+            notifySuccess(`Clave ${value} insertada.`);
+          }
+          
           collisionMenu.style.display = "none";
           clearInput();
         } else {
+          // Error, posible colisión
           if (data.detail && data.detail.includes("Colisión")) {
             notifyError(data.detail);
+            // Intentar resaltar la celda donde ocurrió la colisión
+            const collisionPos = extractPositionFromMessage(data.detail);
+            if (collisionPos) {
+              highlightCells(collisionPos, 'highlight-collision', 2000);
+            }
             collisionMenu.style.display = "flex";
           } else {
             notifyError(data.detail || "Error al insertar");
+            collisionMenu.style.display = "none";
           }
           clearInput();
         }
-      } catch (e) { notifyError("Error de conexión al insertar."); clearInput(); }
+      } catch (e) { 
+        console.error(e);
+        notifyError("Error de conexión al insertar."); 
+        clearInput(); 
+      }
     });
 
     // --- Aplicar Colisión ---
@@ -205,24 +285,28 @@
       if (!validateKey(value)) return;
 
       try {
-        const res = await fetch(`${API_BASE}/search/${value}`);
+        const res = await fetch(`${API_BASE}/search/${encodeURIComponent(value)}`);
         const data = await res.json();
         
         if (res.ok) {
-          if (data.found) {
-            const dirs = data.positions.map(p => p - 1).join(", ");
+          if (data.position && Array.isArray(data.position) && data.position.length > 0) {
+            const dirs = data.position.join(", ");
             notifySuccess(`Clave ${value} encontrada en Dir(s): ${dirs}`);
+            highlightCells(data.position, 'highlight-search');
           } else {
             notifyError(`La clave ${value} no existe.`);
           }
         } else {
           notifyError(data.detail || "Error en la búsqueda.");
         }
-      } catch (e) { notifyError("Error de conexión al buscar."); }
+      } catch (e) { 
+        console.error("Error en búsqueda:", e);
+        notifyError("Error de conexión al buscar."); 
+      }
       clearInput();
     });
 
-    // --- Borrar (CORREGIDO) ---
+    // --- Borrar (ACTUALIZACIÓN LOCAL CON MARCADOR "DELETED") ---
     deleteBtn.addEventListener("click", async () => {
       const rawValue = valInp.value.trim();
       if (!rawValue) { notifyError("Ingresa una clave."); clearInput(); return; }
@@ -230,27 +314,53 @@
       if (!validateKey(value)) return;
 
       try {
-        const res = await fetch(`${API_BASE}/delete/${value}`, { method: "DELETE" });
+        console.log(`Enviando eliminación para clave: "${value}" (raw: "${rawValue}")`);
+        const url = `${API_BASE}/delete/${encodeURIComponent(value)}`;
+        console.log(`URL: ${url}`);
+        
+        const res = await fetch(url, { method: "DELETE" });
         const data = await res.json();
+        console.log("Respuesta completa:", data);
 
         if (res.ok) {
-          // Refrescar tabla
-          const stateRes = await fetch(`${API_BASE}/state`);
-          renderGrid(await stateRes.json());
-          
-          // Verificación segura de data.positions para evitar el crash
-          if (data && data.positions && Array.isArray(data.positions) && data.positions.length > 0) {
-            const dirs = data.positions.map(p => p - 1).join(", ");
+          // Mostrar mensaje de éxito con la posición si existe
+          if (data.position && Array.isArray(data.position) && data.position.length > 0) {
+            const dirs = data.position.join(", ");
             notifySuccess(`Clave ${value} eliminada de Dir: ${dirs}`);
+            highlightCells(data.position, 'highlight-delete');
           } else {
             notifySuccess(`Clave ${value} eliminada.`);
           }
+
+          // Actualizar el estado local usando la información de la respuesta
+          if (data.position && Array.isArray(data.position)) {
+            for (const pos of data.position) {
+              const index = pos - 1; // Convertir a 0-based
+              if (index >= 0 && index < currentState.data.length) {
+                const cell = currentState.data[index];
+                if (Array.isArray(cell)) {
+                  // Es una celda de encadenamiento: filtrar el valor eliminado
+                  currentState.data[index] = cell.filter(item => String(item) !== value);
+                } else {
+                  // Es una celda simple: marcar como "DELETED"
+                  currentState.data[index] = "DELETED";
+                }
+              }
+            }
+            // Refrescar la vista con el estado local actualizado
+            renderGrid();
+          } else {
+            // Si no hay información de posición, recargamos del backend como fallback
+            console.warn("No se recibió posición, recargando estado...");
+            await loadState();
+          }
         } else {
+          // Si el servidor responde con error (ej. 404 no encontrada)
           notifyError(data.detail || "Error al eliminar.");
         }
       } catch (e) { 
         console.error("Error Delete:", e);
-        notifyError("Error al procesar la eliminación."); 
+        notifyError("Error de conexión al eliminar."); 
       }
       clearInput();
     });

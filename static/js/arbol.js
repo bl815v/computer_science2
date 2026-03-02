@@ -27,8 +27,7 @@
   const treeImage = document.getElementById('tree-image');
   const imageSizeSlider = document.getElementById('image-size-slider');
   const imageSizeValue = document.getElementById('image-size-value');
-  const operationsCard = document.getElementById('operations-card');
-  const sliderCard = document.getElementById('slider-card');
+  const actionsSection = document.getElementById('actions-section');
 
   // Valores fijos para la creación
   const FIXED_SIZE = 1000;
@@ -57,9 +56,8 @@
     updateBaseURL();
     setActiveTypeButton(type);
     toggleMField();
-    // Ocultar operaciones y slider hasta que se cree la nueva estructura
-    if (operationsCard) operationsCard.style.display = 'none';
-    if (sliderCard) sliderCard.style.display = 'none';
+    // Ocultar operaciones hasta que se cree la nueva estructura
+    if (actionsSection) actionsSection.style.display = 'none';
     treeImage.src = '';
   }
 
@@ -147,8 +145,7 @@
       }
       notify('Estructura creada correctamente', 'success');
       // Mostrar las operaciones y el slider
-      if (operationsCard) operationsCard.style.display = 'block';
-      if (sliderCard) sliderCard.style.display = 'block';
+      if (actionsSection) actionsSection.style.display = 'block';
       loadImage(`${baseURL}/plot`);
     } catch (err) {
       notify(err.message, 'error');
@@ -261,9 +258,8 @@
     deleteBtn.addEventListener('click', deleteLetter);
     viewTreeBtn.addEventListener('click', viewTree);
 
-    // Estado inicial: operaciones ocultas, slider oculto
-    if (operationsCard) operationsCard.style.display = 'none';
-    if (sliderCard) sliderCard.style.display = 'none';
+    // Estado inicial: operaciones ocultas
+    if (actionsSection) actionsSection.style.display = 'none';
     setActiveTypeButton(currentType);
     toggleMField();
     treeImage.src = '';

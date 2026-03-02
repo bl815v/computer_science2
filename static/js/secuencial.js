@@ -45,13 +45,14 @@
     }
   }
 
-  // --- ANIMACIÓN CON DETECCIÓN VISUAL ---
+  // --- ANIMACIÓN CON DETECCIÓN VISUAL Y PARADA TEMPRANA POR ORDEN ---
   async function scanAnimation(targetValue, state, stepMs = 450) {
     const grid = document.getElementById("visualization");
     if (!grid) return { found: false, position: -1 };
     const cells = grid.querySelectorAll(".cell");
     let foundAny = false;
     let foundIndex = -1;
+    const targetNum = Number(targetValue); // Para comparación numérica
 
     cells.forEach((c) => c.classList.remove("active", "found", "not-found", "visited"));
 
@@ -60,9 +61,15 @@
       cells[i].classList.add("active");
 
       const cellContent = cells[i].textContent.trim();
-      const normalizedTarget = String(targetValue).trim();
+      const cellNum = cellContent ? Number(cellContent) : NaN;
 
-      if (cellContent !== "" && cellContent === normalizedTarget) {
+      // Si la celda tiene un valor numérico y es mayor que el buscado,
+      // podemos detener la búsqueda porque la estructura está ordenada.
+      if (!isNaN(cellNum) && cellNum > targetNum) {
+        break; // Sale del bucle, no se encontró
+      }
+
+      if (cellContent !== "" && cellContent === targetValue) {
         cells[i].classList.add("found");
         foundAny = true;
         foundIndex = i + 1;
@@ -119,10 +126,16 @@
 
     let state = { size: 0, digits: 0, data: [] };
 
+    // Asegurar que los botones de acción estén ocultos al inicio
+    if (actions) actions.style.display = "none";
+    // El contenedor de visualización se deja vacío (sin celdas)
+
     async function reload() {
       state = await fetchState();
       renderGrid(state);
-      if (actions) actions.style.display = state.size > 0 ? "block" : "none";
+      if (actions) {
+        actions.style.display = state.size > 0 ? "block" : "none";
+      }
       if (valueEl) {
         valueEl.removeAttribute("maxlength");
         valueEl.placeholder = state.digits > 0 ? `Máx: ${state.digits} dígitos` : "Clave";
@@ -153,7 +166,6 @@
       });
     }
 
-    // INSERTAR
     if (insertBtn && valueEl) {
       insertBtn.addEventListener("click", async () => {
         if (insertBtn.disabled) return;
@@ -187,7 +199,6 @@
       });
     }
 
-    // BUSCAR
     if (searchBtn && valueEl) {
       searchBtn.addEventListener("click", async () => {
         if (!state.size) return notifyError("Estructura no inicializada.");
@@ -204,7 +215,6 @@
       });
     }
 
-    // BORRAR
     if (deleteBtn && valueEl) {
       deleteBtn.addEventListener("click", async () => {
         if (!state.size) return;
@@ -235,8 +245,6 @@
         }
       });
     }
-
-    await reload();
   }
 
   window.initSimulator = initSecuencial;
