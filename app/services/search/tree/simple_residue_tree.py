@@ -81,6 +81,7 @@ class SimpleResidueTree(BaseTree):
 
 		"""
 		bits = list(binary)
+
 		if self.root is None:
 			self.root = SimpleNode()
 			if bits[0] == '0':
@@ -89,9 +90,15 @@ class SimpleResidueTree(BaseTree):
 				self.root.right = SimpleNode(letter, binary, index)
 			return
 
+		if self.root.letter is not None:
+			old_root = self.root
+			self.root = SimpleNode()
+			if old_root.binary[0] == '0':
+				self.root.left = old_root
+			else:
+				self.root.right = old_root
+
 		def insert_rec(node: SimpleNode, depth: int) -> None:
-			if depth == len(bits):
-				raise ValueError('Profundidad excedida')
 			bit = bits[depth]
 			if bit == '0':
 				child = node.left
@@ -108,17 +115,17 @@ class SimpleResidueTree(BaseTree):
 			else:
 				if child.letter is not None:
 					if depth == len(bits) - 1:
-						raise ValueError("Inconsistencia: colisión en el último nivel")
+						raise ValueError('Inconsistencia: colisión en el último nivel')
 					new_internal = SimpleNode()
+					next_bit = child.binary[depth + 1]
+					if next_bit == '0':
+						new_internal.left = child
+					else:
+						new_internal.right = child
 					if bit == '0':
 						node.left = new_internal
 					else:
 						node.right = new_internal
-					existing_bits = list(child.binary)
-					if existing_bits[depth] == '0':
-						new_internal.left = child
-					else:
-						new_internal.right = child
 					insert_rec(new_internal, depth + 1)
 				else:
 					insert_rec(child, depth + 1)
@@ -172,21 +179,26 @@ class SimpleResidueTree(BaseTree):
 		def remove(node: Optional[SimpleNode], depth: int) -> Optional[SimpleNode]:
 			if node is None:
 				return None
-			if node.letter is not None and node.binary == binary:
-				return None
+
+			if node.letter is not None:
+				if node.binary == binary:
+					return None
+				else:
+					return node
+
 			if depth < len(bits):
 				bit = bits[depth]
 				if bit == '0':
 					node.left = remove(node.left, depth + 1)
 				else:
 					node.right = remove(node.right, depth + 1)
-			if node.letter is None:
-				if node.left is None and node.right is None:
-					return None
-				if node.left is not None and node.right is None:
-					return node.left
-				if node.right is not None and node.left is None:
-					return node.right
+
+			if node.left is None and node.right is None:
+				return None
+			if node.left is not None and node.right is None:
+				return node.left
+			if node.right is not None and node.left is None:
+				return node.right
 			return node
 
 		self.root = remove(self.root, 0)
