@@ -45,7 +45,19 @@
     }
   }
 
-  // --- ANIMACIÓN CON DETECCIÓN VISUAL ---
+  function renderEmptyGrid(size, digits) {
+    const grid = document.getElementById("visualization");
+    if (!grid) return;
+    grid.innerHTML = "";
+    for (let i = 0; i < size; i++) {
+      const cell = document.createElement("div");
+      cell.className = "cell empty";
+      cell.dataset.index = String(i + 1);
+      cell.textContent = "";
+      grid.appendChild(cell);
+    }
+  }
+
   async function scanAnimation(targetValue, state, stepMs = 450) {
     const grid = document.getElementById("visualization");
     if (!grid) return { found: false, position: -1 };
@@ -119,10 +131,18 @@
 
     let state = { size: 0, digits: 0, data: [] };
 
+    // Mostrar grid vacía al inicio
+    const initialSize = parseInt(sizeEl.value) || 5;
+    const initialDigits = parseInt(digitsEl.value) || 2;
+    renderEmptyGrid(initialSize, initialDigits);
+    if (actions) actions.style.display = "none";
+
     async function reload() {
       state = await fetchState();
       renderGrid(state);
-      if (actions) actions.style.display = state.size > 0 ? "block" : "none";
+      if (actions) {
+        actions.style.display = state.size > 0 ? "block" : "none";
+      }
       if (valueEl) {
         valueEl.removeAttribute("maxlength");
         valueEl.placeholder = state.digits > 0 ? `Máx: ${state.digits} dígitos` : "Clave";
@@ -153,7 +173,6 @@
       });
     }
 
-    // INSERTAR
     if (insertBtn && valueEl) {
       insertBtn.addEventListener("click", async () => {
         if (insertBtn.disabled) return;
@@ -187,7 +206,6 @@
       });
     }
 
-    // BUSCAR
     if (searchBtn && valueEl) {
       searchBtn.addEventListener("click", async () => {
         if (!state.size) return notifyError("Estructura no inicializada.");
@@ -204,7 +222,6 @@
       });
     }
 
-    // BORRAR
     if (deleteBtn && valueEl) {
       deleteBtn.addEventListener("click", async () => {
         if (!state.size) return;
@@ -235,8 +252,6 @@
         }
       });
     }
-
-    await reload();
   }
 
   window.initSimulator = initSecuencial;
