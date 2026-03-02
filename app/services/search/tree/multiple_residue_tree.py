@@ -228,25 +228,98 @@ class MultipleResidueTree(BaseTree):
 					edge = format(i, 'b').zfill(self.m)
 				self._build_graph(child, graph, node_id, edge, depth + 1, highlight_index)
 
-	def _compute_positions(
-		self, node: Optional[MultiNode], x: float, y: float, level: int, dx: float
+
+	def _calculate_width(self, node: Optional[MultiNode]) -> int:
+		"""
+		Calculate the width of a subtree for visualization.
+
+		Count the number of leaf nodes (nodes with letters) in the subtree.
+
+		Args:
+			node: The root of the subtree.
+
+		Returns:
+			The total width (number of leaf nodes) in the subtree.
+
+		"""
+		if node is None:
+			return 0
+		if node.letter is not None:
+			return 1
+		total = 0
+		for child in node.children:
+			total += self._calculate_width(child)
+		return total
+
+
+	def _compute_positions_interval(
+		self, node: Optional[MultiNode], left: float, right: float, y: float
 	):
 		"""
-		Compute node coordinates for visualization layout.
+		Compute node positions for visualization layout.
 
-		Distribute children horizontally according to
-		tree level and branching factor.
+		Assign x-coordinates based on the width of subtrees to ensure
+		proper spacing. Recursively compute positions for child nodes
+		within their allocated horizontal intervals.
+
+		Args:
+			node: The current node being positioned.
+			left: The left boundary of the horizontal interval for this node.
+			right: The right boundary of the horizontal interval for this node.
+			y: The vertical coordinate for this node.
+
 		"""
 		if node is None:
 			return
 		node_id = id(node)
+		x = (left + right) / 2
 		self._node_positions[node_id] = (x, y)
-		children = [c for c in node.children if c is not None]
-		if not children:
+		children_with_idx = [(i, child) for i, child in enumerate(node.children) if child is not None]
+		if not children_with_idx:
 			return
-		spacing = dx / (2 ** (level + 1))
+		child_widths = [self._calculate_width(child) for _, child in children_with_idx]
+		total_width = sum(child_widths)
+		if total_width == 0:
+			return
 		next_y = y - 1.5
-		total = len(children)
-		for i, child in enumerate(children):
-			offset = (i - (total - 1) / 2) * spacing
-			self._compute_positions(child, x + offset, next_y, level + 1, dx)
+		current_left = left
+		for (i, child), width in zip(children_with_idx, child_widths):
+			proportion = width / total_width
+			child_right = current_left + (right - left) * proportion
+			if len(children_with_idx) == 1:
+				shift = (right - left) * 0.15
+				msb = (i >> (self.m - 1)) & 1
+				child_center = (current_left + child_right) / 2
+				if msb == 1:
+					new_center = child_center + shift
+				else:
+					new_center = child_center - shift
+				half_width = (child_right - current_left) / 2
+				new_left = new_center - half_width
+				new_right = new_center + half_width
+				self._compute_positions_interval(child, new_left, new_right, next_y)
+			else:
+				self._compute_positions_interval(child, current_left, child_right, next_y)
+			current_left = child_right
+
+
+	def _compute_positions(
+		self,
+		node: Optional[MultiNode],
+		x: float,
+		y: float,
+		level: int,
+		dx: float,
+	):
+		"""
+		Compute the position of a child node based on the given parameters.
+
+		Args:
+			node: The current node for which the position is being computed.
+			x: The x-coordinate of the child node.
+			y: The y-coordinate of the child node.
+			level: The depth level of the child node in the tree.
+			dx: The horizontal spacing factor for positioning child nodes.
+
+		"""
+		self._compute_positions_interval(node, x - dx / 2, x + dx / 2, y)

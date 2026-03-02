@@ -174,9 +174,7 @@ class BaseTree(BaseSearchService):
 		letter = letter.upper()
 		alfabeto = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 		if letter not in alfabeto:
-			raise ValueError(
-				f"Letra '{letter}' no válida. Use solo letras del alfabeto americano."
-			)
+			raise ValueError(f"Letra '{letter}' no válida. Use solo letras del alfabeto americano.")
 		return letter
 
 	def _letter_to_binary(self, letter: str) -> str:
@@ -208,7 +206,7 @@ class BaseTree(BaseSearchService):
 		elif self.encoding == 'ASCII':
 			return chr(int(binary, 2))
 		else:
-			raise ValueError(f"Codificación desconocida: {self.encoding}")
+			raise ValueError(f'Codificación desconocida: {self.encoding}')
 
 	def _rebuild_tree(self):
 		"""Rebuild the tree structure from the current data array."""
@@ -286,7 +284,7 @@ class BaseTree(BaseSearchService):
 			return []
 		for pos in positions:
 			self.data[pos - 1] = None
-		self._rebuild_tree()
+		self._delete_node(binary)
 		return positions
 
 	def search_plot(self, letter: str, filename: str = 'search_result.png'):

@@ -95,10 +95,12 @@ class SimpleResidueTree(BaseTree):
 			bit = bits[depth]
 			if bit == '0':
 				child = node.left
+
 				def set_child(n):
 					return setattr(node, 'left', n)
 			else:
 				child = node.right
+
 				def set_child(n):
 					return setattr(node, 'right', n)
 
@@ -157,8 +159,9 @@ class SimpleResidueTree(BaseTree):
 			binary: Binary representation of the node to remove.
 
 		"""
+		bits = list(binary)
 
-		def remove(node: Optional[SimpleNode], bits: List[str], depth: int) -> Optional[SimpleNode]:
+		def remove(node: Optional[SimpleNode], depth: int) -> Optional[SimpleNode]:
 			if node is None:
 				return None
 			if depth == len(bits):
@@ -167,14 +170,14 @@ class SimpleResidueTree(BaseTree):
 				return node
 			bit = bits[depth]
 			if bit == '0':
-				node.left = remove(node.left, bits, depth + 1)
+				node.left = remove(node.left, depth + 1)
 			else:
-				node.right = remove(node.right, bits, depth + 1)
+				node.right = remove(node.right, depth + 1)
 			if node.letter is None and node.left is None and node.right is None:
 				return None
 			return node
 
-		self.root = remove(self.root, list(binary), 0)
+		self.root = remove(self.root, 0)
 
 	def _build_graph(
 		self,
