@@ -45,26 +45,14 @@
     }
   }
 
-  // (La función renderEmptyGrid se puede eliminar o dejar, pero ya no se usa)
-  function renderEmptyGrid(size, digits) {
-    const grid = document.getElementById("visualization");
-    if (!grid) return;
-    grid.innerHTML = "";
-    for (let i = 0; i < size; i++) {
-      const cell = document.createElement("div");
-      cell.className = "cell empty";
-      cell.dataset.index = String(i + 1);
-      cell.textContent = "";
-      grid.appendChild(cell);
-    }
-  }
-
+  // --- ANIMACIÓN CON DETECCIÓN VISUAL Y PARADA TEMPRANA POR ORDEN ---
   async function scanAnimation(targetValue, state, stepMs = 450) {
     const grid = document.getElementById("visualization");
     if (!grid) return { found: false, position: -1 };
     const cells = grid.querySelectorAll(".cell");
     let foundAny = false;
     let foundIndex = -1;
+    const targetNum = Number(targetValue); // Para comparación numérica
 
     cells.forEach((c) => c.classList.remove("active", "found", "not-found", "visited"));
 
@@ -73,9 +61,15 @@
       cells[i].classList.add("active");
 
       const cellContent = cells[i].textContent.trim();
-      const normalizedTarget = String(targetValue).trim();
+      const cellNum = cellContent ? Number(cellContent) : NaN;
 
-      if (cellContent !== "" && cellContent === normalizedTarget) {
+      // Si la celda tiene un valor numérico y es mayor que el buscado,
+      // podemos detener la búsqueda porque la estructura está ordenada.
+      if (!isNaN(cellNum) && cellNum > targetNum) {
+        break; // Sale del bucle, no se encontró
+      }
+
+      if (cellContent !== "" && cellContent === targetValue) {
         cells[i].classList.add("found");
         foundAny = true;
         foundIndex = i + 1;
