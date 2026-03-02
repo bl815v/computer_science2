@@ -102,3 +102,53 @@
     flex-wrap: wrap; /* Por si hay muchos elementos en chaining */
     gap: 5px;
 }
+
+/* --- Animaciones para operaciones --- */
+.cell.highlight-insert {
+  background-color: #dff6dd !important;
+  border: 2px solid #107c10 !important;
+  animation: pulse-success 1s;
+}
+
+.cell.highlight-search {
+  background-color: #fff1cc !important;
+  border: 2px solid #ffb900 !important;
+  animation: pulse-warning 1s;
+}
+
+.cell.highlight-delete {
+  background-color: #fde7e9 !important;
+  border: 2px solid #d13438 !important;
+  animation: pulse-error 1s;
+}
+
+@keyframes pulse-success {
+  0% { box-shadow: 0 0 0 0 rgba(16, 124, 16, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(16, 124, 16, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 124, 16, 0); }
+}
+
+@keyframes pulse-warning {
+  0% { box-shadow: 0 0 0 0 rgba(255, 185, 0, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(255, 185, 0, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 185, 0, 0); }
+}
+
+@keyframes pulse-error {
+  0% { box-shadow: 0 0 0 0 rgba(209, 52, 56, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(209, 52, 56, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(209, 52, 56, 0); }
+}
+
+/* --- Animación para colisión --- */
+.cell.highlight-collision {
+  background-color: #ff8c00 !important;
+  border: 2px solid #ff4500 !important;
+  animation: pulse-collision 1.5s;
+}
+
+@keyframes pulse-collision {
+  0% { box-shadow: 0 0 0 0 rgba(255, 69, 0, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(255, 69, 0, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 69, 0, 0); }
+}
