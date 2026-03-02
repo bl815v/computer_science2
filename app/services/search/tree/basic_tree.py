@@ -199,6 +199,25 @@ class BaseTree(BaseSearchService):
 		else:
 			raise ValueError(f'Codificación desconocida: {self.encoding}')
 
+	def _binary_to_letter(self, binary: str) -> str:
+		"""Convert a binary string back to its letter representation."""
+		if self.encoding == 'ABC':
+			pos = int(binary, 2)
+			alfabeto = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+			return alfabeto[pos - 1]
+		elif self.encoding == 'ASCII':
+			return chr(int(binary, 2))
+		else:
+			raise ValueError(f"Codificación desconocida: {self.encoding}")
+
+	def _rebuild_tree(self):
+		"""Rebuild the tree structure from the current data array."""
+		self.root = None
+		for i, val in enumerate(self.data):
+			if val is not None:
+				letter = self._binary_to_letter(val)
+				self._insert_node(val, i, letter)
+
 	def insert(self, letter: str) -> int:
 		"""
 		Insert a letter into the tree.
@@ -267,7 +286,7 @@ class BaseTree(BaseSearchService):
 			return []
 		for pos in positions:
 			self.data[pos - 1] = None
-		self._delete_node(binary)
+		self._rebuild_tree()
 		return positions
 
 	def search_plot(self, letter: str, filename: str = 'search_result.png'):
