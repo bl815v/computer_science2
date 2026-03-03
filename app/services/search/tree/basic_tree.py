@@ -410,7 +410,7 @@ class BaseTree(BaseSearchService):
 		if highlight_node is not None and G.nodes[highlight_node].get('has_letter', False):
 			labels[highlight_node] = G.nodes[highlight_node]['label']
 
-		nx.draw_networkx_labels(G, pos, labels, font_size=10, font_color='black')
+		nx.draw_networkx_labels(G, pos, labels, font_size=18, font_color='black')
 
 		nx.draw_networkx_edges(G, pos, arrows=False, edge_color='gray')
 
@@ -437,7 +437,7 @@ class BaseTree(BaseSearchService):
 					mx + offset_x,
 					my + offset_y,
 					data['label'],
-					fontsize=9,
+					fontsize=18,
 					ha='center',
 					va='center',
 					bbox=dict(facecolor='white', edgecolor='none', alpha=0.7, pad=1),
