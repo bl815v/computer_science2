@@ -195,10 +195,13 @@ class SimpleResidueTree(BaseTree):
 
 			if node.left is None and node.right is None:
 				return None
-			if node.left is not None and node.right is None:
-				return node.left
-			if node.right is not None and node.left is None:
-				return node.right
+
+			if depth != 0:
+				if node.left is not None and node.right is None:
+					return node.left
+				if node.right is not None and node.left is None:
+					return node.right
+
 			return node
 
 		self.root = remove(self.root, 0)
