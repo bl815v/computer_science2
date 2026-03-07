@@ -3,6 +3,7 @@
 
   const API_BASE = "http://127.0.0.1:8000/binary-search";
   let isAlertActive = false;
+  let currentState = { size: 0, digits: 0, data: [] }; // Estado local
 
   function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -32,76 +33,122 @@
     input.focus();
   }
 
-  function renderGrid(state) {
+  // --- Renderizado dinámico con puntos suspensivos ---
+  function renderGrid() {
     const grid = document.getElementById("bin-visualization");
     if (!grid) return;
     grid.innerHTML = "";
-    for (let i = 0; i < state.size; i++) {
-      const val = state.data[i];
+
+    const data = currentState.data;
+    const totalSize = data.length;
+    const OCCUPIED_THRESHOLD = 1; // Salto para puntos suspensivos
+
+    const occupied = [];
+    for (let i = 0; i < totalSize; i++) {
+      const val = data[i];
+      const isOccupied = (val !== null && val !== "" && typeof val === 'string');
+      if (isOccupied) occupied.push(i);
+    }
+
+    const appendCell = (index) => {
+      const val = data[index];
       const cell = document.createElement("div");
       cell.className = "cell";
-      
-      if (val == null || val === "") {
-        cell.classList.add("empty");
-        cell.textContent = ""; 
-      } else {
-        cell.dataset.index = i + 1;
-        cell.textContent = val;
+      if (val == null || val === "") cell.classList.add("empty");
+      cell.dataset.index = String(index + 1);
+      cell.dataset.pos = index + 1;
+      cell.textContent = (val == null || val === "") ? "" : val; // ya viene formateado con dígitos
+      grid.appendChild(cell);
+    };
+
+    if (occupied.length === 0) {
+      const end = Math.min(5, totalSize) - 1;
+      for (let i = 0; i <= end; i++) {
+        appendCell(i);
       }
-      grid.appendChild(cell);
+      return;
+    }
+
+    const firstOcc = occupied[0];
+    const lastOcc = occupied[occupied.length - 1];
+
+    const start = Math.max(0, firstOcc - 2);
+    for (let i = start; i < firstOcc; i++) {
+      appendCell(i);
+    }
+
+    for (let idx = 0; idx < occupied.length; idx++) {
+      const i = occupied[idx];
+      appendCell(i);
+
+      if (idx < occupied.length - 1) {
+        const next = occupied[idx + 1];
+        if (next - i > OCCUPIED_THRESHOLD) {
+          const dots = document.createElement("div");
+          dots.className = "cell dots";
+          dots.textContent = "...";
+          grid.appendChild(dots);
+        } else if (next - i > 1) {
+          for (let j = i + 1; j < next; j++) {
+            appendCell(j);
+          }
+        }
+      }
+    }
+
+    const end = Math.min(totalSize - 1, lastOcc + 2);
+    for (let i = lastOcc + 1; i <= end; i++) {
+      appendCell(i);
     }
   }
 
-  // (La función renderEmptyGrid se puede eliminar o dejar, pero ya no se usa)
-  function renderEmptyGrid(size) {
-    const grid = document.getElementById("bin-visualization");
-    if (!grid) return;
-    grid.innerHTML = "";
-    for (let i = 0; i < size; i++) {
-      const cell = document.createElement("div");
-      cell.className = "cell empty";
-      cell.dataset.index = i + 1;
-      cell.textContent = "";
-      grid.appendChild(cell);
-    }
-  }
-
+  // --- Animación de búsqueda binaria adaptada a celdas visibles ---
   async function binarySearchAnimation(targetValue, state) {
-    const cells = document.querySelectorAll("#bin-visualization .cell");
-    const validData = state.data.filter((v) => v !== null && v !== "");
-    const validLength = validData.length;
+    const grid = document.getElementById("bin-visualization");
+    if (!grid) return false;
+    // Obtener celdas visibles (sin puntos) y ordenar por data-pos
+    let cells = Array.from(grid.querySelectorAll(".cell:not(.dots)"));
+    cells.sort((a, b) => parseInt(a.dataset.pos) - parseInt(b.dataset.pos));
 
-    let left = 0;
-    let right = validLength - 1;
+    // Obtener los índices reales de esas celdas
+    const indices = cells.map(cell => parseInt(cell.dataset.pos) - 1); // 0-based
+
     let found = false;
+    let left = 0;
+    let right = indices.length - 1;
 
-    cells.forEach((c) => c.classList.remove("active", "found", "discarded"));
+    // Limpiar clases
+    cells.forEach(c => c.classList.remove("active", "found", "discarded"));
 
     while (left <= right) {
       let mid = Math.floor((left + right) / 2);
+      let realIndex = indices[mid];
+      let cell = cells[mid];
       
-      cells[mid].classList.add("active");
+      cell.classList.add("active");
       await sleep(800);
 
-      const midValue = String(state.data[mid]).trim();
+      const midValue = String(state.data[realIndex]).trim();
       const searchValue = String(targetValue).trim();
 
       if (midValue === searchValue) {
-        cells[mid].classList.remove("active");
-        cells[mid].classList.add("found");
-        notifySuccess(`Valor ${targetValue} encontrado en dirección ${mid + 1}.`);
+        cell.classList.remove("active");
+        cell.classList.add("found");
+        notifySuccess(`Valor ${targetValue} encontrado en dirección ${realIndex + 1}.`);
         found = true;
-        break; 
+        break;
       }
 
-      cells[mid].classList.remove("active");
+      cell.classList.remove("active");
 
       if (midValue < searchValue) {
+        // Descartar izquierda
         for (let i = left; i <= mid; i++) {
           cells[i].classList.add("discarded");
         }
         left = mid + 1;
       } else {
+        // Descartar derecha
         for (let i = mid; i <= right; i++) {
           cells[i].classList.add("discarded");
         }
@@ -115,7 +162,7 @@
     }
 
     await sleep(2000);
-    cells.forEach((c) => {
+    cells.forEach(c => {
       c.classList.remove("active", "found", "discarded");
     });
 
@@ -134,20 +181,17 @@
 
     if (!sizeEl || !digitsEl || !createBtn) return;
 
-    let currentState = { size: 0, digits: 0, data: [] };
-
-    // Asegurar que los botones de acción estén ocultos al inicio
+    // Asegurar botones ocultos al inicio
     if (actionsSection) actionsSection.style.display = "none";
-    // El contenedor de visualización se deja vacío (sin celdas)
 
     async function reload() {
       try {
         const res = await fetch(`${API_BASE}/state`);
         if (!res.ok) throw new Error("No se pudo obtener el estado");
         currentState = await res.json();
-        renderGrid(currentState);
+        renderGrid();
         if (valInput && currentState.digits > 0) {
-          valInput.removeAttribute("maxlength"); 
+          valInput.removeAttribute("maxlength");
           valInput.placeholder = `Máx: ${currentState.digits} dígitos`;
         }
         if (actionsSection) {
@@ -243,6 +287,17 @@
           notifyError(error.message);
         }
       });
+    }
+
+    // Cargar estado inicial (vacío)
+    try {
+      const res = await fetch(`${API_BASE}/state`);
+      if (res.ok) {
+        currentState = await res.json();
+        renderGrid();
+      }
+    } catch (error) {
+      console.error(error);
     }
   }
 

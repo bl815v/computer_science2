@@ -241,3 +241,21 @@ button.danger:hover { background: var(--ms-error); color: white; }
     background-color: #faf9f8;
     color: #a19f9d;
 }
+
+/* Estilo para los puntos suspensivos en tablas dinámicas */
+.cell.dots {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: #888;
+  font-size: 16px;
+  font-weight: bold;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+  min-width: 40px;
+  pointer-events: none; /* Para que no interfiera con clicks ni animaciones */
+}
+.cell.dots::before {
+  content: none; /* Elimina el índice de la izquierda */
+}

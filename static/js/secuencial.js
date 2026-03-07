@@ -4,6 +4,7 @@
 
   const API_BASE = "http://127.0.0.1:8000/linear-search";
   let isNotifying = false;
+  let currentState = { size: 0, digits: 0, data: [] }; // Estado local
 
   function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -30,18 +31,80 @@
     }
   }
 
-  function renderGrid(state) {
+  // --- Renderizado dinámico con puntos suspensivos ---
+  function renderGrid() {
     const grid = document.getElementById("visualization");
     if (!grid) return;
     grid.innerHTML = "";
-    for (let i = 0; i < state.size; i++) {
-      const val = state.data[i];
+
+    const data = currentState.data;
+    const totalSize = data.length;
+    const OCCUPIED_THRESHOLD = 1; // Si hay más de 2 vacíos entre ocupados, ponemos "..."
+
+    // Encontrar índices ocupados (que tienen un valor real, no vacío ni DELETED)
+    const occupied = [];
+    for (let i = 0; i < totalSize; i++) {
+      const val = data[i];
+      const isOccupied = (typeof val === 'string' && val !== "" && val !== null && val !== undefined);
+      if (isOccupied) occupied.push(i);
+    }
+
+    // Función auxiliar para crear una celda en un índice dado
+    const appendCell = (index) => {
+      const val = data[index];
       const cell = document.createElement("div");
       cell.className = "cell";
       if (val == null || val === "") cell.classList.add("empty");
-      cell.dataset.index = String(i + 1);
-      cell.textContent = (val == null || val === "") ? "" : toDigits(val, state.digits);
+      cell.dataset.index = String(index + 1);
+      cell.dataset.pos = index + 1; // Para búsquedas y animaciones
+      cell.textContent = (val == null || val === "") ? "" : toDigits(val, currentState.digits);
       grid.appendChild(cell);
+    };
+
+    // Si no hay ocupados, mostrar un pequeño conjunto de celdas vacías (primeras 5)
+    if (occupied.length === 0) {
+      const end = Math.min(1, totalSize) - 1;
+      for (let i = 0; i <= end; i++) {
+        appendCell(i);
+      }
+      return;
+    }
+
+    const firstOcc = occupied[0];
+    const lastOcc = occupied[occupied.length - 1];
+
+    // Contexto inicial: desde max(0, firstOcc-2) hasta firstOcc-1
+    const start = Math.max(0, firstOcc - 2);
+    for (let i = start; i < firstOcc; i++) {
+      appendCell(i);
+    }
+
+    // Mostrar ocupados y los espacios entre ellos
+    for (let idx = 0; idx < occupied.length; idx++) {
+      const i = occupied[idx];
+      appendCell(i);
+
+      if (idx < occupied.length - 1) {
+        const next = occupied[idx + 1];
+        if (next - i > OCCUPIED_THRESHOLD) {
+          // Salto grande: poner "..."
+          const dots = document.createElement("div");
+          dots.className = "cell dots";
+          dots.textContent = "...";
+          grid.appendChild(dots);
+        } else if (next - i > 1) {
+          // Mostrar las celdas intermedias vacías (para mantener continuidad)
+          for (let j = i + 1; j < next; j++) {
+            appendCell(j);
+          }
+        }
+      }
+    }
+
+    // Contexto final: desde lastOcc+1 hasta min(totalSize-1, lastOcc+2)
+    const end = Math.min(totalSize - 1, lastOcc + 2);
+    for (let i = lastOcc + 1; i <= end; i++) {
+      appendCell(i);
     }
   }
 
@@ -49,49 +112,55 @@
   async function scanAnimation(targetValue, state, stepMs = 450) {
     const grid = document.getElementById("visualization");
     if (!grid) return { found: false, position: -1 };
-    const cells = grid.querySelectorAll(".cell");
+
+    // Seleccionar todas las celdas que no sean puntos suspensivos
+    const cells = Array.from(grid.querySelectorAll(".cell:not(.dots)"));
+    // Ordenar por data-pos (número real de la celda)
+    cells.sort((a, b) => parseInt(a.dataset.pos) - parseInt(b.dataset.pos));
+
     let foundAny = false;
     let foundIndex = -1;
-    const targetNum = Number(targetValue); // Para comparación numérica
+    const targetNum = Number(targetValue);
 
-    cells.forEach((c) => c.classList.remove("active", "found", "not-found", "visited"));
+    // Limpiar clases previas
+    cells.forEach(c => c.classList.remove("active", "found", "not-found", "visited"));
 
-    for (let i = 0; i < state.size; i++) {
-      cells.forEach((c) => c.classList.remove("active"));
-      cells[i].classList.add("active");
+    for (let i = 0; i < cells.length; i++) {
+      const cell = cells[i];
+      cells.forEach(c => c.classList.remove("active"));
+      cell.classList.add("active");
 
-      const cellContent = cells[i].textContent.trim();
+      const cellContent = cell.textContent.trim();
       const cellNum = cellContent ? Number(cellContent) : NaN;
 
-      // Si la celda tiene un valor numérico y es mayor que el buscado,
-      // podemos detener la búsqueda porque la estructura está ordenada.
+      // Si la celda tiene un valor numérico y es mayor que el buscado, detener
       if (!isNaN(cellNum) && cellNum > targetNum) {
-        break; // Sale del bucle, no se encontró
+        break;
       }
 
       if (cellContent !== "" && cellContent === targetValue) {
-        cells[i].classList.add("found");
+        cell.classList.add("found");
         foundAny = true;
-        foundIndex = i + 1;
+        foundIndex = parseInt(cell.dataset.pos); // posición real (1-based)
         break;
       } else {
-        cells[i].classList.add("visited");
+        cell.classList.add("visited");
       }
 
       await sleep(stepMs);
     }
 
     if (!foundAny) {
-      cells.forEach((c) => {
+      cells.forEach(c => {
         c.classList.remove("active");
         c.classList.add("not-found");
       });
       await sleep(1000);
-      cells.forEach((c) => c.classList.remove("not-found", "visited"));
+      cells.forEach(c => c.classList.remove("not-found", "visited"));
     } else {
-      cells.forEach((c) => c.classList.remove("active"));
-      await sleep(1000); 
-      cells.forEach((c) => c.classList.remove("found", "visited"));
+      cells.forEach(c => c.classList.remove("active"));
+      await sleep(1000);
+      cells.forEach(c => c.classList.remove("found", "visited"));
     }
     return { found: foundAny, position: foundIndex };
   }
@@ -124,21 +193,19 @@
 
     if (!sizeEl || !digitsEl || !createBtn) return;
 
-    let state = { size: 0, digits: 0, data: [] };
-
     // Asegurar que los botones de acción estén ocultos al inicio
     if (actions) actions.style.display = "none";
     // El contenedor de visualización se deja vacío (sin celdas)
 
     async function reload() {
-      state = await fetchState();
-      renderGrid(state);
+      currentState = await fetchState();
+      renderGrid();
       if (actions) {
-        actions.style.display = state.size > 0 ? "block" : "none";
+        actions.style.display = currentState.size > 0 ? "block" : "none";
       }
       if (valueEl) {
         valueEl.removeAttribute("maxlength");
-        valueEl.placeholder = state.digits > 0 ? `Máx: ${state.digits} dígitos` : "Clave";
+        valueEl.placeholder = currentState.digits > 0 ? `Máx: ${currentState.digits} dígitos` : "Clave";
       }
     }
 
@@ -161,7 +228,7 @@
 
     if (valueEl) {
       valueEl.addEventListener("input", () => {
-        const d = state.digits || parseInt(digitsEl.value) || 0;
+        const d = currentState.digits || parseInt(digitsEl.value) || 0;
         enforceNumericDigits(valueEl, d);
       });
     }
@@ -170,11 +237,11 @@
       insertBtn.addEventListener("click", async () => {
         if (insertBtn.disabled) return;
         try {
-          if (!state.size) throw new Error("Primero crea la estructura.");
+          if (!currentState.size) throw new Error("Primero crea la estructura.");
           if (!valueEl.value) throw new Error("Ingresa una clave.");
 
           insertBtn.disabled = true;
-          const value = toDigits(valueEl.value, state.digits);
+          const value = toDigits(valueEl.value, currentState.digits);
 
           const res = await fetch(`${API_BASE}/insert`, {
             method: "POST",
@@ -188,7 +255,7 @@
           }
 
           await reload(); 
-          const result = await scanAnimation(value, state, 300); 
+          const result = await scanAnimation(value, currentState, 300); 
           notifySuccess(`Clave ${value} insertada correctamente en la dirección ${result.position}.`);
           valueEl.value = "";
         } catch (error) {
@@ -201,11 +268,11 @@
 
     if (searchBtn && valueEl) {
       searchBtn.addEventListener("click", async () => {
-        if (!state.size) return notifyError("Estructura no inicializada.");
+        if (!currentState.size) return notifyError("Estructura no inicializada.");
         if (!valueEl.value) return notifyError("Ingresa una clave.");
         
-        const value = toDigits(valueEl.value, state.digits);
-        const result = await scanAnimation(value, state, 350);
+        const value = toDigits(valueEl.value, currentState.digits);
+        const result = await scanAnimation(value, currentState, 350);
 
         if (result.found) {
           notifySuccess(`Clave ${value} encontrada en la dirección ${result.position}.`);
@@ -217,13 +284,13 @@
 
     if (deleteBtn && valueEl) {
       deleteBtn.addEventListener("click", async () => {
-        if (!state.size) return;
+        if (!currentState.size) return;
         if (!valueEl.value) return;
         
-        const value = toDigits(valueEl.value, state.digits);
+        const value = toDigits(valueEl.value, currentState.digits);
         
         try {
-          const result = await scanAnimation(value, state, 300);
+          const result = await scanAnimation(value, currentState, 300);
           if (!result.found) {
             notifyError("No se encontró el valor para eliminar.");
             return;
@@ -245,6 +312,10 @@
         }
       });
     }
+
+    // Cargar estado inicial (vacío)
+    currentState = await fetchState();
+    renderGrid();
   }
 
   window.initSimulator = initSecuencial;
