@@ -18,7 +18,6 @@
 
   function toDigits(v, digits) {
     if (v === null || v === undefined || v === "") return "";
-    // Si el valor es numérico o string numérico, rellenar con ceros
     if (!isNaN(v) && v !== "DELETED") {
         return String(v).padStart(digits, "0");
     }
@@ -53,6 +52,21 @@
       return false;
     }
     return true;
+  }
+
+  // --- Verificación local de duplicados ---
+  function valueAlreadyExists(val) {
+    for (let i = 0; i < currentState.data.length; i++) {
+      const cell = currentState.data[i];
+      // Ignorar celdas vacías o marcadores de eliminado
+      if (cell === null || cell === undefined || cell === "DELETED") continue;
+      if (Array.isArray(cell)) {
+        if (cell.includes(val)) return true;
+      } else {
+        if (cell === val) return true;
+      }
+    }
+    return false;
   }
 
   // --- Función para resaltar celdas ---
@@ -240,10 +254,9 @@
       if (isNaN(size) || size <= 0) return notifyError("Tamaño inválido.");
       if (isNaN(digits) || digits <= 0) return notifyError("Dígitos inválidos.");
 
-      // Preparar body para set-hash
       let setHashBody = { type: hType };
 
-      // Si es truncamiento, convertir la selección del usuario a una lista de posiciones
+      // Truncamiento
       if (hType === "truncation") {
         const method = truncationMethod.value;
         const value = truncationValue.value.trim();
@@ -255,19 +268,15 @@
           if (isNaN(n) || n <= 0 || n > digits) {
             return notifyError(`Ingresa un número válido de dígitos entre 1 y ${digits}.`);
           }
-          // Primeros n dígitos: posiciones 1..n
           for (let i = 1; i <= n; i++) positions.push(i);
         } else if (method === "last") {
           const n = parseInt(value, 10);
           if (isNaN(n) || n <= 0 || n > digits) {
             return notifyError(`Ingresa un número válido de dígitos entre 1 y ${digits}.`);
           }
-          // Últimos n dígitos: posiciones desde digits-n+1 hasta digits
           for (let i = digits - n + 1; i <= digits; i++) positions.push(i);
         } else if (method === "positions") {
-          // Parsear lista de números separados por comas
           const parts = value.split(',').map(p => parseInt(p.trim(), 10));
-          // Validar que todos sean números positivos y dentro del rango
           const invalid = parts.some(p => isNaN(p) || p <= 0 || p > digits);
           if (parts.length === 0 || invalid) {
             return notifyError(`Ingresa posiciones válidas entre 1 y ${digits} separadas por comas.`);
@@ -277,7 +286,7 @@
         setHashBody.positions = positions;
       }
 
-      // Si es plegamiento, agregar parámetros
+      // Plegamiento
       if (hType === "folding") {
         const operation = foldingOperation.value;
         const groupSize = parseInt(foldingGroupSize.value, 10);
@@ -318,12 +327,20 @@
       } catch (err) { notifyError(err.message); }
     });
 
-    // --- Insertar (ACTUALIZACIÓN LOCAL) ---
+    // --- Insertar (con verificación local de duplicados) ---
     insertBtn.addEventListener("click", async () => {
       const rawValue = valInp.value.trim();
       if (!rawValue) { notifyError("Ingresa una clave."); clearInput(); return; }
       const value = toDigits(rawValue, currentDigits);
       if (!validateKey(value)) return;
+
+      // Verificar si el valor ya existe localmente
+      if (valueAlreadyExists(value)) {
+        notifyError(`La clave ${value} ya existe en la tabla.`);
+        clearInput();
+        return;
+      }
+
       lastValueAttempt = rawValue;
 
       try {
