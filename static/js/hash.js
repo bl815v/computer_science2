@@ -188,14 +188,30 @@
     const truncationOptions = document.getElementById("truncation-options");
     const truncationMethod = document.getElementById("truncation-method");
     const truncationValue = document.getElementById("truncation-value");
-    const truncationParams = document.getElementById("truncation-params");
 
-    // Mostrar/ocultar opciones de truncamiento según el tipo seleccionado
+    // Elementos de plegamiento
+    const foldingOptions = document.getElementById("folding-options");
+    const foldingOperation = document.getElementById("folding-operation");
+    const foldingGroupSize = document.getElementById("folding-group-size");
+
+    // Verificar que todos los elementos existan
+    if (!hashTypeSelect || !truncationOptions || !truncationMethod || !truncationValue || 
+        !foldingOptions || !foldingOperation || !foldingGroupSize) {
+      console.error("Faltan elementos del DOM para los submenús.");
+      return;
+    }
+
+    // Mostrar/ocultar opciones según el tipo seleccionado
     hashTypeSelect.addEventListener("change", () => {
       if (hashTypeSelect.value === "truncation") {
         truncationOptions.style.display = "block";
+        foldingOptions.style.display = "none";
+      } else if (hashTypeSelect.value === "folding") {
+        truncationOptions.style.display = "none";
+        foldingOptions.style.display = "block";
       } else {
         truncationOptions.style.display = "none";
+        foldingOptions.style.display = "none";
       }
     });
 
@@ -225,25 +241,51 @@
       if (isNaN(digits) || digits <= 0) return notifyError("Dígitos inválidos.");
 
       // Preparar body para set-hash
-      let setHashBody = { type: hType, positions: [1, 2], group_size: 2 };
+      let setHashBody = { type: hType };
 
-      // Si es truncamiento, agregar parámetros
+      // Si es truncamiento, convertir la selección del usuario a una lista de posiciones
       if (hType === "truncation") {
         const method = truncationMethod.value;
         const value = truncationValue.value.trim();
         if (!value) return notifyError("Especifica los parámetros de truncamiento.");
 
-        if (method === "first" || method === "last") {
+        let positions = [];
+        if (method === "first") {
           const n = parseInt(value, 10);
-          if (isNaN(n) || n <= 0) return notifyError("Ingresa un número válido de dígitos.");
-          setHashBody.truncation_method = method;
-          setHashBody.truncation_n = n;
+          if (isNaN(n) || n <= 0 || n > digits) {
+            return notifyError(`Ingresa un número válido de dígitos entre 1 y ${digits}.`);
+          }
+          // Primeros n dígitos: posiciones 1..n
+          for (let i = 1; i <= n; i++) positions.push(i);
+        } else if (method === "last") {
+          const n = parseInt(value, 10);
+          if (isNaN(n) || n <= 0 || n > digits) {
+            return notifyError(`Ingresa un número válido de dígitos entre 1 y ${digits}.`);
+          }
+          // Últimos n dígitos: posiciones desde digits-n+1 hasta digits
+          for (let i = digits - n + 1; i <= digits; i++) positions.push(i);
         } else if (method === "positions") {
-          const positions = value.split(',').map(p => parseInt(p.trim(), 10)).filter(p => !isNaN(p) && p > 0);
-          if (positions.length === 0) return notifyError("Ingresa posiciones válidas (ej: 1,3,5).");
-          setHashBody.truncation_method = method;
-          setHashBody.truncation_positions = positions;
+          // Parsear lista de números separados por comas
+          const parts = value.split(',').map(p => parseInt(p.trim(), 10));
+          // Validar que todos sean números positivos y dentro del rango
+          const invalid = parts.some(p => isNaN(p) || p <= 0 || p > digits);
+          if (parts.length === 0 || invalid) {
+            return notifyError(`Ingresa posiciones válidas entre 1 y ${digits} separadas por comas.`);
+          }
+          positions = parts;
         }
+        setHashBody.positions = positions;
+      }
+
+      // Si es plegamiento, agregar parámetros
+      if (hType === "folding") {
+        const operation = foldingOperation.value;
+        const groupSize = parseInt(foldingGroupSize.value, 10);
+        if (isNaN(groupSize) || groupSize <= 0) {
+          return notifyError("El tamaño del grupo debe ser un número positivo.");
+        }
+        setHashBody.operation = operation;
+        setHashBody.group_size = groupSize;
       }
 
       try {
