@@ -122,21 +122,12 @@
       if (!res.ok) throw new Error("Error al cargar estado");
       const data = await res.json();
       console.log("Estado cargado:", data);
-
-      // Asignar valores con nombres alternativos
       currentState = {
         size: data.size || 0,
         digits: data.digits || 0,
         block_size: data.block_size || data.blockSize || 0,
         blocks: data.blocks || []
       };
-
-      // Si block_size sigue siendo 0 pero hay bloques, calcularlo del primer bloque
-      if (currentState.block_size === 0 && currentState.blocks.length > 0 && currentState.blocks[0].length) {
-        currentState.block_size = currentState.blocks[0].length;
-        console.log("block_size deducido de los bloques:", currentState.block_size);
-      }
-
       const blockSizeSpan = document.getElementById("block-size-display");
       if (blockSizeSpan) blockSizeSpan.textContent = currentState.block_size || "-";
       renderGrid();
@@ -222,19 +213,41 @@
         const data = await res.json();
         console.log("Respuesta insert:", data);
         if (res.ok) {
-          await loadState(); // Actualiza currentState
-          console.log("block_size después de loadState:", currentState.block_size);
+          await loadState(); // Recargar estado actualizado
+          console.log("Estado después de loadState:", currentState);
+          
+          // Extraer posición global (puede ser número o array)
+          let globalPos = data.position;
+          if (Array.isArray(globalPos)) {
+            globalPos = globalPos[0];
+          }
+          globalPos = Number(globalPos);
+          console.log("Posición global:", globalPos);
 
-          // Verificar que tenemos posición y block_size válido
-          if (data.position !== undefined && currentState.block_size > 0) {
-            const globalPos = Array.isArray(data.position) ? data.position[0] : data.position;
-            const block = Math.ceil(globalPos / currentState.block_size);
-            const cell = ((globalPos - 1) % currentState.block_size) + 1;
-            notifySuccess(`Clave ${value} insertada en bloque ${block}, posición ${cell}`);
-            highlightCells([{ block, cell }], 'highlight-insert');
+          if (!isNaN(globalPos) && globalPos > 0 && currentState.blocks.length > 0) {
+            // Calcular bloque y celda a partir de la estructura de bloques
+            let accumulated = 0;
+            let block = null;
+            let cell = null;
+            for (let b = 0; b < currentState.blocks.length; b++) {
+              const blockLength = currentState.blocks[b].length;
+              if (globalPos <= accumulated + blockLength) {
+                block = b + 1;
+                cell = globalPos - accumulated;
+                break;
+              }
+              accumulated += blockLength;
+            }
+            if (block && cell) {
+              notifySuccess(`Clave ${value} insertada en bloque ${block}, posición ${cell}`);
+              highlightCells([{ block, cell }], 'highlight-insert');
+            } else {
+              notifySuccess(`Clave ${value} insertada.`);
+              console.warn("No se pudo determinar bloque/celda para posición global", globalPos);
+            }
           } else {
             notifySuccess(`Clave ${value} insertada.`);
-            console.warn("No se pudo calcular bloque/celda. position:", data.position, "block_size:", currentState.block_size);
+            console.warn("Posición global inválida:", data.position);
           }
           clearInput();
         } else {
