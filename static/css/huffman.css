@@ -1,4 +1,4 @@
-/* Estilos específicos para Huffman */
+/* Estilos específicos para Huffman - TODOS encapsulados en .huffman-container */
 .huffman-container {
   width: 100%;
   max-width: 1000px;
@@ -14,7 +14,7 @@
   align-items: center;
 }
 
-#message-input {
+.huffman-container #message-input {
   width: 100%;
   box-sizing: border-box;
   resize: vertical;
@@ -61,8 +61,9 @@
   font-weight: 600;
 }
 
-/* Estilos para la tabla de pasos y frecuencias (sin cambios) */
-#steps-content, #freq-table {
+/* Estilos para la tabla de pasos y frecuencias */
+.huffman-container #steps-content,
+.huffman-container #freq-table {
   background: #faf9f8;
   padding: 16px;
   border-radius: 4px;
@@ -72,13 +73,15 @@
   overflow-y: auto;
 }
 
-#steps-content table, #freq-table table {
+.huffman-container #steps-content table,
+.huffman-container #freq-table table {
   width: 100%;
   border-collapse: collapse;
   background: white;
 }
 
-#steps-content th, #freq-table th {
+.huffman-container #steps-content th,
+.huffman-container #freq-table th {
   background: #edebe9;
   padding: 8px;
   text-align: left;
@@ -86,29 +89,31 @@
   border-bottom: 2px solid var(--ms-border);
 }
 
-#steps-content td, #freq-table td {
+.huffman-container #steps-content td,
+.huffman-container #freq-table td {
   padding: 6px 8px;
   border-bottom: 1px solid var(--ms-border);
 }
 
-#steps-content tr:last-child td, #freq-table tr:last-child td {
+.huffman-container #steps-content tr:last-child td,
+.huffman-container #freq-table tr:last-child td {
   border-bottom: none;
 }
 
-#steps-content h4 {
+.huffman-container #steps-content h4 {
   margin: 10px 0 5px 0;
   color: var(--ms-blue);
   font-weight: 600;
 }
 
-#search-result {
+.huffman-container #search-result {
   color: var(--ms-muted);
   font-size: 14px;
   margin-left: 12px;
 }
 
-/* Botón de pasos con estilo mejorado */
-#show-steps-btn {
+/* Botón de pasos */
+.huffman-container #show-steps-btn {
   background-color: var(--ms-panel);
   border: 1px solid var(--ms-blue);
   color: var(--ms-blue);
@@ -118,13 +123,13 @@
   transition: all 0.2s;
 }
 
-#show-steps-btn:hover {
+.huffman-container #show-steps-btn:hover {
   background-color: var(--ms-blue);
   color: white;
 }
 
-/* Ajustes adicionales para alineación */
-.row {
+/* Ajustes de alineación internos de Huffman */
+.huffman-container .row {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -132,26 +137,25 @@
   flex-wrap: wrap;
 }
 
-/* Para que el botón "Crear árbol" esté a la derecha */
-.card .row:last-child {
+/* Para que el botón "Crear árbol" esté a la derecha (solo en Huffman) */
+.huffman-container .card .row:last-child {
   justify-content: flex-end;
 }
 
-#message-input {
+.huffman-container #message-input {
   box-sizing: border-box;
   width: 100%;
 }
 
-/* Asegurar que la sección de resultados se centre igual que el card del mensaje */
-#results-section {
+/* Centrar la sección de resultados */
+.huffman-container #results-section {
   display: flex;
   flex-direction: column;
   align-items: center;
   width: 100%;
-
 }
 
-/* Opcional: si quieres que el botón "Crear árbol" esté centrado, cambia la alineación */
-#create-tree-btn {
+/* Opcional: centrar el botón "Crear árbol" si se prefiere */
+.huffman-container #create-tree-btn {
   align-self: center;
 }
