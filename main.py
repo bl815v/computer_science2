@@ -31,6 +31,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.controllers import (
+	binary_external_router,
 	binary_search_router,
 	hash_router,
 	huffman_router,
@@ -57,6 +58,7 @@ app.include_router(hash_router)
 app.include_router(tree_router)
 app.include_router(huffman_router)
 app.include_router(linear_external_router)
+app.include_router(binary_external_router)
 
 if getattr(sys, 'frozen', False):
 	BASE_PATH = getattr(sys, '_MEIPASS', os.path.abspath('.'))

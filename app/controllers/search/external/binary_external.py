@@ -1,24 +1,21 @@
 """
-Router factory for external search services.
+FastAPI router for the external binary search structure.
 
-This module defines a reusable FastAPI router builder used to expose
-external search structures through REST endpoints.
+This module exposes REST endpoints that allow clients to interact
+with the block-based binary external search structure implemented
+by `BinaryExternalSearch`.
 
-The router provides a standardized interface for external search
-implementations based on block storage. Each router supports the
-following operations:
+The router provides operations to:
 
-    - Structure creation
-    - State inspection
-    - Value insertion
-    - Value search
-    - Value deletion
+    - Create the external structure
+    - Retrieve the current structure state
+    - Insert new keys
+    - Search for existing keys
+    - Delete keys from the structure
 
-The module uses controller helper functions to separate HTTP
-handling from the core service logic.
-
-It also instantiates a concrete router for the linear external
-search implementation.
+The structure organizes keys in ordered blocks of approximately √n
+elements. Binary search is applied both across blocks and inside the
+selected block to efficiently locate values.
 
 Author: Juan Esteban Bedoya <jebedoyal@udistrital.edu.co>
 
@@ -41,12 +38,12 @@ along with ComputerScience2. If not, see <https://www.gnu.org/licenses/>.
 from app.controllers.search.external.external_router_factory import (
 	create_external_search_router,
 )
-from app.services.search.external.linear_external import LinearExternalSearch
+from app.services.search.external.binary_external import BinaryExternalSearch
 
-service = LinearExternalSearch()
+service = BinaryExternalSearch()
 
 router = create_external_search_router(
 	service,
-	prefix='/external/linear',
-	tag='External Linear Search',
+	prefix='/external/binary',
+	tag='External Binary Search',
 )
