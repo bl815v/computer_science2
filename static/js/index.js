@@ -78,11 +78,11 @@ function showBusquedaInterna() {
       <button class="ribbon-btn" data-page="binaria">Binaria</button>
       <button class="ribbon-btn" data-page="hash">Hash</button>
       <button class="ribbon-btn" data-page="arbol">Árboles</button>
+      <button class="ribbon-btn" data-page="huffman">Huffman</button>
     </div>
   `;
 
-
-  lvl3.innerHTML = ""; // por si luego agregas más niveles
+  lvl3.innerHTML = "";
 
   content.innerHTML = `
     <h2>Búsquedas internas</h2>
