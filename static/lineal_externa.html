@@ -4,13 +4,14 @@
   <!-- Configuración -->
   <div class="card">
     <div class="row">
-      <label>Tamaño del archivo (número de bloques):</label>
-      <input type="number" id="num-blocks" value="5" min="1" />
-      <label>Registros por bloque:</label>
-      <input type="number" id="block-size" value="4" min="1" />
+      <label>Capacidad total (elementos):</label>
+      <input type="number" id="total-size" value="27" min="1" />
       <label>Dígitos:</label>
       <input type="number" id="digits" value="2" min="1" />
       <button id="create-structure" class="primary">Crear estructura</button>
+    </div>
+    <div id="block-info" style="margin-top: 10px; font-size: 14px; color: #605e5c;">
+      Tamaño de bloque calculado: <span id="block-size-display">-</span>
     </div>
   </div>
 

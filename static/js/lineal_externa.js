@@ -4,7 +4,7 @@
 
   const API_BASE = "http://127.0.0.1:8000/external/linear";
   let isNotifying = false;
-  let currentState = { num_blocks: 0, block_size: 0, digits: 0, data: [] };
+  let currentState = { size: 0, digits: 0, block_size: 0, blocks: [] };
 
   function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -57,43 +57,45 @@
     if (!container) return;
     container.innerHTML = "";
 
-    const numBlocks = currentState.num_blocks;
-    const blockSize = currentState.block_size;
-    const data = currentState.data;
+    if (!currentState.blocks || currentState.blocks.length === 0) {
+      const msg = document.createElement("p");
+      msg.textContent = "Crea una estructura para visualizar los bloques.";
+      container.appendChild(msg);
+      return;
+    }
 
-    for (let b = 0; b < numBlocks; b++) {
+    currentState.blocks.forEach((block, bIdx) => {
       const blockDiv = document.createElement("div");
       blockDiv.className = "block";
-      blockDiv.dataset.block = b + 1;
+      blockDiv.dataset.block = bIdx + 1;
 
       const blockHeader = document.createElement("div");
       blockHeader.className = "block-header";
-      blockHeader.textContent = `Bloque ${b + 1}`;
+      blockHeader.textContent = `Bloque ${bIdx + 1}`;
       blockDiv.appendChild(blockHeader);
 
       const cellsDiv = document.createElement("div");
       cellsDiv.className = "block-cells";
 
-      const blockData = data[b] || [];
-      for (let i = 0; i < blockSize; i++) {
-        const val = blockData[i];
+      block.forEach((val, pos) => {
         const cell = document.createElement("div");
         cell.className = "cell";
-        cell.dataset.block = b + 1;
-        cell.dataset.pos = i + 1;
-        cell.dataset.index = `${b + 1}.${i + 1}`;
+        cell.dataset.block = bIdx + 1;
+        cell.dataset.pos = pos + 1;
+        cell.dataset.index = `${bIdx + 1}.${pos + 1}`;
 
-        if (val !== undefined && val !== null && val !== "") {
+        if (val !== null && val !== undefined && val !== "") {
           cell.textContent = toDigits(val, currentState.digits);
         } else {
           cell.classList.add("empty");
           cell.textContent = "";
         }
         cellsDiv.appendChild(cell);
-      }
+      });
+
       blockDiv.appendChild(cellsDiv);
       container.appendChild(blockDiv);
-    }
+    });
   }
 
   function highlightCells(positions, className, duration = 1500) {
@@ -112,26 +114,34 @@
     try {
       const res = await fetch(`${API_BASE}/state`);
       if (res.status === 404) {
-        // No hay estructura creada aún, es normal
         console.log("No hay estructura previa (404)");
-        currentState = { num_blocks: 0, block_size: 0, digits: 0, data: [] };
+        currentState = { size: 0, digits: 0, block_size: 0, blocks: [] };
         renderGrid();
         return;
       }
       if (!res.ok) throw new Error("Error al cargar estado");
-      currentState = await res.json();
+      const data = await res.json();
+      console.log("Estado cargado:", data);
+      // Adaptar según la estructura real del backend
+      currentState = {
+        size: data.size || 0,
+        digits: data.digits || 0,
+        block_size: data.block_size || 0,
+        blocks: data.blocks || []
+      };
+      // Mostrar el tamaño de bloque calculado
+      const blockSizeSpan = document.getElementById("block-size-display");
+      if (blockSizeSpan) blockSizeSpan.textContent = currentState.block_size || "-";
       renderGrid();
     } catch (err) {
       console.error("Error en loadState:", err);
-      // En caso de cualquier error, mostramos una estructura vacía
-      currentState = { num_blocks: 0, block_size: 0, digits: 0, data: [] };
+      currentState = { size: 0, digits: 0, block_size: 0, blocks: [] };
       renderGrid();
     }
   }
 
   async function initSimulator() {
-    const numBlocksInput = document.getElementById("num-blocks");
-    const blockSizeInput = document.getElementById("block-size");
+    const totalSizeInput = document.getElementById("total-size");
     const digitsInput = document.getElementById("digits");
     const createBtn = document.getElementById("create-structure");
     const actionsSection = document.getElementById("actions-section");
@@ -139,25 +149,37 @@
     const insertBtn = document.getElementById("insert-btn");
     const searchBtn = document.getElementById("search-btn");
     const deleteBtn = document.getElementById("delete-btn");
+    const blockSizeSpan = document.getElementById("block-size-display");
 
     if (!createBtn) return;
 
     actionsSection.style.display = "none";
 
+    // Calcular y mostrar tamaño de bloque cuando cambie la capacidad
+    const updateBlockSizePreview = () => {
+      const size = parseInt(totalSizeInput.value);
+      if (!isNaN(size) && size > 0) {
+        const bs = Math.floor(Math.sqrt(size));
+        blockSizeSpan.textContent = bs;
+      } else {
+        blockSizeSpan.textContent = "-";
+      }
+    };
+    totalSizeInput.addEventListener("input", updateBlockSizePreview);
+    updateBlockSizePreview();
+
     createBtn.addEventListener("click", async () => {
-      const numBlocks = parseInt(numBlocksInput.value);
-      const blockSize = parseInt(blockSizeInput.value);
+      const size = parseInt(totalSizeInput.value);
       const digits = parseInt(digitsInput.value);
 
-      if (isNaN(numBlocks) || numBlocks <= 0) return notifyError("Número de bloques inválido.");
-      if (isNaN(blockSize) || blockSize <= 0) return notifyError("Tamaño de bloque inválido.");
+      if (isNaN(size) || size <= 0) return notifyError("Capacidad inválida.");
       if (isNaN(digits) || digits <= 0) return notifyError("Dígitos inválidos.");
 
       try {
         const res = await fetch(`${API_BASE}/create`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ size: numBlocks, digits, block_size: blockSize })
+          body: JSON.stringify({ size, digits })
         });
         if (!res.ok) {
           const err = await res.json();
@@ -192,10 +214,21 @@
           body: JSON.stringify({ value })
         });
         const data = await res.json();
+        console.log("Respuesta insert:", data);
         if (res.ok) {
           await loadState();
-          notifySuccess(`Clave ${value} insertada en bloque ${data.block}, posición ${data.position}`);
-          highlightCells([{ block: data.block, cell: data.position }], 'highlight-insert');
+          // La respuesta contiene la posición global (1-based)
+          if (data.position !== undefined) {
+            const globalPos = Array.isArray(data.position) ? data.position[0] : data.position;
+            // Calcular bloque y celda a partir de la posición global
+            const blockSize = currentState.block_size;
+            const block = Math.ceil(globalPos / blockSize);
+            const cell = ((globalPos - 1) % blockSize) + 1;
+            notifySuccess(`Clave ${value} insertada en bloque ${block}, posición ${cell}`);
+            highlightCells([{ block, cell }], 'highlight-insert');
+          } else {
+            notifySuccess(`Clave ${value} insertada.`);
+          }
           clearInput();
         } else {
           notifyError(data.detail || "Error al insertar");
@@ -214,10 +247,12 @@
       try {
         const res = await fetch(`${API_BASE}/search/${encodeURIComponent(value)}`);
         const data = await res.json();
+        console.log("Respuesta search:", data);
         if (res.ok) {
-          if (data.found) {
-            notifySuccess(`Clave ${value} encontrada en bloque ${data.block}, posición ${data.position}`);
-            highlightCells([{ block: data.block, cell: data.position }], 'highlight-search');
+          if (data.length > 0) {
+            const info = data[0]; // solo una ocurrencia
+            notifySuccess(`Clave ${value} encontrada en bloque ${info.block_index}, posición ${info.block_position}`);
+            highlightCells([{ block: info.block_index, cell: info.block_position }], 'highlight-search');
           } else {
             notifyError(`Clave ${value} no encontrada.`);
           }
@@ -239,6 +274,7 @@
       try {
         const res = await fetch(`${API_BASE}/delete/${encodeURIComponent(value)}`, { method: "DELETE" });
         const data = await res.json();
+        console.log("Respuesta delete:", data);
         if (res.ok) {
           await loadState();
           notifySuccess(`Clave ${value} eliminada.`);
@@ -251,9 +287,8 @@
       }
     });
 
-    // Cargar estado inicial (si existe) sin mostrar error al usuario
     await loadState();
-    if (currentState.num_blocks > 0) {
+    if (currentState.blocks.length > 0) {
       actionsSection.style.display = "block";
     }
   }
