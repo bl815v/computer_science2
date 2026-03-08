@@ -1,8 +1,8 @@
-from app.services.search.external.linear_external import LinearExternalSearch
+from app.services.search.external.binary_external import BinaryExternalSearch
 
 
 def main():
-	search = LinearExternalSearch()
+	search = BinaryExternalSearch()
 
 	print('Inicializando estructura con tamaño 27 y dígitos 2...')
 	search.create(27, 2)
