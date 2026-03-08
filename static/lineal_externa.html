@@ -1,0 +1,32 @@
+<h2>Búsqueda Externa Lineal</h2>
+
+<div class="lineal-externa-container">
+  <!-- Configuración -->
+  <div class="card">
+    <div class="row">
+      <label>Tamaño del archivo (número de bloques):</label>
+      <input type="number" id="num-blocks" value="5" min="1" />
+      <label>Registros por bloque:</label>
+      <input type="number" id="block-size" value="4" min="1" />
+      <label>Dígitos:</label>
+      <input type="number" id="digits" value="2" min="1" />
+      <button id="create-structure" class="primary">Crear estructura</button>
+    </div>
+  </div>
+
+  <!-- Acciones (ocultas inicialmente) -->
+  <div class="card" id="actions-section" style="display: none;">
+    <div class="row">
+      <label>Clave:</label>
+      <input type="text" id="value-input" placeholder="Ej: 15" maxlength="2" />
+      <button id="insert-btn" class="primary">Insertar</button>
+      <button id="search-btn">Buscar</button>
+      <button id="delete-btn" class="danger">Borrar</button>
+    </div>
+  </div>
+
+  <!-- Visualización de los bloques -->
+  <div class="visual-wrapper">
+    <div id="visualization" class="blocks-container"></div>
+  </div>
+</div>
