@@ -98,13 +98,30 @@ function showBusquedaInterna() {
 }
 
 function showBusquedaExterna() {
-  document.getElementById("ribbon-level-2").innerHTML = "";
-  document.getElementById("ribbon-level-3").innerHTML = "";
+  const lvl2 = document.getElementById("ribbon-level-2");
+  const lvl3 = document.getElementById("ribbon-level-3");
+  const content = document.getElementById("content");
 
-  document.getElementById("content").innerHTML = `
-    <h2>Búsquedas externas</h2>
-    <p>Simulador próximamente…</p>
+  lvl2.innerHTML = `
+    <div class="ribbon-buttons">
+      <button class="ribbon-btn" data-page="lineal_externa">Lineal</button>
+      <!-- Aquí se pueden agregar más: Binaria, etc. -->
+    </div>
   `;
+
+  lvl3.innerHTML = "";
+
+  content.innerHTML = `
+    <h2>Búsquedas externas</h2>
+    <p>Selecciona un método.</p>
+  `;
+
+  lvl2.querySelectorAll("[data-page]").forEach(btn => {
+    btn.addEventListener("click", function () {
+      setActiveRibbonButton(this);
+      loadExternalPage(this.dataset.page);
+    });
+  });
 }
 
 /* ---------------- Loader ---------------- */

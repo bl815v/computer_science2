@@ -1,0 +1,118 @@
+.lineal-externa-container {
+  width: 100%;
+  max-width: 1200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 auto;
+}
+
+.blocks-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.block {
+  border: 2px solid var(--ms-blue);
+  border-radius: 4px;
+  background: white;
+  min-width: 150px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.block-header {
+  background: var(--ms-blue);
+  color: white;
+  padding: 6px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.block-cells {
+  display: flex;
+  flex-direction: column;
+  padding: 5px;
+}
+
+.block-cells .cell {
+  min-width: 80px;
+  min-height: 40px;
+  border: 1px solid #e1dfdd;
+  margin: 2px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  background: #f9f9f9;
+  position: relative;
+}
+
+.block-cells .cell::before {
+  content: attr(data-index);
+  position: absolute;
+  left: -35px;
+  font-size: 11px;
+  color: #605e5c;
+}
+
+.block-cells .cell.empty {
+  background: #f0f0f0;
+  color: #aaa;
+  font-style: italic;
+}
+
+.block-cells .cell.empty::after {
+  content: "vacío";
+  font-size: 10px;
+}
+
+/* Animaciones */
+.block-cells .cell.active {
+  outline: 2px solid #0078d4;
+  background: #e5f1fb !important;
+  transform: scale(1.02);
+}
+
+.block-cells .cell.found {
+  background-color: #dff6dd !important;
+  border: 2px solid #107c10;
+}
+
+.block-cells .cell.discarded {
+  background-color: #f3f2f1 !important;
+  color: #c8c6c4 !important;
+  opacity: 0.5;
+}
+
+.block-cells .cell.not-found {
+  background-color: #fde7e9 !important;
+  color: #d13438 !important;
+}
+
+.block-cells .cell.highlight-insert {
+  background-color: #dff6dd !important;
+  border: 2px solid #107c10;
+  animation: pulse-success 1s;
+}
+
+.block-cells .cell.highlight-search {
+  background-color: #fff1cc !important;
+  border: 2px solid #ffb900;
+  animation: pulse-warning 1s;
+}
+
+@keyframes pulse-success {
+  0% { box-shadow: 0 0 0 0 rgba(16,124,16,0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(16,124,16,0); }
+  100% { box-shadow: 0 0 0 0 rgba(16,124,16,0); }
+}
+
+@keyframes pulse-warning {
+  0% { box-shadow: 0 0 0 0 rgba(255,185,0,0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(255,185,0,0); }
+  100% { box-shadow: 0 0 0 0 rgba(255,185,0,0); }
+}
