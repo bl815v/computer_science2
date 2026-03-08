@@ -2,25 +2,41 @@
 
 <div class="huffman-container">
 
-  <!-- Entrada de mensaje -->
-  <div class="card">
-    <div class="row" style="flex-direction: column; align-items: stretch;">
-      <label for="message-input" style="margin-bottom: 8px;">Mensaje:</label>
-      <textarea id="message-input" rows="4" placeholder="Escribe el mensaje para generar el árbol de Huffman..." style="width: 100%; padding: 8px; font-family: inherit; border: 1px solid var(--ms-border); border-radius: 2px;"></textarea>
-    </div>
-    <div class="row" style="justify-content: flex-end; margin-top: 12px;">
-      <button id="create-tree-btn" class="primary">Crear árbol</button>
-    </div>
+<!-- Entrada de mensaje -->
+<div class="card">
+  <div class="row" style="flex-direction: column; align-items: stretch;">
+    <label for="message-input" style="margin-bottom: 8px;">Mensaje:</label>
+    <textarea id="message-input" rows="4" placeholder="Escribe el mensaje para generar el árbol de Huffman..." style="width: 100%; padding: 8px; font-family: inherit; border: 1px solid var(--ms-border); border-radius: 2px; box-sizing: border-box;"></textarea>
   </div>
+  <div class="row" style="justify-content: center; margin-top: 12px;">
+    <button id="create-tree-btn" class="primary">Crear árbol</button>
+  </div>
+</div>
 
   <!-- Sección de resultados (oculta inicialmente) -->
   <div id="results-section" style="display: none; width: 100%;">
 
-    <!-- Tabla de códigos Huffman -->
+    <!-- Tabla principal de Huffman (unificada) -->
     <div class="card">
-      <h3 style="margin-top: 0; margin-bottom: 16px;">Códigos generados</h3>
-      <div id="codes-table" style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;">
-        <!-- Se llena dinámicamente -->
+      <h3 style="margin-top: 0; margin-bottom: 16px;">Tabla de Huffman</h3>
+      <div style="overflow-x: auto;">
+        <table id="huffman-main-table" class="huffman-table">
+          <thead>
+            <tr>
+              <th>Carácter</th>
+              <th>Frecuencia</th>
+              <th>Código</th>
+              <th>Longitud (li)</th>
+              <th>L (freq·li)</th>
+            </tr>
+          </thead>
+          <tbody id="huffman-table-body">
+            <!-- Se llena dinámicamente -->
+          </tbody>
+          <tfoot id="huffman-table-foot">
+            <!-- Totales -->
+          </tfoot>
+        </table>
       </div>
     </div>
 
@@ -54,12 +70,11 @@
       <button id="show-steps-btn" class="ribbon-btn">Ver fuentes de información reducidas</button>
     </div>
 
-    <!-- Sección de pasos (oculta inicialmente) -->
+    <!-- Sección de pasos (oculta inicialmente) - SIN LA TABLA DE FRECUENCIAS -->
     <div id="steps-section" class="card" style="display: none; margin-top: 16px;">
       <h3 style="margin-top: 0;">Pasos de construcción</h3>
       <div id="steps-content" style="font-family: monospace; white-space: pre-wrap; text-align: left; max-height: 300px; overflow-y: auto; background: #faf9f8; padding: 12px; border-radius: 4px;"></div>
-      <h3 style="margin-top: 16px;">Tabla de frecuencias</h3>
-      <div id="freq-table" style="font-family: monospace; white-space: pre-wrap; text-align: left; background: #faf9f8; padding: 12px; border-radius: 4px;"></div>
+      <!-- Se eliminó el div de freq-table -->
     </div>
 
   </div>

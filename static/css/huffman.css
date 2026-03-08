@@ -8,7 +8,15 @@
   margin: 0 auto;
 }
 
+.huffman-container .card {
+  width: 100%;
+  box-sizing: border-box;
+  align-items: center;
+}
+
 #message-input {
+  width: 100%;
+  box-sizing: border-box;
   resize: vertical;
   font-family: inherit;
   padding: 10px;
@@ -16,15 +24,44 @@
   border-radius: 4px;
 }
 
-#codes-table {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  justify-content: center;
-  margin-top: 10px;
+/* Estilos para la tabla principal de Huffman */
+.huffman-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border: 1px solid var(--ms-border);
+  font-size: 14px;
 }
 
-/* Estilo para la tabla de pasos y frecuencias */
+.huffman-table th,
+.huffman-table td {
+  padding: 8px 12px;
+  text-align: center;
+  border-bottom: 1px solid var(--ms-border);
+}
+
+.huffman-table th {
+  background-color: #f3f2f1;
+  font-weight: 600;
+}
+
+.huffman-table tfoot td {
+  background-color: #f3f2f1;
+  font-weight: 600;
+  border-top: 2px solid var(--ms-border);
+}
+
+.huffman-table tbody tr:hover {
+  background-color: #f5f5f5;
+}
+
+/* Resaltado de fila en búsqueda */
+.huffman-table tbody tr.highlight {
+  background-color: #fff1cc !important;
+  font-weight: 600;
+}
+
+/* Estilos para la tabla de pasos y frecuencias (sin cambios) */
 #steps-content, #freq-table {
   background: #faf9f8;
   padding: 16px;
@@ -84,4 +121,37 @@
 #show-steps-btn:hover {
   background-color: var(--ms-blue);
   color: white;
+}
+
+/* Ajustes adicionales para alineación */
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Para que el botón "Crear árbol" esté a la derecha */
+.card .row:last-child {
+  justify-content: flex-end;
+}
+
+#message-input {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* Asegurar que la sección de resultados se centre igual que el card del mensaje */
+#results-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+
+}
+
+/* Opcional: si quieres que el botón "Crear árbol" esté centrado, cambia la alineación */
+#create-tree-btn {
+  align-self: center;
 }
