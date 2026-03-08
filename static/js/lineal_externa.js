@@ -122,14 +122,21 @@
       if (!res.ok) throw new Error("Error al cargar estado");
       const data = await res.json();
       console.log("Estado cargado:", data);
-      // Adaptar según la estructura real del backend
+
+      // Asignar valores con nombres alternativos
       currentState = {
         size: data.size || 0,
         digits: data.digits || 0,
-        block_size: data.block_size || 0,
+        block_size: data.block_size || data.blockSize || 0,
         blocks: data.blocks || []
       };
-      // Mostrar el tamaño de bloque calculado
+
+      // Si block_size sigue siendo 0 pero hay bloques, calcularlo del primer bloque
+      if (currentState.block_size === 0 && currentState.blocks.length > 0 && currentState.blocks[0].length) {
+        currentState.block_size = currentState.blocks[0].length;
+        console.log("block_size deducido de los bloques:", currentState.block_size);
+      }
+
       const blockSizeSpan = document.getElementById("block-size-display");
       if (blockSizeSpan) blockSizeSpan.textContent = currentState.block_size || "-";
       renderGrid();
@@ -155,7 +162,6 @@
 
     actionsSection.style.display = "none";
 
-    // Calcular y mostrar tamaño de bloque cuando cambie la capacidad
     const updateBlockSizePreview = () => {
       const size = parseInt(totalSizeInput.value);
       if (!isNaN(size) && size > 0) {
@@ -216,18 +222,19 @@
         const data = await res.json();
         console.log("Respuesta insert:", data);
         if (res.ok) {
-          await loadState();
-          // La respuesta contiene la posición global (1-based)
-          if (data.position !== undefined) {
+          await loadState(); // Actualiza currentState
+          console.log("block_size después de loadState:", currentState.block_size);
+
+          // Verificar que tenemos posición y block_size válido
+          if (data.position !== undefined && currentState.block_size > 0) {
             const globalPos = Array.isArray(data.position) ? data.position[0] : data.position;
-            // Calcular bloque y celda a partir de la posición global
-            const blockSize = currentState.block_size;
-            const block = Math.ceil(globalPos / blockSize);
-            const cell = ((globalPos - 1) % blockSize) + 1;
+            const block = Math.ceil(globalPos / currentState.block_size);
+            const cell = ((globalPos - 1) % currentState.block_size) + 1;
             notifySuccess(`Clave ${value} insertada en bloque ${block}, posición ${cell}`);
             highlightCells([{ block, cell }], 'highlight-insert');
           } else {
             notifySuccess(`Clave ${value} insertada.`);
+            console.warn("No se pudo calcular bloque/celda. position:", data.position, "block_size:", currentState.block_size);
           }
           clearInput();
         } else {
@@ -250,7 +257,7 @@
         console.log("Respuesta search:", data);
         if (res.ok) {
           if (data.length > 0) {
-            const info = data[0]; // solo una ocurrencia
+            const info = data[0];
             notifySuccess(`Clave ${value} encontrada en bloque ${info.block_index}, posición ${info.block_position}`);
             highlightCells([{ block: info.block_index, cell: info.block_position }], 'highlight-search');
           } else {

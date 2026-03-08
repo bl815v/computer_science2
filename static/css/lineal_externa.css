@@ -34,37 +34,31 @@
 
 .block-cells {
   display: flex;
-  flex-direction: row;       /* Cambio a fila */
-  flex-wrap: wrap;           /* Por si muchas celdas, se envuelvan */
-  gap: 5px;                  /* Espacio entre celdas */
-  padding: 15px;             /* Ajuste de padding */
-  justify-content: center;   /* Centrar horizontalmente */
+  flex-direction: column;
+  padding: 5px;
+  padding-left: 50px
 }
 
 .block-cells .cell {
-  min-width: 60px;           /* Un poco más pequeño para que quepan varias */
-  min-height: 50px;          /* Altura suficiente para el índice superior */
+  min-width: 80px;
+  min-height: 40px;
   border: 1px solid #e1dfdd;
+  margin: 2px 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  text-align: center;      
+  text-align: center;
   font-size: 16px;
   background: #f9f9f9;
   position: relative;
-  padding-top: 15px;         /* Espacio para el índice arriba */
 }
 
 .block-cells .cell::before {
   content: attr(data-index);
   position: absolute;
-  top: 2px;                  /* Arriba de la celda */
-  left: 0;
-  right: 0;
-  font-size: 10px;
+  left: -35px;
+  font-size: 11px;
   color: #605e5c;
-  text-align: center;
-  line-height: 1;
 }
 
 .block-cells .cell.empty {
@@ -76,11 +70,9 @@
 .block-cells .cell.empty::after {
   content: "vacío";
   font-size: 10px;
-  position: relative;
-  top: 5px;
 }
 
-/* Animaciones (se mantienen igual) */
+/* Animaciones */
 .block-cells .cell.active {
   outline: 2px solid #0078d4;
   background: #e5f1fb !important;
