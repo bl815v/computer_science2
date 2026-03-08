@@ -9,7 +9,7 @@
   const createBtn = document.getElementById('create-tree-btn');
   const resultsSection = document.getElementById('results-section');
   const codesTable = document.getElementById('codes-table');
-  const searchLetterInput = document.getElementById('search-letter'); // Renombrado para evitar conflicto
+  const searchLetterInput = document.getElementById('search-letter'); // Renombrado
   const searchBtn = document.getElementById('search-btn');
   const searchResult = document.getElementById('search-result');
   const treeImage = document.getElementById('tree-image');
@@ -23,8 +23,8 @@
   // Estado
   let currentText = '';
   let codes = {}; // { letra: codigo }
+  let steps = [];
   let frequencies = {};
-  let stepsData = []; // Array de pasos
 
   // --- Utilidades ---
   function sleep(ms) {
@@ -52,7 +52,7 @@
     treeImage.src = `${url}${separator}t=${Date.now()}`;
   }
 
-  // Mostrar notificaciones (usando las globales de notificaciones.js)
+  // Mostrar notificaciones
   function notifySuccess(msg) {
     if (window.notifySuccess) window.notifySuccess(msg);
     else alert(msg);
@@ -80,30 +80,45 @@
     entries.sort((a, b) => a[0].localeCompare(b[0]));
     entries.forEach(([letter, code]) => {
       const card = document.createElement('div');
-      card.className = 'code-card';
+      card.style = 'background: var(--ms-panel); border: 1px solid var(--ms-border); border-radius: 4px; padding: 8px 16px; display: inline-flex; align-items: center; gap: 12px;';
       card.innerHTML = `
-        <span class="code-letter">${letter === ' ' ? '␣' : letter}</span>
-        <span class="code-value">${code}</span>
+        <span style="font-weight: bold; font-size: 18px;">${letter === ' ' ? '␣' : letter}</span>
+        <span style="font-family: monospace; background: #f0f0f0; padding: 4px 8px; border-radius: 4px;">${code}</span>
       `;
       codesTable.appendChild(card);
     });
   }
 
-  // Renderizar pasos (formato mejorado)
-  function renderSteps() {
+  // Renderizar pasos en formato tabla vertical
+  function renderStepsTable(stepsArray) {
     if (!stepsContent) return;
-    if (!stepsData || stepsData.length === 0) {
-      stepsContent.textContent = 'No hay pasos disponibles.';
+    if (!stepsArray || stepsArray.length === 0) {
+      stepsContent.innerHTML = '<p>No hay pasos disponibles.</p>';
       return;
     }
+
     let html = '';
-    stepsData.forEach(step => {
-      html += `<div class="step-title">Paso ${step.step}</div>`;
-      html += '<div class="step-items">';
-      step.items.forEach(item => {
-        html += `<div class="step-item">${item.name} (${item.freq})</div>`;
-      });
-      html += '</div>';
+    stepsArray.forEach((step, idx) => {
+      const stepNum = idx + 1;
+      const items = step.items || [];
+      // Crear una tabla para cada paso
+      html += `<div style="margin-bottom: 20px; border-bottom: 1px solid var(--ms-border); padding-bottom: 10px;">`;
+      html += `<h4 style="margin: 5px 0;">Paso ${stepNum}</h4>`;
+      if (items.length > 0) {
+        html += `<table style="width: 100%; border-collapse: collapse; font-family: monospace;">`;
+        html += `<thead><tr><th style="text-align: left; border-bottom: 1px solid #ccc;">Elemento</th><th style="text-align: left; border-bottom: 1px solid #ccc;">Frecuencia</th></tr></thead>`;
+        html += `<tbody>`;
+        items.forEach(item => {
+          html += `<tr>`;
+          html += `<td style="padding: 4px 8px;">${item.name || '?'}</td>`;
+          html += `<td style="padding: 4px 8px;">${item.freq}</td>`;
+          html += `</tr>`;
+        });
+        html += `</tbody></table>`;
+      } else {
+        html += `<p>No hay elementos en este paso.</p>`;
+      }
+      html += `</div>`;
     });
     stepsContent.innerHTML = html;
   }
@@ -111,16 +126,21 @@
   // Renderizar tabla de frecuencias (formato tabla)
   function renderFreqTable(freqObj) {
     if (!freqTable) return;
-    if (Object.keys(freqObj).length === 0) {
-      freqTable.textContent = 'No hay tabla de frecuencias.';
+    if (!freqObj || Object.keys(freqObj).length === 0) {
+      freqTable.innerHTML = '<p>No hay tabla de frecuencias.</p>';
       return;
     }
     const entries = Object.entries(freqObj).sort((a, b) => a[0].localeCompare(b[0]));
-    let html = '<table class="freq-table"><tr><th>Carácter</th><th>Frecuencia</th></tr>';
+    let html = `<table style="width: 100%; border-collapse: collapse; font-family: monospace;">`;
+    html += `<thead><tr><th style="text-align: left; border-bottom: 1px solid #ccc;">Carácter</th><th style="text-align: left; border-bottom: 1px solid #ccc;">Frecuencia</th></tr></thead>`;
+    html += `<tbody>`;
     entries.forEach(([char, freq]) => {
-      html += `<tr><td>${char === ' ' ? '␣' : char}</td><td>${freq}</td></tr>`;
+      html += `<tr>`;
+      html += `<td style="padding: 4px 8px;">${char === ' ' ? '␣' : char}</td>`;
+      html += `<td style="padding: 4px 8px;">${freq}</td>`;
+      html += `</tr>`;
     });
-    html += '</table>';
+    html += `</tbody></table>`;
     freqTable.innerHTML = html;
   }
 
@@ -136,7 +156,6 @@
     createBtn.textContent = 'Creando...';
 
     try {
-      // Crear árbol
       const response = await fetch(`${API_BASE}/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -156,18 +175,17 @@
       // Obtener pasos
       const stepsRes = await fetch(`${API_BASE}/steps`);
       if (stepsRes.ok) {
-        const stepsDataObj = await stepsRes.json();
-        // El backend devuelve { steps: [...] }
-        stepsData = stepsDataObj.steps || [];
+        const stepsData = await stepsRes.json();
+        steps = stepsData.steps || [];
       } else {
-        stepsData = [];
+        steps = [];
       }
 
       // Mostrar resultados
       resultsSection.style.display = 'block';
       renderCodesTable(codes);
       renderFreqTable(frequencies);
-      renderSteps(); // Renderizar pasos
+      renderStepsTable(steps); // Usar nueva función
       loadImage(`${API_BASE}/plot`);
 
       notifySuccess('Árbol de Huffman creado correctamente.');
@@ -179,8 +197,8 @@
     }
   }
 
-  // --- Buscar letra ---
-  async function handleSearch() {
+  // --- Buscar letra (renombrada para evitar conflicto) ---
+  async function handleSearchLetter() {
     const letter = searchLetterInput.value.trim();
     if (!letter) {
       notifyError('Ingresa una letra para buscar.');
@@ -237,12 +255,12 @@
   function initSimulator() {
     // Eventos
     createBtn.addEventListener('click', createTree);
-    searchBtn.addEventListener('click', handleSearch);
+    searchBtn.addEventListener('click', handleSearchLetter);
     showStepsBtn.addEventListener('click', toggleSteps);
 
     // Permitir búsqueda con Enter
     searchLetterInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') handleSearch();
+      if (e.key === 'Enter') handleSearchLetter();
     });
 
     // Configurar slider
