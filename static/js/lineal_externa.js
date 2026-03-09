@@ -218,6 +218,7 @@
       });
     }
 
+    // ---- INSERTAR ----
     insertBtn.addEventListener("click", async () => {
       const rawValue = valueInput.value.trim();
       if (!rawValue) { notifyError("Ingresa una clave."); clearInput(); return; }
@@ -256,6 +257,7 @@
       }
     });
 
+    // ---- BUSCAR ----
     searchBtn.addEventListener("click", async () => {
       const rawValue = valueInput.value.trim();
       if (!rawValue) { notifyError("Ingresa una clave."); clearInput(); return; }
@@ -270,19 +272,56 @@
         } catch (e) {
           data = null;
         }
-        console.log("Respuesta search:", data);
+        console.log("Respuesta search (status " + res.status + "):", data);
+
+        // Función interna para extraer la posición de la respuesta, sea cual sea el formato
+        const extractPosition = (resp) => {
+          // Formato esperado: array de objetos con block_index y block_position
+          if (Array.isArray(resp) && resp.length > 0) {
+            const first = resp[0];
+            if (first.block_index !== undefined && first.block_position !== undefined) {
+              return { block: first.block_index, cell: first.block_position };
+            }
+          }
+          // Formato alternativo: objeto con block_index y block_position (no array)
+          if (resp && typeof resp === 'object') {
+            if (resp.block_index !== undefined && resp.block_position !== undefined) {
+              return { block: resp.block_index, cell: resp.block_position };
+            }
+            // Formato con position global (necesita conversión)
+            if (resp.global_position !== undefined) {
+              return globalPosToBlockCell(resp.global_position);
+            }
+          }
+          return null;
+        };
 
         if (res.ok) {
-          // El backend puede devolver un array vacío si no encuentra
-          if (data && Array.isArray(data) && data.length > 0) {
-            const info = data[0];
-            notifySuccess(`Clave ${value} encontrada en bloque ${info.block_index}, posición ${info.block_position}`);
-            highlightCells([{ block: info.block_index, cell: info.block_position }], 'highlight-search');
+          const pos = extractPosition(data);
+          if (pos) {
+            notifySuccess(`Clave ${value} encontrada en bloque ${pos.block}, posición ${pos.cell}`);
+            highlightCells([pos], 'highlight-search');
           } else {
-            notifyError(`Clave ${value} no encontrada.`);
+            // Si no se pudo extraer posición pero el status es 200, asumimos que sí existe pero no tenemos detalles
+            // Podríamos intentar buscar en el estado actual (aunque es menos eficiente)
+            let foundInState = false;
+            for (let b = 0; b < currentState.blocks.length; b++) {
+              const block = currentState.blocks[b];
+              for (let c = 0; c < block.length; c++) {
+                if (block[c] === value) {
+                  notifySuccess(`Clave ${value} encontrada en bloque ${b+1}, posición ${c+1}`);
+                  highlightCells([{ block: b+1, cell: c+1 }], 'highlight-search');
+                  foundInState = true;
+                  break;
+                }
+              }
+              if (foundInState) break;
+            }
+            if (!foundInState) {
+              notifyError(`Clave ${value} no encontrada.`);
+            }
           }
         } else if (res.status === 404) {
-          // Si el backend devuelve 404, mostrar no encontrado
           notifyError(`Clave ${value} no encontrada.`);
         } else {
           const errorMsg = data?.detail || `Error en la búsqueda (${res.status})`;
@@ -295,6 +334,7 @@
       clearInput();
     });
 
+    // ---- ELIMINAR ----
     deleteBtn.addEventListener("click", async () => {
       const rawValue = valueInput.value.trim();
       if (!rawValue) { notifyError("Ingresa una clave."); clearInput(); return; }
@@ -307,9 +347,14 @@
         const searchRes = await fetch(`${API_BASE}/search/${encodeURIComponent(value)}`);
         if (searchRes.ok) {
           const searchData = await searchRes.json();
+          // Intentar extraer posición de la misma forma que en búsqueda
           if (Array.isArray(searchData) && searchData.length > 0) {
-            const info = searchData[0];
-            positionsToHighlight = [{ block: info.block_index, cell: info.block_position }];
+            const first = searchData[0];
+            if (first.block_index !== undefined && first.block_position !== undefined) {
+              positionsToHighlight = [{ block: first.block_index, cell: first.block_position }];
+            }
+          } else if (searchData && searchData.block_index !== undefined && searchData.block_position !== undefined) {
+            positionsToHighlight = [{ block: searchData.block_index, cell: searchData.block_position }];
           }
         }
 
@@ -317,6 +362,9 @@
         if (positionsToHighlight.length > 0) {
           highlightCells(positionsToHighlight, 'highlight-delete', 1000);
           await sleep(1000); // Esperar a que se vea el resaltado
+        } else {
+          // Si no se encontró en búsqueda, podría no existir, pero igual intentamos eliminar
+          console.warn("No se encontró la clave en búsqueda previa, intentando eliminar directamente.");
         }
 
         // Realizar la eliminación

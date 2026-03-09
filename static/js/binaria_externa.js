@@ -52,6 +52,23 @@
     return true;
   }
 
+  // Convierte una posición global (1-based) a bloque y celda
+  function globalPosToBlockCell(globalPos) {
+    if (!currentState.blocks || currentState.blocks.length === 0) return null;
+    let accumulated = 0;
+    for (let b = 0; b < currentState.blocks.length; b++) {
+      const blockLength = currentState.blocks[b].length;
+      if (globalPos <= accumulated + blockLength) {
+        return {
+          block: b + 1,
+          cell: globalPos - accumulated
+        };
+      }
+      accumulated += blockLength;
+    }
+    return null;
+  }
+
   function renderGrid() {
     const container = document.getElementById("visualization");
     if (!container) return;
@@ -151,7 +168,7 @@
 
     if (!createBtn) return;
 
-    // Inicialmente ocultar acciones y mostrar mensaje de "crea estructura"
+    // Inicialmente ocultar acciones y mostrar mensaje
     actionsSection.style.display = "none";
     currentState = { size: 0, digits: 0, block_size: 0, blocks: [] };
     renderGrid();
@@ -185,7 +202,7 @@
           const err = await res.json();
           throw new Error(err.detail || "Error al crear");
         }
-        await loadState(); // Carga y dibuja los bloques
+        await loadState();
         actionsSection.style.display = "block";
         notifySuccess("Estructura creada correctamente.");
         valueInput.placeholder = `Máx: ${digits} dígitos`;
@@ -201,6 +218,7 @@
       });
     }
 
+    // ---- INSERTAR ----
     insertBtn.addEventListener("click", async () => {
       const rawValue = valueInput.value.trim();
       if (!rawValue) { notifyError("Ingresa una clave."); clearInput(); return; }
@@ -217,7 +235,6 @@
         console.log("Respuesta insert:", data);
         if (res.ok) {
           await loadState();
-          // Extraer información de la posición usando el mismo formato que en lineal
           if (data.position && Array.isArray(data.position) && data.position.length > 0) {
             const posInfo = data.position[0];
             if (posInfo.block_index !== undefined && posInfo.block_position !== undefined) {
@@ -240,6 +257,7 @@
       }
     });
 
+    // ---- BUSCAR ----
     searchBtn.addEventListener("click", async () => {
       const rawValue = valueInput.value.trim();
       if (!rawValue) { notifyError("Ingresa una clave."); clearInput(); return; }
@@ -248,25 +266,75 @@
 
       try {
         const res = await fetch(`${API_BASE}/search/${encodeURIComponent(value)}`);
-        const data = await res.json();
-        console.log("Respuesta search:", data);
-        if (res.ok) {
-          if (data.length > 0) {
-            const info = data[0];
-            notifySuccess(`Clave ${value} encontrada en bloque ${info.block_index}, posición ${info.block_position}`);
-            highlightCells([{ block: info.block_index, cell: info.block_position }], 'highlight-search');
-          } else {
-            notifyError(`Clave ${value} no encontrada.`);
+        let data;
+        try {
+          data = await res.json();
+        } catch (e) {
+          data = null;
+        }
+        console.log("Respuesta search (status " + res.status + "):", data);
+
+        // Función interna para extraer la posición de la respuesta, sea cual sea el formato
+        const extractPosition = (resp) => {
+          // Formato esperado: array de objetos con block_index y block_position
+          if (Array.isArray(resp) && resp.length > 0) {
+            const first = resp[0];
+            if (first.block_index !== undefined && first.block_position !== undefined) {
+              return { block: first.block_index, cell: first.block_position };
+            }
           }
+          // Formato alternativo: objeto con block_index y block_position (no array)
+          if (resp && typeof resp === 'object') {
+            if (resp.block_index !== undefined && resp.block_position !== undefined) {
+              return { block: resp.block_index, cell: resp.block_position };
+            }
+            // Formato con position global (necesita conversión)
+            if (resp.global_position !== undefined) {
+              return globalPosToBlockCell(resp.global_position);
+            }
+          }
+          return null;
+        };
+
+        if (res.ok) {
+          const pos = extractPosition(data);
+          if (pos) {
+            notifySuccess(`Clave ${value} encontrada en bloque ${pos.block}, posición ${pos.cell}`);
+            highlightCells([pos], 'highlight-search');
+          } else {
+            // Si no se pudo extraer posición pero el status es 200, asumimos que sí existe pero no tenemos detalles
+            // Intentamos buscar en el estado local
+            let foundInState = false;
+            for (let b = 0; b < currentState.blocks.length; b++) {
+              const block = currentState.blocks[b];
+              for (let c = 0; c < block.length; c++) {
+                if (block[c] === value) {
+                  notifySuccess(`Clave ${value} encontrada en bloque ${b+1}, posición ${c+1}`);
+                  highlightCells([{ block: b+1, cell: c+1 }], 'highlight-search');
+                  foundInState = true;
+                  break;
+                }
+              }
+              if (foundInState) break;
+            }
+            if (!foundInState) {
+              notifyError(`Clave ${value} no encontrada.`);
+            }
+          }
+        } else if (res.status === 404) {
+          notifyError(`Clave ${value} no encontrada.`);
         } else {
-          notifyError(data.detail || "Error en la búsqueda.");
+          const errorMsg = data?.detail || `Error en la búsqueda (${res.status})`;
+          notifyError(errorMsg);
         }
       } catch (err) {
+        console.error("Error en búsqueda:", err);
         notifyError("Error de conexión al buscar.");
       }
       clearInput();
     });
 
+    // ---- ELIMINAR ----
     deleteBtn.addEventListener("click", async () => {
       const rawValue = valueInput.value.trim();
       if (!rawValue) { notifyError("Ingresa una clave."); clearInput(); return; }
@@ -274,9 +342,35 @@
       if (!validateKey(value)) return;
 
       try {
+        // Primero buscar para obtener la posición y resaltar antes de eliminar
+        let positionsToHighlight = [];
+        const searchRes = await fetch(`${API_BASE}/search/${encodeURIComponent(value)}`);
+        if (searchRes.ok) {
+          const searchData = await searchRes.json();
+          // Intentar extraer posición de la misma forma que en búsqueda
+          if (Array.isArray(searchData) && searchData.length > 0) {
+            const first = searchData[0];
+            if (first.block_index !== undefined && first.block_position !== undefined) {
+              positionsToHighlight = [{ block: first.block_index, cell: first.block_position }];
+            }
+          } else if (searchData && searchData.block_index !== undefined && searchData.block_position !== undefined) {
+            positionsToHighlight = [{ block: searchData.block_index, cell: searchData.block_position }];
+          }
+        }
+
+        // Si se encontró, resaltar antes de eliminar
+        if (positionsToHighlight.length > 0) {
+          highlightCells(positionsToHighlight, 'highlight-delete', 1000);
+          await sleep(1000); // Esperar a que se vea el resaltado
+        } else {
+          console.warn("No se encontró la clave en búsqueda previa, intentando eliminar directamente.");
+        }
+
+        // Realizar la eliminación
         const res = await fetch(`${API_BASE}/delete/${encodeURIComponent(value)}`, { method: "DELETE" });
         const data = await res.json();
         console.log("Respuesta delete:", data);
+
         if (res.ok) {
           await loadState();
           notifySuccess(`Clave ${value} eliminada.`);
@@ -285,6 +379,7 @@
           notifyError(data.detail || "Error al eliminar");
         }
       } catch (err) {
+        console.error("Error en eliminación:", err);
         notifyError("Error de conexión al eliminar.");
       }
     });
