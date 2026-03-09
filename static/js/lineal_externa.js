@@ -198,6 +198,7 @@
       });
     }
 
+    // --- Insertar corregido ---
     insertBtn.addEventListener("click", async () => {
       const rawValue = valueInput.value.trim();
       if (!rawValue) { notifyError("Ingresa una clave."); clearInput(); return; }
@@ -215,39 +216,23 @@
         if (res.ok) {
           await loadState(); // Recargar estado actualizado
           console.log("Estado después de loadState:", currentState);
-          
-          // Extraer posición global (puede ser número o array)
-          let globalPos = data.position;
-          if (Array.isArray(globalPos)) {
-            globalPos = globalPos[0];
-          }
-          globalPos = Number(globalPos);
-          console.log("Posición global:", globalPos);
 
-          if (!isNaN(globalPos) && globalPos > 0 && currentState.blocks.length > 0) {
-            // Calcular bloque y celda a partir de la estructura de bloques
-            let accumulated = 0;
-            let block = null;
-            let cell = null;
-            for (let b = 0; b < currentState.blocks.length; b++) {
-              const blockLength = currentState.blocks[b].length;
-              if (globalPos <= accumulated + blockLength) {
-                block = b + 1;
-                cell = globalPos - accumulated;
-                break;
-              }
-              accumulated += blockLength;
-            }
-            if (block && cell) {
+          // Verificar si la respuesta contiene la información de posición
+          if (data.position && Array.isArray(data.position) && data.position.length > 0) {
+            const posInfo = data.position[0];
+            // El backend devuelve block_index y block_position
+            if (posInfo.block_index !== undefined && posInfo.block_position !== undefined) {
+              const block = posInfo.block_index;
+              const cell = posInfo.block_position;
               notifySuccess(`Clave ${value} insertada en bloque ${block}, posición ${cell}`);
               highlightCells([{ block, cell }], 'highlight-insert');
             } else {
               notifySuccess(`Clave ${value} insertada.`);
-              console.warn("No se pudo determinar bloque/celda para posición global", globalPos);
+              console.warn("La respuesta no contiene block_index/block_position:", posInfo);
             }
           } else {
             notifySuccess(`Clave ${value} insertada.`);
-            console.warn("Posición global inválida:", data.position);
+            console.warn("No se recibió posición en la respuesta:", data);
           }
           clearInput();
         } else {
