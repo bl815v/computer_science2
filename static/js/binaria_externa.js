@@ -125,7 +125,7 @@
       currentState = {
         size: data.size || 0,
         digits: data.digits || 0,
-        block_size: data.block_size || 0,
+        block_size: data.block_size || data.blockSize || 0,
         blocks: data.blocks || []
       };
       const blockSizeSpan = document.getElementById("block-size-display");
@@ -151,7 +151,10 @@
 
     if (!createBtn) return;
 
+    // Inicialmente ocultar acciones y mostrar mensaje de "crea estructura"
     actionsSection.style.display = "none";
+    currentState = { size: 0, digits: 0, block_size: 0, blocks: [] };
+    renderGrid();
 
     const updateBlockSizePreview = () => {
       const size = parseInt(totalSizeInput.value);
@@ -182,7 +185,7 @@
           const err = await res.json();
           throw new Error(err.detail || "Error al crear");
         }
-        await loadState();
+        await loadState(); // Carga y dibuja los bloques
         actionsSection.style.display = "block";
         notifySuccess("Estructura creada correctamente.");
         valueInput.placeholder = `Máx: ${digits} dígitos`;
@@ -214,13 +217,17 @@
         console.log("Respuesta insert:", data);
         if (res.ok) {
           await loadState();
-          if (data.position !== undefined) {
-            const globalPos = Array.isArray(data.position) ? data.position[0] : data.position;
-            const blockSize = currentState.block_size;
-            const block = Math.ceil(globalPos / blockSize);
-            const cell = ((globalPos - 1) % blockSize) + 1;
-            notifySuccess(`Clave ${value} insertada en bloque ${block}, posición ${cell}`);
-            highlightCells([{ block, cell }], 'highlight-insert');
+          // Extraer información de la posición usando el mismo formato que en lineal
+          if (data.position && Array.isArray(data.position) && data.position.length > 0) {
+            const posInfo = data.position[0];
+            if (posInfo.block_index !== undefined && posInfo.block_position !== undefined) {
+              const block = posInfo.block_index;
+              const cell = posInfo.block_position;
+              notifySuccess(`Clave ${value} insertada en bloque ${block}, posición ${cell}`);
+              highlightCells([{ block, cell }], 'highlight-insert');
+            } else {
+              notifySuccess(`Clave ${value} insertada.`);
+            }
           } else {
             notifySuccess(`Clave ${value} insertada.`);
           }
@@ -281,11 +288,6 @@
         notifyError("Error de conexión al eliminar.");
       }
     });
-
-    await loadState();
-    if (currentState.blocks.length > 0) {
-      actionsSection.style.display = "block";
-    }
   }
 
   window.initSimulator = initSimulator;

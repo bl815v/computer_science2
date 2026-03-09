@@ -52,6 +52,23 @@
     return true;
   }
 
+  // Convierte una posición global (1-based) a bloque y celda
+  function globalPosToBlockCell(globalPos) {
+    if (!currentState.blocks || currentState.blocks.length === 0) return null;
+    let accumulated = 0;
+    for (let b = 0; b < currentState.blocks.length; b++) {
+      const blockLength = currentState.blocks[b].length;
+      if (globalPos <= accumulated + blockLength) {
+        return {
+          block: b + 1,
+          cell: globalPos - accumulated
+        };
+      }
+      accumulated += blockLength;
+    }
+    return null;
+  }
+
   function renderGrid() {
     const container = document.getElementById("visualization");
     if (!container) return;
@@ -151,7 +168,10 @@
 
     if (!createBtn) return;
 
+    // Inicialmente ocultar acciones y mostrar mensaje
     actionsSection.style.display = "none";
+    currentState = { size: 0, digits: 0, block_size: 0, blocks: [] };
+    renderGrid();
 
     const updateBlockSizePreview = () => {
       const size = parseInt(totalSizeInput.value);
@@ -198,7 +218,6 @@
       });
     }
 
-    // --- Insertar corregido ---
     insertBtn.addEventListener("click", async () => {
       const rawValue = valueInput.value.trim();
       if (!rawValue) { notifyError("Ingresa una clave."); clearInput(); return; }
@@ -214,13 +233,9 @@
         const data = await res.json();
         console.log("Respuesta insert:", data);
         if (res.ok) {
-          await loadState(); // Recargar estado actualizado
-          console.log("Estado después de loadState:", currentState);
-
-          // Verificar si la respuesta contiene la información de posición
+          await loadState();
           if (data.position && Array.isArray(data.position) && data.position.length > 0) {
             const posInfo = data.position[0];
-            // El backend devuelve block_index y block_position
             if (posInfo.block_index !== undefined && posInfo.block_position !== undefined) {
               const block = posInfo.block_index;
               const cell = posInfo.block_position;
@@ -228,11 +243,9 @@
               highlightCells([{ block, cell }], 'highlight-insert');
             } else {
               notifySuccess(`Clave ${value} insertada.`);
-              console.warn("La respuesta no contiene block_index/block_position:", posInfo);
             }
           } else {
             notifySuccess(`Clave ${value} insertada.`);
-            console.warn("No se recibió posición en la respuesta:", data);
           }
           clearInput();
         } else {
@@ -251,20 +264,32 @@
 
       try {
         const res = await fetch(`${API_BASE}/search/${encodeURIComponent(value)}`);
-        const data = await res.json();
+        let data;
+        try {
+          data = await res.json();
+        } catch (e) {
+          data = null;
+        }
         console.log("Respuesta search:", data);
+
         if (res.ok) {
-          if (data.length > 0) {
+          // El backend puede devolver un array vacío si no encuentra
+          if (data && Array.isArray(data) && data.length > 0) {
             const info = data[0];
             notifySuccess(`Clave ${value} encontrada en bloque ${info.block_index}, posición ${info.block_position}`);
             highlightCells([{ block: info.block_index, cell: info.block_position }], 'highlight-search');
           } else {
             notifyError(`Clave ${value} no encontrada.`);
           }
+        } else if (res.status === 404) {
+          // Si el backend devuelve 404, mostrar no encontrado
+          notifyError(`Clave ${value} no encontrada.`);
         } else {
-          notifyError(data.detail || "Error en la búsqueda.");
+          const errorMsg = data?.detail || `Error en la búsqueda (${res.status})`;
+          notifyError(errorMsg);
         }
       } catch (err) {
+        console.error("Error en búsqueda:", err);
         notifyError("Error de conexión al buscar.");
       }
       clearInput();
@@ -277,9 +302,28 @@
       if (!validateKey(value)) return;
 
       try {
+        // Primero buscar para obtener la posición y resaltar antes de eliminar
+        let positionsToHighlight = [];
+        const searchRes = await fetch(`${API_BASE}/search/${encodeURIComponent(value)}`);
+        if (searchRes.ok) {
+          const searchData = await searchRes.json();
+          if (Array.isArray(searchData) && searchData.length > 0) {
+            const info = searchData[0];
+            positionsToHighlight = [{ block: info.block_index, cell: info.block_position }];
+          }
+        }
+
+        // Si se encontró, resaltar antes de eliminar
+        if (positionsToHighlight.length > 0) {
+          highlightCells(positionsToHighlight, 'highlight-delete', 1000);
+          await sleep(1000); // Esperar a que se vea el resaltado
+        }
+
+        // Realizar la eliminación
         const res = await fetch(`${API_BASE}/delete/${encodeURIComponent(value)}`, { method: "DELETE" });
         const data = await res.json();
         console.log("Respuesta delete:", data);
+
         if (res.ok) {
           await loadState();
           notifySuccess(`Clave ${value} eliminada.`);
@@ -288,14 +332,10 @@
           notifyError(data.detail || "Error al eliminar");
         }
       } catch (err) {
+        console.error("Error en eliminación:", err);
         notifyError("Error de conexión al eliminar.");
       }
     });
-
-    await loadState();
-    if (currentState.blocks.length > 0) {
-      actionsSection.style.display = "block";
-    }
   }
 
   window.initSimulator = initSimulator;
