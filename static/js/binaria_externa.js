@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const API_BASE = "http://127.0.0.1:8000/external/linear";
+  const API_BASE = "http://127.0.0.1:8000/external/binary";
   let isNotifying = false;
   let currentState = { size: 0, digits: 0, block_size: 0, blocks: [] };
 

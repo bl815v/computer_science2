@@ -118,6 +118,7 @@ p { color: var(--ms-muted); line-height: 1.5; text-align: center; max-width: 600
   width: 100%;
   max-width: 900px;
   box-sizing: border-box;
+  text-align: center;
 }
 
 .row {

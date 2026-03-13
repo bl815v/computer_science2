@@ -105,7 +105,7 @@ function showBusquedaExterna() {
   lvl2.innerHTML = `
     <div class="ribbon-buttons">
       <button class="ribbon-btn" data-page="lineal_externa">Lineal</button>
-      <!-- Aquí se pueden agregar más: Binaria, etc. -->
+      <button class="ribbon-btn" data-page="binaria_externa">Binaria</button>
     </div>
   `;
 
@@ -123,7 +123,6 @@ function showBusquedaExterna() {
     });
   });
 }
-
 /* ---------------- Loader ---------------- */
 
 function loadExternalPage(page) {
