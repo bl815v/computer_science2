@@ -647,10 +647,7 @@ class HuffmanTree(BaseTree):
 		total_L = 0
 		table_rows = []
 
-		chars = list(self.freq_dict.keys())
-		chars.sort(key=lambda c: (-self.freq_dict[c], -self.letter_to_index[c]))
-
-		for char in chars:
+		for char in self.freq_dict:
 			freq = self.freq_dict[char]
 			code = self.letter_to_code[char]
 			li = len(code)
