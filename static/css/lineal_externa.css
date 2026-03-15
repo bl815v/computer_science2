@@ -142,3 +142,28 @@
   70% { box-shadow: 0 0 0 10px rgba(209,52,56,0); }
   100% { box-shadow: 0 0 0 0 rgba(209,52,56,0); }
 }
+
+/* Estilo unificado para el mensaje cuando no hay bloques */
+#visualization .empty-message {
+  width: 100%;
+  text-align: center;
+  padding: 20px;
+  margin: 0;
+  box-sizing: border-box;
+  font-size: 16px;
+  color: #605e5c;
+}
+
+/* Forzar que el mensaje vacío ocupe todo el ancho y sea idéntico en ambos simuladores */
+#visualization.blocks-container .empty-message {
+  max-width: 100% !important;
+  width: 100%;
+  text-align: center;
+  padding: 20px;
+  margin: 0;
+  box-sizing: border-box;
+  font-size: 16px;
+  color: #605e5c;
+  background: transparent;
+  border: none;
+}

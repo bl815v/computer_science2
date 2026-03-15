@@ -97,8 +97,8 @@
     // Pie con totales
     const totalRow = document.createElement('tr');
     totalRow.innerHTML = `
-      <td colspan="4" style="text-align: right;"><strong>Total L / Promedio</strong></td>
-      <td><strong>${data.total_L}</strong> / ${data.average_L.toFixed(2)}</td>
+      <td colspan="4" style="text-align: right;"><strong>Promedio</strong></td>
+      <td>${data.average_L.toFixed(2)}</td>
     `;
     mainTableFoot.appendChild(totalRow);
   }
