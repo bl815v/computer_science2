@@ -34,108 +34,112 @@ from fastapi import HTTPException
 from pydantic import BaseModel
 
 from app.controllers.search.base_search import (
-	InsertRequest,
-	handle_delete,
-	handle_search,
-	normalize_value,
+    InsertRequest,
+    handle_delete,
+    handle_search,
+    normalize_value,
 )
 
 
 class CreateExternalRequest(BaseModel):
-	"""
-	Request body model for external structure creation.
+    """
+    Request body model for external structure creation.
 
-	Attributes:
-		size (int):
-			Maximum number of elements allowed in the structure.
+    Attributes:
+        size (int):
+            Maximum number of elements allowed in the structure.
 
-		digits (int):
-			Required number of digits for each stored key.
+        digits (int):
+            Required number of digits for each stored key.
 
-	"""
+    """
 
-	size: int
-	digits: int
+    size: int
+    digits: int
 
 
 def handle_external_create(service, request: CreateExternalRequest) -> dict:
-	"""
-	Handle the creation of an external search structure.
+    """
+    Handle the creation of an external search structure.
 
-	This function initializes the structure using the provided
-	size and digit constraints. The underlying service is responsible
-	for organizing the storage into blocks.
+    This function initializes the structure using the provided
+    size and digit constraints. The underlying service is responsible
+    for organizing the storage into blocks.
 
-	Args:
-		service:
-			External search service instance responsible for managing
-			the data structure.
+    Args:
+        service:
+            External search service instance responsible for managing
+            the data structure.
 
-		request (CreateExternalRequest):
-			Request object containing creation parameters.
+        request (CreateExternalRequest):
+            Request object containing creation parameters.
 
-	Returns:
-		dict:
-			Dictionary describing the created structure, including:
+    Returns:
+        dict:
+            Dictionary describing the created structure, including:
 
-				- message: Confirmation message
-				- size: Maximum structure capacity
-				- digits: Required number of digits per key
-				- block_size: Computed block size
-				- blocks: Total number of blocks
+                - message: Confirmation message
+                - size: Maximum structure capacity
+                - digits: Required number of digits per key
+                - block_size: Computed block size
+                - blocks: Total number of blocks
 
-	"""
-	service.create(request.size, request.digits)
+    """
+    service.create(request.size, request.digits)
 
-	return {
-		'message': 'Estructura externa creada',
-		'size': request.size,
-		'digits': request.digits,
-		'block_size': service.block_size,
-		'blocks': len(service.blocks),
-	}
+    return {
+        'message': 'Estructura externa creada',
+        'size': request.size,
+        'digits': request.digits,
+        'block_size': service.block_size,
+        'blocks': len(service.blocks),
+    }
 
 
 def handle_external_insert(service, request: InsertRequest) -> dict:
-	"""
-	Handle insertion of a new key into an external search structure.
+    """
+    Handle insertion of a new key into an external search structure.
 
-	The function validates that the structure has been initialized,
-	normalizes the input value, inserts it into the structure,
-	and returns its resulting position.
+    The function validates that the structure has been initialized,
+    normalizes the input value, inserts it into the structure,
+    and returns its resulting position.
 
-	Args:
-		service:
-			External search service instance responsible for managing
-			the data structure.
+    Args:
+        service:
+            External search service instance responsible for managing
+            the data structure.
 
-		request (InsertRequest):
-			Request object containing the value to insert.
+        request (InsertRequest):
+            Request object containing the value to insert.
 
-	Returns:
-		dict:
-			Dictionary describing the insertion result, including:
+    Returns:
+        dict:
+            Dictionary describing the insertion result, including:
 
-				- message: Confirmation message
-				- position: Location of the inserted key in the structure
+                - message: Confirmation message
+                - position: Location of the inserted key in the structure
 
-	Raises:
-		HTTPException:
-			If the structure has not been initialized.
+    Raises:
+        HTTPException:
+            If the structure has not been initialized or if insertion fails.
 
-	"""
-	if not service.initialized:
-		raise HTTPException(
-			status_code=400,
-			detail='Estructura no inicializada',
-		)
+    """
+    if not service.initialized:
+        raise HTTPException(
+            status_code=400,
+            detail='Estructura no inicializada',
+        )
 
-	value = normalize_value(request.value, service.digits)
+    value = normalize_value(request.value, service.digits)
 
-	service.insert(value)
-	position = service.search(value)
+    try:
+        service.insert(value)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
-	return {
-		'message': f'Clave {value} insertada',
-		'position': position,
-	}
+    position = service.search(value)
+
+    return {
+        'message': f'Clave {value} insertada',
+        'position': position,
+    }

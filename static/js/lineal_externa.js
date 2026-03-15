@@ -217,7 +217,7 @@
       });
     }
 
-    // ---- INSERTAR ----
+    // ---- INSERTAR (CON MEJOR MANEJO DE ERROR 500) ----
     insertBtn.addEventListener("click", async () => {
       const rawValue = valueInput.value.trim();
       if (!rawValue) { notifyError("Ingresa una clave."); clearInput(); return; }
@@ -230,28 +230,45 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ value })
         });
-        const data = await res.json();
-        console.log("Respuesta insert:", data);
 
-        if (res.ok && data.position && Array.isArray(data.position) && data.position.length > 0) {
-          await loadState();
-          const posInfo = data.position[0];
-          if (posInfo.block_index !== undefined && posInfo.block_position !== undefined) {
-            const block = posInfo.block_index;
-            const cell = posInfo.block_position;
-            notifySuccess(`Clave ${value} insertada en bloque ${block}, posición ${cell}`);
-            highlightCells([{ block, cell }], 'highlight-insert');
+        let data;
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          data = await res.json();
+        } else {
+          data = { detail: await res.text() };
+        }
+        console.log("Respuesta insert:", res.status, data);
+
+        if (res.ok) {
+          // Éxito: debe tener data.position
+          if (data.position && Array.isArray(data.position) && data.position.length > 0) {
+            await loadState();
+            const posInfo = data.position[0];
+            if (posInfo.block_index !== undefined && posInfo.block_position !== undefined) {
+              const block = posInfo.block_index;
+              const cell = posInfo.block_position;
+              notifySuccess(`Clave ${value} insertada en bloque ${block}, posición ${cell}`);
+              highlightCells([{ block, cell }], 'highlight-insert');
+            } else {
+              notifySuccess(`Clave ${value} insertada.`);
+            }
           } else {
             notifySuccess(`Clave ${value} insertada.`);
           }
           clearInput();
         } else {
-          const errorMsg = data.detail || data.message || "Error al insertar";
+          // Error del backend
+          let errorMsg = data.detail || data.message || `Error ${res.status}: ${res.statusText}`;
+          // Personalizar mensaje para error 500
+          if (res.status === 500) {
+            errorMsg = "Error interno del servidor. Es posible que la clave ya exista o haya un problema en el backend.";
+          }
           notifyError(errorMsg);
           clearInput();
         }
       } catch (err) {
-        console.error("Error en inserción:", err);
+        console.error("Error en inserción (catch):", err);
         notifyError("Error de conexión al insertar.");
         clearInput();
       }
@@ -328,7 +345,7 @@
       clearInput();
     });
 
-    // ---- ELIMINAR (CORREGIDO) ----
+    // ---- ELIMINAR ----
     deleteBtn.addEventListener("click", async () => {
       const rawValue = valueInput.value.trim();
       if (!rawValue) { notifyError("Ingresa una clave."); clearInput(); return; }
