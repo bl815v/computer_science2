@@ -1,0 +1,133 @@
+.hash-dinamica-container {
+  width: 100%;
+  max-width: 1200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 auto;
+}
+
+/* Contenedor de la tabla */
+#visualization.hash-container {
+  width: 100%;
+  overflow-x: auto;
+  background: #faf9f8;
+  border: 1px solid #e1dfdd;
+  border-radius: 4px;
+  padding: 10px 0;
+}
+
+/* Tabla estilo matriz */
+.hash-table {
+  border-collapse: collapse;
+  margin: 0 auto;
+  background: white;
+  font-family: 'Segoe UI', sans-serif;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.hash-table th,
+.hash-table td {
+  border: 1px solid #c8c6c4;
+  padding: 8px 12px;
+  text-align: center;
+  min-width: 60px;
+}
+
+/* Encabezado de columna (posición) */
+.hash-table th {
+  background-color: #0078d4;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* Primera columna (número de cubeta) */
+.hash-table td:first-child,
+.hash-table th:first-child {
+  background-color: #e5f1fb;
+  color: #0078d4;
+  font-weight: 600;
+  border-right: 2px solid #0078d4;
+}
+
+/* Celdas de datos */
+.hash-table td {
+  background-color: white;
+  font-size: 16px;
+}
+
+.hash-table td.empty {
+  background-color: #f3f2f1;
+  color: #a19f9d;
+  font-style: italic;
+}
+
+.hash-table td.empty::after {
+  content: "vacío";
+  font-size: 10px;
+}
+
+/* Celdas de desbordamiento */
+.hash-table td.overflow {
+  background-color: #fff3e0;
+  border-left: 2px solid #ffb900;
+}
+
+/* Estados de animación */
+.hash-table td.active {
+  outline: 3px solid #0078d4;
+  background: #e5f1fb !important;
+  transform: scale(1.02);
+  position: relative;
+  z-index: 2;
+}
+
+.hash-table td.found {
+  background-color: #dff6dd !important;
+  border: 2px solid #107c10;
+}
+
+.hash-table td.discarded {
+  background-color: #f3f2f1 !important;
+  color: #c8c6c4 !important;
+  opacity: 0.5;
+}
+
+.hash-table td.highlight-insert {
+  background-color: #dff6dd !important;
+  border: 2px solid #107c10;
+  animation: pulse-success 1s;
+}
+
+.hash-table td.highlight-delete {
+  background-color: #fde7e9 !important;
+  border: 2px solid #d13438;
+  animation: pulse-error 1s;
+}
+
+/* Resaltado de fila (cubeta activa) */
+.hash-table tr.active-row {
+  outline: 3px solid #ffb900;
+  box-shadow: 0 0 0 2px rgba(255, 185, 0, 0.5);
+}
+
+/* Animaciones */
+@keyframes pulse-success {
+  0% { box-shadow: 0 0 0 0 rgba(16,124,16,0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(16,124,16,0); }
+  100% { box-shadow: 0 0 0 0 rgba(16,124,16,0); }
+}
+
+@keyframes pulse-error {
+  0% { box-shadow: 0 0 0 0 rgba(209,52,56,0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(209,52,56,0); }
+  100% { box-shadow: 0 0 0 0 rgba(209,52,56,0); }
+}
+
+/* Mensaje vacío */
+#visualization .empty-message {
+  text-align: center;
+  padding: 20px;
+  color: #605e5c;
+}

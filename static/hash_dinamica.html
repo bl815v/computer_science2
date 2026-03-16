@@ -1,0 +1,74 @@
+<h2>Búsqueda Externa Hash Dinámica</h2>
+
+<div class="hash-dinamica-container">
+  <!-- Creación de la estructura (incluye configuración de hash) -->
+  <div class="card">
+    <h3>Configuración</h3>
+
+    <!-- Función hash -->
+    <div class="row">
+      <label>Tipo de hash:</label>
+      <select id="hash-type">
+        <option value="mod">Módulo</option>
+        <option value="square">Cuadrado</option>
+        <option value="truncation">Truncamiento</option>
+        <option value="folding">Plegamiento</option>
+      </select>
+    </div>
+
+    <!-- Parámetros para truncamiento -->
+    <div id="truncation-params" class="row" style="display: none;">
+      <label>Posiciones (ej. 1,3):</label>
+      <input type="text" id="trunc-positions" placeholder="1,3" />
+    </div>
+
+    <!-- Parámetros para plegamiento -->
+    <div id="folding-params" class="row" style="display: none;">
+      <label>Tamaño grupo:</label>
+      <input type="number" id="folding-group" min="1" value="2" />
+      <label>Operación:</label>
+      <select id="folding-op">
+        <option value="sum">Suma</option>
+        <option value="xor">XOR</option>
+      </select>
+    </div>
+
+    <!-- Parámetros de la estructura -->
+    <div class="row">
+      <label>Dígitos:</label>
+      <input type="number" id="digits" value="2" min="1" />
+      <label>Cubetas iniciales:</label>
+      <input type="number" id="initial-buckets" value="4" min="1" />
+      <label>Tamaño de cubeta:</label>
+      <input type="number" id="bucket-size" value="3" min="1" />
+    </div>
+
+    <div class="row">
+      <label>Política de expansión:</label>
+      <select id="expansion-policy">
+        <option value="total">Total</option>
+        <option value="partial">Parcial</option>
+      </select>
+    </div>
+
+    <div class="row">
+      <button id="create-structure-btn" class="primary">Crear estructura</button>
+    </div>
+  </div>
+
+  <!-- Acciones (ocultas inicialmente) -->
+  <div class="card" id="actions-section" style="display: none;">
+    <div class="row">
+      <label>Clave:</label>
+      <input type="text" id="value-input" placeholder="Ej: 15" />
+      <button id="insert-btn" class="primary">Insertar</button>
+      <button id="search-btn">Buscar</button>
+      <button id="delete-btn" class="danger">Borrar</button>
+    </div>
+  </div>
+
+  <!-- Visualización de cubetas y desbordamientos como matriz -->
+  <div class="visual-wrapper">
+    <div id="visualization" class="hash-container"></div>
+  </div>
+</div>

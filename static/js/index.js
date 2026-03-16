@@ -106,6 +106,7 @@ function showBusquedaExterna() {
       <button class="ribbon-btn" data-page="lineal_externa">Lineal</button>
       <button class="ribbon-btn" data-page="binaria_externa">Binaria</button>
       <button class="ribbon-btn" data-page="hash_externa">Hash</button>
+      <button class="ribbon-btn" data-page="hash_dinamica">Dinámica</button>
     </div>
   `;
 

@@ -127,6 +127,7 @@ p { color: var(--ms-muted); line-height: 1.5; text-align: center; max-width: 600
   justify-content: center;
   gap: 12px;
   flex-wrap: wrap;
+  padding-top: 10px;
 }
 
 label { font-weight: 600; font-size: 14px; }
