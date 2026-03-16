@@ -65,16 +65,15 @@
   // -------------------- Obtener fila real (0‑based) de un valor dentro de una cubeta --------------------
   function getRowIndexForValueInBucket(value, blockIdx) {
     const block = currentState.blocks[blockIdx];
-    // Aseguramos que el valor tenga el padding correcto para comparar
     const paddedValue = toDigits(value, currentState.digits);
     for (let i = 0; i < block.length; i++) {
-      if (block[i] === paddedValue) return i; // fila principal
+      if (block[i] === paddedValue) return i;
     }
     const overflow = currentState.overflow[blockIdx] || [];
     for (let i = 0; i < overflow.length; i++) {
-      if (overflow[i] === paddedValue) return currentState.bucket_size + i; // fila overflow
+      if (overflow[i] === paddedValue) return currentState.bucket_size + i;
     }
-    return -1; // no encontrado
+    return -1;
   }
 
   // -------------------- Renderizado como matriz (cubetas como columnas) --------------------
@@ -94,7 +93,7 @@
     const numBuckets = currentState.blocks.length;
     const bucketSize = currentState.bucket_size;
 
-    // Determinar el número máximo de filas necesario (incluyendo overflow)
+    // Determinar el número máximo de filas (incluyendo overflow)
     let maxRows = bucketSize;
     currentState.overflow.forEach(ov => {
       if (ov.length > maxRows - bucketSize) {
@@ -102,7 +101,6 @@
       }
     });
 
-    // Crear tabla
     const table = document.createElement("table");
     table.className = "hash-table";
 
@@ -121,18 +119,21 @@
     thead.appendChild(headerRow);
     table.appendChild(thead);
 
-    // Cuerpo: filas para cada posición (desde 0 hasta maxRows-1)
     const tbody = document.createElement("tbody");
     for (let r = 0; r < maxRows; r++) {
       const tr = document.createElement("tr");
-      tr.dataset.row = r; // posición (0‑based)
+      tr.dataset.row = r;
 
-      // Primera celda: número de posición (1‑based para el usuario)
+      // Primera celda: número de posición o "col" para overflow
       const tdPos = document.createElement("td");
-      tdPos.textContent = r + 1;
+      if (r < bucketSize) {
+        tdPos.textContent = r + 1;
+      } else {
+        tdPos.textContent = "col";
+        tdPos.classList.add("col-row");
+      }
       tr.appendChild(tdPos);
 
-      // Para cada cubeta, añadir celda
       for (let b = 0; b < numBuckets; b++) {
         const td = document.createElement("td");
         td.dataset.block = b;
@@ -141,17 +142,13 @@
         let val = null;
         let type = "main";
         if (r < bucketSize) {
-          // Posición dentro del bloque principal
           val = currentState.blocks[b][r];
         } else {
-          // Posición de overflow
           const overflowIdx = r - bucketSize;
           const overflow = currentState.overflow[b] || [];
           if (overflowIdx < overflow.length) {
             val = overflow[overflowIdx];
             type = "overflow";
-          } else {
-            val = null;
           }
         }
 
@@ -173,41 +170,32 @@
 
   // -------------------- Animación de búsqueda (recorre la columna) --------------------
   async function animateSearch(targetValue, blockIdx, resultClass = "found", autoClear = true) {
-    console.log(`animateSearch: valor=${targetValue}, blockIdx=${blockIdx}`);
     const container = document.getElementById("visualization");
     const table = container?.querySelector(".hash-table");
     if (!table) return false;
 
-    // Validar blockIdx
     if (blockIdx < 0 || blockIdx >= currentState.num_buckets) {
-      console.error(`Índice de cubeta inválido: ${blockIdx}`);
       window.notifyError?.(`Índice de cubeta inválido: ${blockIdx + 1}`);
       return false;
     }
 
-    // Limpiar clases previas
     table.querySelectorAll("td").forEach(c => c.classList.remove("active", "found", "discarded", "highlight-insert", "highlight-delete", "active-col"));
     table.querySelectorAll("col").forEach(c => c.classList.remove("active-col"));
 
-    // Obtener la fila real donde se encuentra el valor
     const rowIdx = getRowIndexForValueInBucket(targetValue, blockIdx);
-    console.log(`rowIdx encontrado: ${rowIdx}`);
     if (rowIdx === -1) {
-      console.error("Valor no encontrado en la estructura");
       window.notifyError?.("Error de animación: valor no encontrado en la estructura.");
       return false;
     }
 
-    // Resaltar la columna (cubeta)
     const cellsInColumn = table.querySelectorAll(`td[data-block="${blockIdx}"]`);
     if (cellsInColumn.length === 0) {
-      window.notifyError?.(`Error de animación: cubeta ${blockIdx + 1} no encontrada.`);
+      window.notifyError?.(`Cubeta ${blockIdx + 1} no encontrada.`);
       return false;
     }
     cellsInColumn.forEach(cell => cell.classList.add("active-col"));
     await sleep(600);
 
-    // Buscar la celda específica
     let targetCell = null;
     for (let cell of cellsInColumn) {
       if (cell.dataset.row == rowIdx) {
@@ -217,21 +205,16 @@
     }
 
     if (!targetCell) {
-      window.notifyError?.("Error de animación: celda no encontrada en el DOM.");
+      window.notifyError?.("Celda no encontrada en el DOM.");
       cellsInColumn.forEach(cell => cell.classList.remove("active-col"));
       return false;
     }
 
-    // Simular búsqueda secuencial dentro de la columna (recorrer celdas en orden de fila)
-    const allCellsInColumn = Array.from(cellsInColumn).sort((a, b) => {
-      return parseInt(a.dataset.row) - parseInt(b.dataset.row);
-    });
-
+    const allCellsInColumn = Array.from(cellsInColumn).sort((a, b) => parseInt(a.dataset.row) - parseInt(b.dataset.row));
     let found = false;
     for (let cell of allCellsInColumn) {
       cell.classList.add("active");
       await sleep(400);
-
       if (cell === targetCell) {
         cell.classList.remove("active");
         cell.classList.add(resultClass);
@@ -244,16 +227,11 @@
       await sleep(200);
     }
 
-    if (found) {
-      if (autoClear) {
-        await sleep(2000);
-        table.querySelectorAll("td").forEach(c => c.classList.remove("active", "found", "discarded", "highlight-insert", "highlight-delete", "active-col"));
-      }
-      return true;
-    } else {
-      window.notifyError?.(`Error de animación: no se encontró la celda destino.`);
-      return false;
+    if (found && autoClear) {
+      await sleep(2000);
+      table.querySelectorAll("td").forEach(c => c.classList.remove("active", "found", "discarded", "highlight-insert", "highlight-delete", "active-col"));
     }
+    return found;
   }
 
   // -------------------- Cargar estado desde backend --------------------
@@ -261,7 +239,6 @@
     try {
       const res = await fetch(`${API_BASE}/state`);
       if (res.status === 404) {
-        console.log("No hay estructura previa");
         currentState = { digits: 0, bucket_size: 0, num_buckets: 0, blocks: [], overflow: [], count: 0, load_factor: 0 };
         renderGrid();
         return;
@@ -279,7 +256,6 @@
       };
       renderGrid();
 
-      // Mostrar/ocultar sección de acciones
       const actions = document.getElementById("actions-section");
       if (actions) {
         actions.style.display = currentState.num_buckets > 0 ? "block" : "none";
@@ -293,7 +269,6 @@
 
   // -------------------- Inicialización --------------------
   async function initSimulator() {
-    // Elementos del DOM
     const hashTypeSelect = document.getElementById("hash-type");
     const truncParams = document.getElementById("truncation-params");
     const foldingParams = document.getElementById("folding-params");
@@ -307,7 +282,12 @@
     const searchBtn = document.getElementById("search-btn");
     const deleteBtn = document.getElementById("delete-btn");
 
-    // Mostrar/ocultar parámetros según tipo de hash
+    // Resetear estado al iniciar: sin estructura previa
+    currentState = { digits: 0, bucket_size: 0, num_buckets: 0, blocks: [], overflow: [], count: 0, load_factor: 0 };
+    renderGrid();
+    const actions = document.getElementById("actions-section");
+    if (actions) actions.style.display = "none";
+
     function updateHashParams() {
       const type = hashTypeSelect.value;
       currentHashType = type;
@@ -317,18 +297,16 @@
     hashTypeSelect.addEventListener("change", updateHashParams);
     updateHashParams();
 
-    // Crear estructura (configura hash y luego crea)
     createBtn.addEventListener("click", async () => {
       const digits = parseInt(digitsInput.value);
       const initialBuckets = parseInt(initialBucketsInput.value);
       const bucketSize = parseInt(bucketSizeInput.value);
-      const policy = expansionPolicy.value; // "total" o "partial"
+      const policy = expansionPolicy.value;
 
       if (isNaN(digits) || digits <= 0) return window.notifyError?.("Dígitos inválidos.");
       if (isNaN(initialBuckets) || initialBuckets <= 0) return window.notifyError?.("Número de cubetas inicial inválido.");
       if (isNaN(bucketSize) || bucketSize <= 0) return window.notifyError?.("Tamaño de cubeta inválido.");
 
-      // 1. Configurar función hash
       const type = hashTypeSelect.value;
       let hashBody = { type };
 
@@ -356,7 +334,6 @@
       }
 
       try {
-        // Primero set-hash
         const hashRes = await fetch(`${API_BASE}/set-hash`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -367,7 +344,6 @@
           throw new Error(err.detail || "Error al configurar hash");
         }
 
-        // Luego crear estructura con umbrales fijos
         const createBody = {
           digits,
           initial_num_buckets: initialBuckets,
@@ -395,7 +371,6 @@
       }
     });
 
-    // Restricción de dígitos en el input
     if (valueInput) {
       valueInput.addEventListener("input", () => {
         const digits = currentState.digits || parseInt(digitsInput.value) || 0;
@@ -403,7 +378,6 @@
       });
     }
 
-    // Insertar
     insertBtn.addEventListener("click", async () => {
       const rawValue = valueInput.value.trim();
       if (!rawValue) { window.notifyError?.("Ingresa una clave."); clearInput(); return; }
@@ -430,13 +404,18 @@
         if (res.ok) {
           await loadState();
           if (data.position && Array.isArray(data.position) && data.position.length > 0) {
-            const pos = data.position[0]; // { global_position, block_index, block_position }
-            window.notifySuccess?.(`Clave ${value} insertada en cubeta ${pos.block_index}, posición ${pos.block_position}`);
-            // Resaltar la celda insertada usando el valor
+            const pos = data.position[0];
+            const blockIdx = pos.block_index - 1;
+            const rowIdx = getRowIndexForValueInBucket(value, blockIdx);
+            const isOverflow = rowIdx >= currentState.bucket_size;
+            if (isOverflow) {
+              window.notifySuccess?.(`Clave ${value} insertada en colisión de cubeta ${pos.block_index}`);
+            } else {
+              window.notifySuccess?.(`Clave ${value} insertada en cubeta ${pos.block_index}, posición ${pos.block_position}`);
+            }
             const table = document.querySelector(".hash-table");
-            const rowIdx = getRowIndexForValueInBucket(value, pos.block_index - 1);
             if (rowIdx !== -1) {
-              const cell = table?.querySelector(`td[data-block="${pos.block_index-1}"][data-row="${rowIdx}"]`);
+              const cell = table?.querySelector(`td[data-block="${blockIdx}"][data-row="${rowIdx}"]`);
               if (cell) {
                 cell.classList.add("highlight-insert");
                 setTimeout(() => cell.classList.remove("highlight-insert"), 2000);
@@ -458,7 +437,6 @@
       }
     });
 
-    // Buscar
     searchBtn.addEventListener("click", async () => {
       const rawValue = valueInput.value.trim();
       if (!rawValue) { window.notifyError?.("Ingresa una clave."); clearInput(); return; }
@@ -467,21 +445,16 @@
       const value = toDigits(rawValue, digits);
       if (!validateKey(value, digits)) return;
 
-      console.log(`Buscando valor: ${value}`);
       try {
         const res = await fetch(`${API_BASE}/search/${encodeURIComponent(value)}`);
-        console.log(`Respuesta status: ${res.status}`);
         if (res.status === 404) {
           window.notifyError?.(`Clave ${value} no encontrada.`);
           clearInput();
           return;
         }
         if (!res.ok) throw new Error("Error en búsqueda");
-        
+
         const responseData = await res.json();
-        console.log("Respuesta completa:", responseData);
-        
-        // Extraer el array de posiciones
         let positions = [];
         if (Array.isArray(responseData)) {
           positions = responseData;
@@ -490,28 +463,33 @@
         } else if (responseData.positions && Array.isArray(responseData.positions)) {
           positions = responseData.positions;
         }
-        
+
         if (positions.length === 0) {
           window.notifyError?.(`Clave ${value} no encontrada.`);
           clearInput();
           return;
         }
-        
+
         const pos = positions[0];
         if (!pos || typeof pos.block_index !== 'number') {
-          console.error("Posición inválida:", pos);
           window.notifyError?.("Respuesta de búsqueda inválida.");
           clearInput();
           return;
         }
-        
+
         const blockIdx = pos.block_index - 1;
+        const rowIdx = getRowIndexForValueInBucket(value, blockIdx);
+        const isOverflow = rowIdx >= currentState.bucket_size;
+
         const animOk = await animateSearch(value, blockIdx, "found", true);
         if (animOk) {
-          window.notifySuccess?.(`Clave ${value} encontrada en cubeta ${pos.block_index}, posición ${pos.block_position}`);
+          if (isOverflow) {
+            window.notifySuccess?.(`Clave ${value} encontrada en colisión de cubeta ${pos.block_index}`);
+          } else {
+            window.notifySuccess?.(`Clave ${value} encontrada en cubeta ${pos.block_index}, posición ${pos.block_position}`);
+          }
         } else {
-          // Aún así, la clave fue encontrada, mostramos éxito
-          window.notifySuccess?.(`Clave ${value} encontrada en cubeta ${pos.block_index}, posición ${pos.block_position} (sin animación)`);
+          window.notifySuccess?.(`Clave ${value} encontrada (sin animación).`);
         }
         clearInput();
       } catch (err) {
@@ -521,7 +499,6 @@
       }
     });
 
-    // Eliminar
     deleteBtn.addEventListener("click", async () => {
       const rawValue = valueInput.value.trim();
       if (!rawValue) { window.notifyError?.("Ingresa una clave."); clearInput(); return; }
@@ -530,21 +507,16 @@
       const value = toDigits(rawValue, digits);
       if (!validateKey(value, digits)) return;
 
-      console.log(`Eliminando valor: ${value}`);
       try {
         const searchRes = await fetch(`${API_BASE}/search/${encodeURIComponent(value)}`);
-        console.log(`Respuesta búsqueda status: ${searchRes.status}`);
         if (searchRes.status === 404) {
           window.notifyError?.(`Clave ${value} no encontrada.`);
           clearInput();
           return;
         }
         if (!searchRes.ok) throw new Error("Error en búsqueda previa");
-        
+
         const responseData = await searchRes.json();
-        console.log("Respuesta para eliminar:", responseData);
-        
-        // Extraer el array de posiciones
         let positions = [];
         if (Array.isArray(responseData)) {
           positions = responseData;
@@ -553,39 +525,40 @@
         } else if (responseData.positions && Array.isArray(responseData.positions)) {
           positions = responseData.positions;
         }
-        
+
         if (positions.length === 0) {
           window.notifyError?.(`Clave ${value} no encontrada.`);
           clearInput();
           return;
         }
-        
+
         const pos = positions[0];
         if (!pos || typeof pos.block_index !== 'number') {
           window.notifyError?.("Respuesta de búsqueda inválida.");
           clearInput();
           return;
         }
-        
+
         const blockIdx = pos.block_index - 1;
+        const rowIdx = getRowIndexForValueInBucket(value, blockIdx);
+        const isOverflow = rowIdx >= currentState.bucket_size;
 
-        const animOk = await animateSearch(value, blockIdx, "highlight-delete", false);
-        if (!animOk) {
-          console.warn("Animación falló, pero se procede a eliminar");
-        }
-
+        await animateSearch(value, blockIdx, "highlight-delete", false);
         await sleep(500);
 
         const deleteRes = await fetch(`${API_BASE}/delete/${encodeURIComponent(value)}`, {
           method: "DELETE"
         });
-        console.log(`Respuesta delete status: ${deleteRes.status}`);
         if (!deleteRes.ok) {
           const errData = await deleteRes.json();
           throw new Error(errData.detail || "Error al eliminar");
         }
         await loadState();
-        window.notifySuccess?.(`Clave ${value} eliminada.`);
+        if (isOverflow) {
+          window.notifySuccess?.(`Clave ${value} eliminada de colisión en cubeta ${pos.block_index}`);
+        } else {
+          window.notifySuccess?.(`Clave ${value} eliminada de cubeta ${pos.block_index}, posición ${pos.block_position}`);
+        }
         clearInput();
       } catch (err) {
         console.error("Error en eliminación:", err);
@@ -593,9 +566,6 @@
         clearInput();
       }
     });
-
-    // Cargar estado inicial
-    await loadState();
   }
 
   window.initSimulator = initSimulator;

@@ -176,3 +176,7 @@
 .hash-dinamica-container .row select {
   margin: 0 4px;
 }
+.hash-table td.empty-index {
+  background-color: #f0f0f0;
+  color: transparent;
+}
