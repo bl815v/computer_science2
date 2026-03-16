@@ -261,3 +261,4 @@ button.danger:hover { background: var(--ms-error); color: white; }
 .cell.dots::before {
   content: none; /* Elimina el índice de la izquierda */
 }
+
