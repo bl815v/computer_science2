@@ -2,7 +2,6 @@ const appState = {
   loadedScripts: new Set(),
 };
 
-
 function setActiveRibbonButton(button) {
   const container = button.closest(".ribbon-buttons");
 
@@ -106,6 +105,7 @@ function showBusquedaExterna() {
     <div class="ribbon-buttons">
       <button class="ribbon-btn" data-page="lineal_externa">Lineal</button>
       <button class="ribbon-btn" data-page="binaria_externa">Binaria</button>
+      <button class="ribbon-btn" data-page="hash_externa">Hash</button>
     </div>
   `;
 
@@ -123,6 +123,7 @@ function showBusquedaExterna() {
     });
   });
 }
+
 /* ---------------- Loader ---------------- */
 
 function loadExternalPage(page) {

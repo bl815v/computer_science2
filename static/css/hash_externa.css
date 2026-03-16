@@ -1,0 +1,208 @@
+.hash-externa-container {
+  width: 100%;
+  max-width: 1200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 auto;
+}
+
+/* Contenedor de bloques: horizontal con scroll */
+#visualization.blocks-container {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  gap: 20px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  overflow-x: auto;
+  padding: 10px 0;
+  width: 100%;
+  min-height: 200px;
+  background: #faf9f8;
+  border: 1px solid #e1dfdd;
+  border-radius: 4px;
+}
+
+/* Cada bloque individual */
+.block {
+  border: 2px solid var(--ms-blue);
+  border-radius: 4px;
+  background: white;
+  min-width: 150px;
+  flex: 0 0 auto;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.block-header {
+  background: var(--ms-blue);
+  color: white;
+  padding: 6px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.block-cells {
+  display: flex;
+  flex-direction: column;
+  padding: 5px;
+  padding-left: 50px;
+}
+
+.block-cells .cell {
+  min-width: 80px;
+  min-height: 40px;
+  border: 1px solid #e1dfdd;
+  margin: 2px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 16px;
+  background: #f9f9f9;
+  position: relative;
+}
+
+.block-cells .cell::before {
+  content: attr(data-index);
+  position: absolute;
+  left: -35px;
+  font-size: 11px;
+  color: #605e5c;
+  white-space: nowrap;
+}
+
+.block-cells .cell.empty {
+  background: #f0f0f0;
+  color: #aaa;
+  font-style: italic;
+}
+
+.block-cells .cell.empty::after {
+  content: "vacío";
+  font-size: 10px;
+}
+
+/* Estilos para overflow */
+.block-overflow {
+  margin-top: 10px;
+  padding: 5px;
+  border-top: 1px dashed #aaa;
+  background: #f5f5f5;
+}
+
+.block-overflow-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #605e5c;
+  margin-bottom: 5px;
+}
+
+.overflow-cells {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.overflow-cell {
+  min-width: 40px;
+  height: 30px;
+  border: 1px solid #c8c6c4;
+  background: #eaeaea;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  padding: 0 5px;
+  border-radius: 3px;
+}
+
+/* Animaciones */
+.block-cells .cell.active {
+  outline: 2px solid #0078d4;
+  background: #e5f1fb !important;
+  transform: scale(1.02);
+}
+
+.block-cells .cell.found {
+  background-color: #dff6dd !important;
+  border: 2px solid #107c10;
+}
+
+.block-cells .cell.highlight-insert {
+  background-color: #dff6dd !important;
+  border: 2px solid #107c10;
+  animation: pulse-success 1s;
+}
+
+.block-cells .cell.highlight-search {
+  background-color: #fff1cc !important;
+  border: 2px solid #ffb900;
+  animation: pulse-warning 1s;
+}
+
+.block-cells .cell.highlight-delete {
+  background-color: #fde7e9 !important;
+  border: 2px solid #d13438;
+  animation: pulse-error 1s;
+}
+
+.overflow-cell.active {
+  outline: 2px solid #0078d4;
+  background: #e5f1fb !important;
+  transform: scale(1.02);
+}
+
+.overflow-cell.found {
+  background-color: #dff6dd !important;
+  border: 2px solid #107c10;
+}
+
+.overflow-cell.highlight-insert {
+  background-color: #dff6dd !important;
+  border: 2px solid #107c10;
+  animation: pulse-success 1s;
+}
+
+.overflow-cell.highlight-search {
+  background-color: #fff1cc !important;
+  border: 2px solid #ffb900;
+  animation: pulse-warning 1s;
+}
+
+.overflow-cell.highlight-delete {
+  background-color: #fde7e9 !important;
+  border: 2px solid #d13438;
+  animation: pulse-error 1s;
+}
+
+@keyframes pulse-success {
+  0% { box-shadow: 0 0 0 0 rgba(16,124,16,0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(16,124,16,0); }
+  100% { box-shadow: 0 0 0 0 rgba(16,124,16,0); }
+}
+
+@keyframes pulse-warning {
+  0% { box-shadow: 0 0 0 0 rgba(255,185,0,0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(255,185,0,0); }
+  100% { box-shadow: 0 0 0 0 rgba(255,185,0,0); }
+}
+
+@keyframes pulse-error {
+  0% { box-shadow: 0 0 0 0 rgba(209,52,56,0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(209,52,56,0); }
+  100% { box-shadow: 0 0 0 0 rgba(209,52,56,0); }
+}
+
+/* Mensaje vacío */
+#visualization .empty-message {
+  width: 100%;
+  text-align: center;
+  padding: 20px;
+  margin: 0;
+  box-sizing: border-box;
+  font-size: 16px;
+  color: #605e5c;
+}

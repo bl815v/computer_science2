@@ -1,0 +1,47 @@
+<h2>Hash Externo</h2>
+
+<div class="hash-externa-container">
+  <!-- Configuración de función hash y creación combinados -->
+  <div class="card">
+    <h3>Configuración de Tabla Hash Externa</h3>
+    <div class="row">
+      <label>Función:</label>
+      <select id="hash-type">
+        <option value="mod">Módulo</option>
+        <option value="square">Cuadrático</option>
+        <option value="truncation">Truncamiento</option>
+        <option value="folding">Plegamiento</option>
+        <option value="base_conversion">Conversión de base</option>
+      </select>
+    </div>
+    <!-- Parámetros específicos (se muestran según selección) -->
+    <div id="hash-params" style="margin-top: 10px;"></div>
+
+    <div class="row" style="margin-top: 15px;">
+      <label>Capacidad total (elementos):</label>
+      <input type="number" id="total-size" value="27" min="1" />
+      <label>Dígitos:</label>
+      <input type="number" id="digits" value="2" min="1" />
+      <button id="create-structure" class="primary">Crear estructura</button>
+    </div>
+    <div id="block-info" style="margin-top: 10px; font-size: 14px; color: #605e5c;">
+      Tamaño de bloque calculado: <span id="block-size-display">-</span>
+    </div>
+  </div>
+
+  <!-- Acciones (ocultas inicialmente) -->
+  <div class="card" id="actions-section" style="display: none;">
+    <div class="row">
+      <label>Clave:</label>
+      <input type="text" id="value-input" placeholder="Ej: 15" maxlength="2" />
+      <button id="insert-btn" class="primary">Insertar</button>
+      <button id="search-btn">Buscar</button>
+      <button id="delete-btn" class="danger">Borrar</button>
+    </div>
+  </div>
+
+  <!-- Visualización de bloques y overflow -->
+  <div class="visual-wrapper">
+    <div id="visualization" class="blocks-container"></div>
+  </div>
+</div>
