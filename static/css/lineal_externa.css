@@ -167,3 +167,27 @@
   background: transparent;
   border: none;
 }
+
+/* Estados para los bloques durante la búsqueda */
+.block.block-active {
+  outline: 4px solid #ffb900;
+  box-shadow: 0 0 0 3px rgba(255, 185, 0, 0.5);
+  transition: outline 0.2s ease;
+}
+
+.block.block-discarded {
+  opacity: 0.3;
+  filter: grayscale(0.8);
+  transition: opacity 0.5s ease;
+}
+
+.block.block-candidate {
+  outline: 4px solid var(--ms-blue);
+  box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.5);
+}
+
+/* Para que el bloque activo se note incluso cuando está descartado parcialmente */
+.block.block-active .block-header {
+  background: #ffb900;
+  color: #000;
+}
