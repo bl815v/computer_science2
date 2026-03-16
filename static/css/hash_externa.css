@@ -1,5 +1,4 @@
-.lineal-externa-container,
-.binaria-externa-container {
+.hash-externa-container {
   width: 100%;
   max-width: 1200px;
   display: flex;
@@ -31,7 +30,7 @@
   border-radius: 4px;
   background: white;
   min-width: 150px;
-  flex: 0 0 auto; /* Equivalente a flex-shrink: 0; flex-grow: 0; */
+  flex: 0 0 auto;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
@@ -48,7 +47,7 @@
   display: flex;
   flex-direction: column;
   padding: 5px;
-  padding-left: 50px; /* Espacio para el índice */
+  padding-left: 50px;
 }
 
 .block-cells .cell {
@@ -71,6 +70,7 @@
   left: -35px;
   font-size: 11px;
   color: #605e5c;
+  white-space: nowrap;
 }
 
 .block-cells .cell.empty {
@@ -84,6 +84,41 @@
   font-size: 10px;
 }
 
+/* Estilos para overflow */
+.block-overflow {
+  margin-top: 10px;
+  padding: 5px;
+  border-top: 1px dashed #aaa;
+  background: #f5f5f5;
+}
+
+.block-overflow-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #605e5c;
+  margin-bottom: 5px;
+}
+
+.overflow-cells {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.overflow-cell {
+  min-width: 40px;
+  height: 30px;
+  border: 1px solid #c8c6c4;
+  background: #eaeaea;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  padding: 0 5px;
+  border-radius: 3px;
+}
+
 /* Animaciones */
 .block-cells .cell.active {
   outline: 2px solid #0078d4;
@@ -94,17 +129,6 @@
 .block-cells .cell.found {
   background-color: #dff6dd !important;
   border: 2px solid #107c10;
-}
-
-.block-cells .cell.discarded {
-  background-color: #f3f2f1 !important;
-  color: #c8c6c4 !important;
-  opacity: 0.5;
-}
-
-.block-cells .cell.not-found {
-  background-color: #fde7e9 !important;
-  color: #d13438 !important;
 }
 
 .block-cells .cell.highlight-insert {
@@ -120,6 +144,35 @@
 }
 
 .block-cells .cell.highlight-delete {
+  background-color: #fde7e9 !important;
+  border: 2px solid #d13438;
+  animation: pulse-error 1s;
+}
+
+.overflow-cell.active {
+  outline: 2px solid #0078d4;
+  background: #e5f1fb !important;
+  transform: scale(1.02);
+}
+
+.overflow-cell.found {
+  background-color: #dff6dd !important;
+  border: 2px solid #107c10;
+}
+
+.overflow-cell.highlight-insert {
+  background-color: #dff6dd !important;
+  border: 2px solid #107c10;
+  animation: pulse-success 1s;
+}
+
+.overflow-cell.highlight-search {
+  background-color: #fff1cc !important;
+  border: 2px solid #ffb900;
+  animation: pulse-warning 1s;
+}
+
+.overflow-cell.highlight-delete {
   background-color: #fde7e9 !important;
   border: 2px solid #d13438;
   animation: pulse-error 1s;
@@ -143,7 +196,7 @@
   100% { box-shadow: 0 0 0 0 rgba(209,52,56,0); }
 }
 
-/* Estilo unificado para el mensaje cuando no hay bloques */
+/* Mensaje vacío */
 #visualization .empty-message {
   width: 100%;
   text-align: center;
@@ -152,42 +205,4 @@
   box-sizing: border-box;
   font-size: 16px;
   color: #605e5c;
-}
-
-/* Forzar que el mensaje vacío ocupe todo el ancho y sea idéntico en ambos simuladores */
-#visualization.blocks-container .empty-message {
-  max-width: 100% !important;
-  width: 100%;
-  text-align: center;
-  padding: 20px;
-  margin: 0;
-  box-sizing: border-box;
-  font-size: 16px;
-  color: #605e5c;
-  background: transparent;
-  border: none;
-}
-
-/* Estados para los bloques durante la búsqueda */
-.block.block-active {
-  outline: 4px solid #ffb900;
-  box-shadow: 0 0 0 3px rgba(255, 185, 0, 0.5);
-  transition: outline 0.2s ease;
-}
-
-.block.block-discarded {
-  opacity: 0.3;
-  filter: grayscale(0.8);
-  transition: opacity 0.5s ease;
-}
-
-.block.block-candidate {
-  outline: 4px solid var(--ms-blue);
-  box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.5);
-}
-
-/* Para que el bloque activo se note incluso cuando está descartado parcialmente */
-.block.block-active .block-header {
-  background: #ffb900;
-  color: #000;
 }

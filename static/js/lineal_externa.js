@@ -127,6 +127,113 @@
     });
   }
 
+  // --- Animación de búsqueda lineal externa con resaltado de bloques ---
+  async function linearExternalSearchAnimation(targetValue, options = { autoClear: true, resultClass: 'found' }) {
+    const container = document.getElementById("visualization");
+    if (!container) return null;
+
+    // Limpiar clases previas
+    const allCells = container.querySelectorAll(".cell");
+    const allBlocks = container.querySelectorAll(".block");
+    allCells.forEach(c => c.classList.remove("active", "found", "visited", "not-found", "highlight-delete", "discarded", "highlight-insert"));
+    allBlocks.forEach(b => b.classList.remove("block-active", "block-discarded", "block-candidate"));
+
+    // Obtener el máximo de cada bloque (último valor no nulo)
+    const blockMaxValues = [];
+    for (let b = 0; b < currentState.blocks.length; b++) {
+      const block = currentState.blocks[b];
+      let maxVal = null;
+      for (let i = block.length - 1; i >= 0; i--) {
+        if (block[i] !== null && block[i] !== undefined && block[i] !== "") {
+          maxVal = block[i];
+          break;
+        }
+      }
+      blockMaxValues.push(maxVal);
+    }
+
+    let found = false;
+    let foundPos = null;
+
+    // Recorrer bloques secuencialmente
+    for (let b = 0; b < currentState.blocks.length; b++) {
+      const blockElem = container.querySelector(`.block[data-block="${b + 1}"]`);
+      const maxVal = blockMaxValues[b];
+
+      // Resaltar el bloque actual
+      if (blockElem) {
+        blockElem.classList.add("block-active");
+      }
+      await sleep(600);
+
+      if (maxVal === null) {
+        // Bloque vacío: descartar
+        if (blockElem) {
+          blockElem.classList.remove("block-active");
+          blockElem.classList.add("block-discarded");
+        }
+        await sleep(300);
+        continue;
+      }
+
+      if (targetValue <= maxVal) {
+        // Buscar dentro del bloque
+        const blockCells = container.querySelectorAll(`.block[data-block="${b + 1}"] .cell`);
+        for (let c = 0; c < blockCells.length; c++) {
+          const cell = blockCells[c];
+          cell.classList.add("active");
+          await sleep(300);
+
+          const cellContent = cell.textContent.trim();
+          if (cellContent === targetValue) {
+            cell.classList.remove("active");
+            cell.classList.add(options.resultClass);
+            found = true;
+            foundPos = { block: b + 1, cell: c + 1 };
+            break;
+          } else {
+            cell.classList.remove("active");
+            cell.classList.add("visited");
+          }
+
+          const cellNum = cellContent ? Number(cellContent) : NaN;
+          if (!isNaN(cellNum) && cellNum > targetValue) {
+            break; // Nos pasamos, ya no puede estar
+          }
+        }
+
+        if (blockElem) blockElem.classList.remove("block-active");
+        if (found) break;
+
+        // No encontrado en este bloque candidato, terminar
+        if (blockElem) blockElem.classList.add("block-discarded");
+        break;
+      } else {
+        // target > maxVal, descartar bloque
+        if (blockElem) {
+          blockElem.classList.remove("block-active");
+          blockElem.classList.add("block-discarded");
+        }
+        await sleep(300);
+      }
+    }
+
+    if (!found) {
+      allCells.forEach(c => c.classList.add("not-found"));
+      await sleep(1000);
+      allCells.forEach(c => c.classList.remove("not-found", "visited", "active"));
+      allBlocks.forEach(b => b.classList.remove("block-active", "block-discarded", "block-candidate"));
+      return null;
+    } else {
+      if (options.autoClear) {
+        await sleep(1500);
+        allCells.forEach(c => c.classList.remove("active", "found", "visited", "discarded", options.resultClass));
+        allBlocks.forEach(b => b.classList.remove("block-active", "block-discarded", "block-candidate"));
+      }
+      return foundPos;
+    }
+  }
+
   async function loadState() {
     try {
       const res = await fetch(`${API_BASE}/state`);
@@ -217,7 +324,7 @@
       });
     }
 
-    // ---- INSERTAR (CON MEJOR MANEJO DE ERROR 500) ----
+    // ---- INSERTAR CON ANIMACIÓN ----
     insertBtn.addEventListener("click", async () => {
       const rawValue = valueInput.value.trim();
       if (!rawValue) { notifyError("Ingresa una clave."); clearInput(); return; }
@@ -241,26 +348,19 @@
         console.log("Respuesta insert:", res.status, data);
 
         if (res.ok) {
-          // Éxito: debe tener data.position
-          if (data.position && Array.isArray(data.position) && data.position.length > 0) {
-            await loadState();
-            const posInfo = data.position[0];
-            if (posInfo.block_index !== undefined && posInfo.block_position !== undefined) {
-              const block = posInfo.block_index;
-              const cell = posInfo.block_position;
-              notifySuccess(`Clave ${value} insertada en bloque ${block}, posición ${cell}`);
-              highlightCells([{ block, cell }], 'highlight-insert');
-            } else {
-              notifySuccess(`Clave ${value} insertada.`);
-            }
+          await loadState(); // Recargar para tener el estado actualizado
+
+          // Mostrar animación de búsqueda para resaltar dónde quedó la clave insertada
+          const foundPos = await linearExternalSearchAnimation(value, { autoClear: true, resultClass: 'highlight-insert' });
+          if (foundPos) {
+            notifySuccess(`Clave ${value} insertada en bloque ${foundPos.block}, posición ${foundPos.cell}`);
           } else {
+            // Si no se encuentra (raro), igual notificamos éxito
             notifySuccess(`Clave ${value} insertada.`);
           }
           clearInput();
         } else {
-          // Error del backend
           let errorMsg = data.detail || data.message || `Error ${res.status}: ${res.statusText}`;
-          // Personalizar mensaje para error 500
           if (res.status === 500) {
             errorMsg = "Error interno del servidor. Es posible que la clave ya exista o haya un problema en el backend.";
           }
@@ -274,125 +374,70 @@
       }
     });
 
-    // ---- BUSCAR ----
+    // ---- BUSCAR CON ANIMACIÓN ----
     searchBtn.addEventListener("click", async () => {
       const rawValue = valueInput.value.trim();
       if (!rawValue) { notifyError("Ingresa una clave."); clearInput(); return; }
       const value = toDigits(rawValue, currentState.digits);
       if (!validateKey(value)) return;
 
-      try {
-        const res = await fetch(`${API_BASE}/search/${encodeURIComponent(value)}`);
-        let data;
-        try {
-          data = await res.json();
-        } catch (e) {
-          data = null;
-        }
-        console.log("Respuesta search (status " + res.status + "):", data);
-
-        const extractPosition = (resp) => {
-          if (Array.isArray(resp) && resp.length > 0) {
-            const first = resp[0];
-            if (first.block_index !== undefined && first.block_position !== undefined) {
-              return { block: first.block_index, cell: first.block_position };
-            }
-          }
-          if (resp && typeof resp === 'object') {
-            if (resp.block_index !== undefined && resp.block_position !== undefined) {
-              return { block: resp.block_index, cell: resp.block_position };
-            }
-            if (resp.global_position !== undefined) {
-              return globalPosToBlockCell(resp.global_position);
-            }
-          }
-          return null;
-        };
-
-        if (res.ok) {
-          const pos = extractPosition(data);
-          if (pos) {
-            notifySuccess(`Clave ${value} encontrada en bloque ${pos.block}, posición ${pos.cell}`);
-            highlightCells([pos], 'highlight-search');
-          } else {
-            let foundInState = false;
-            for (let b = 0; b < currentState.blocks.length; b++) {
-              const block = currentState.blocks[b];
-              for (let c = 0; c < block.length; c++) {
-                if (block[c] === value) {
-                  notifySuccess(`Clave ${value} encontrada en bloque ${b+1}, posición ${c+1}`);
-                  highlightCells([{ block: b+1, cell: c+1 }], 'highlight-search');
-                  foundInState = true;
-                  break;
-                }
-              }
-              if (foundInState) break;
-            }
-            if (!foundInState) {
-              notifyError(`Clave ${value} no encontrada.`);
-            }
-          }
-        } else if (res.status === 404) {
-          notifyError(`Clave ${value} no encontrada.`);
-        } else {
-          const errorMsg = data?.detail || `Error en la búsqueda (${res.status})`;
-          notifyError(errorMsg);
-        }
-      } catch (err) {
-        console.error("Error en búsqueda:", err);
-        notifyError("Error de conexión al buscar.");
+      const foundPos = await linearExternalSearchAnimation(value, { autoClear: true, resultClass: 'found' });
+      if (foundPos) {
+        notifySuccess(`Clave ${value} encontrada en bloque ${foundPos.block}, posición ${foundPos.cell}`);
+      } else {
+        notifyError(`Clave ${value} no encontrada.`);
       }
       clearInput();
     });
 
-    // ---- ELIMINAR ----
+    // ---- ELIMINAR CON ANIMACIÓN PREVIA ----
     deleteBtn.addEventListener("click", async () => {
       const rawValue = valueInput.value.trim();
       if (!rawValue) { notifyError("Ingresa una clave."); clearInput(); return; }
       const value = toDigits(rawValue, currentState.digits);
       if (!validateKey(value)) return;
 
+      const foundPos = await linearExternalSearchAnimation(value, { autoClear: false, resultClass: 'highlight-delete' });
+
+      if (!foundPos) {
+        notifyError(`Clave ${value} no encontrada.`);
+        clearInput();
+        return;
+      }
+
+      await sleep(500);
+
       try {
         const res = await fetch(`${API_BASE}/delete/${encodeURIComponent(value)}`, { method: "DELETE" });
         const data = await res.json();
         console.log("Respuesta delete:", data);
 
-        // Intentar extraer las posiciones de la respuesta
         let positions = [];
         if (Array.isArray(data)) {
           positions = data;
         } else if (data.positions && Array.isArray(data.positions)) {
           positions = data.positions;
         } else if (data.position && Array.isArray(data.position)) {
-          positions = data.position; // por si acaso
+          positions = data.position;
         }
 
         if (res.ok && positions.length > 0) {
           await loadState();
-          // Convertir cada posición global a bloque/celda y resaltar
-          const cellsToHighlight = [];
-          for (const pos of positions) {
-            if (typeof pos === 'number') {
-              const bc = globalPosToBlockCell(pos);
-              if (bc) cellsToHighlight.push(bc);
-            } else if (pos && pos.block_index !== undefined && pos.block_position !== undefined) {
-              cellsToHighlight.push({ block: pos.block_index, cell: pos.block_position });
-            }
-          }
-          if (cellsToHighlight.length > 0) {
-            highlightCells(cellsToHighlight, 'highlight-delete', 1500);
-          }
           notifySuccess(`Clave ${value} eliminada.`);
         } else {
-          const errorMsg = data.detail || data.message || `No se pudo eliminar (código ${res.status})`;
-          notifyError(errorMsg);
+          if (res.ok) {
+            await loadState();
+            notifySuccess(`Clave ${value} eliminada.`);
+          } else {
+            const errorMsg = data.detail || data.message || `No se pudo eliminar (código ${res.status})`;
+            notifyError(errorMsg);
+          }
         }
-        clearInput();
       } catch (err) {
         console.error("Error en eliminación:", err);
         notifyError("Error de conexión al eliminar.");
-        clearInput();
       }
+      clearInput();
     });
   }
 
