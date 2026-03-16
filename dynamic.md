@@ -3,7 +3,7 @@
 Prefijo:
 
 ```
-/dynamic-hash-external
+/dynamic-hash
 ```
 
 ---
@@ -11,7 +11,7 @@ Prefijo:
 # 1️⃣ Configurar hash
 
 ```
-POST /dynamic-hash-external/set-hash
+POST /dynamic-hash/set-hash
 ```
 
 body:
@@ -50,7 +50,7 @@ otros:
 # 2️⃣ Crear estructura
 
 ```
-POST /dynamic-hash-external/create
+POST /dynamic-hash/create
 ```
 
 body:
@@ -71,7 +71,7 @@ body:
 # 3️⃣ Ver estado
 
 ```
-GET /dynamic-hash-external/state
+GET /dynamic-hash/state
 ```
 
 ejemplo respuesta
@@ -104,7 +104,7 @@ ejemplo respuesta
 # 4️⃣ Insertar
 
 ```
-POST /dynamic-hash-external/insert
+POST /dynamic-hash/insert
 ```
 
 ```json
@@ -138,7 +138,7 @@ y `num_buckets` cambiará en `/state`.
 # 5️⃣ Buscar
 
 ```
-GET /dynamic-hash-external/search/21
+GET /dynamic-hash/search/21
 ```
 
 respuesta
@@ -158,7 +158,7 @@ respuesta
 # 6️⃣ Eliminar
 
 ```
-DELETE /dynamic-hash-external/delete/21
+DELETE /dynamic-hash/delete/21
 ```
 
 respuesta
