@@ -167,3 +167,21 @@
   background: transparent;
   border: none;
 }
+
+/* Estados para los bloques durante la búsqueda */
+.block.block-active {
+  outline: 3px solid #ffb900;
+  box-shadow: 0 0 0 2px rgba(255, 185, 0, 0.5);
+  transition: outline 0.3s ease;
+}
+
+.block.block-discarded {
+  opacity: 0.3;
+  filter: grayscale(0.8);
+  transition: opacity 0.5s ease;
+}
+
+.block.block-candidate {
+  outline: 3px solid var(--ms-blue);
+  box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.5);
+}
