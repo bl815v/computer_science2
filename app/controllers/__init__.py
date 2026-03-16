@@ -23,6 +23,7 @@ along with ComputerScience2. If not, see <https://www.gnu.org/licenses/>.
 
 from app.controllers.search.binary_search import router as binary_search_router
 from app.controllers.search.external.binary_external import router as binary_external_router
+from app.controllers.search.external.dynamic_hash_router import router as dynamic_hash_router
 from app.controllers.search.external.external_hash_router import router as hash_external_router
 from app.controllers.search.external.linear_external import router as linear_external_router
 from app.controllers.search.hash.router import router as hash_router
