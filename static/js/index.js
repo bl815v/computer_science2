@@ -177,8 +177,73 @@ function loadExternalJS(url, callback) {
   document.body.appendChild(script);
 }
 
+/* ---------------- Impresión con conversión de controles a texto ---------------- */
+
+function printCurrentView() {
+  const content = document.getElementById("content");
+  if (!content) return;
+
+  const printContent = content.cloneNode(true);
+
+  // Reemplazar inputs por spans con su valor
+  const inputs = printContent.querySelectorAll('input');
+  inputs.forEach(input => {
+    const span = document.createElement('span');
+    span.textContent = input.value;
+    span.className = input.className; // opcional
+    input.parentNode.replaceChild(span, input);
+  });
+
+  // Reemplazar selects por spans con la opción seleccionada
+  const selects = printContent.querySelectorAll('select');
+  selects.forEach(select => {
+    const selectedOption = select.options[select.selectedIndex];
+    const span = document.createElement('span');
+    span.textContent = selectedOption ? selectedOption.text : '';
+    span.className = select.className;
+    select.parentNode.replaceChild(span, select);
+  });
+
+  // Eliminar botones
+  const buttons = printContent.querySelectorAll('button');
+  buttons.forEach(btn => btn.remove());
+
+  // Eliminar la cinta, pestañas, footer, contenedores de acciones vacíos
+  const unwanted = printContent.querySelectorAll('.ribbon, .tab-bar, .app-footer, #actions-section, .actions-section');
+  unwanted.forEach(el => el.remove());
+
+  // También eliminar elementos con clase "row" que contengan botones (aunque ya los eliminamos, por si acaso)
+  // Pero queremos conservar las filas con labels y valores.
+
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write('<html><head><title>Impresión de estructura</title>');
+
+  const styles = document.querySelectorAll('link[rel="stylesheet"], style');
+  styles.forEach(style => {
+    if (style.tagName === 'LINK') {
+      printWindow.document.write(`<link rel="stylesheet" href="${style.href}">`);
+    } else {
+      printWindow.document.write(`<style>${style.innerHTML}</style>`);
+    }
+  });
+
+  printWindow.document.write('</head><body>');
+  printWindow.document.write(printContent.innerHTML);
+  printWindow.document.write('</body></html>');
+  printWindow.document.close();
+
+  printWindow.print();
+}
+
 /* ---------------- Init ---------------- */
 
 document.addEventListener("DOMContentLoaded", () => {
   handleTabClick("busquedas");
+
+  // Activar el botón de impresión (quitando disabled en el HTML)
+  const printBtn = document.getElementById("print-btn");
+  if (printBtn) {
+    printBtn.disabled = false;
+    printBtn.addEventListener("click", printCurrentView);
+  }
 });
