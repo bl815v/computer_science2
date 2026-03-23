@@ -177,25 +177,26 @@ function loadExternalJS(url, callback) {
   document.body.appendChild(script);
 }
 
-/* ---------------- Impresión con conversión de controles a texto ---------------- */
+/* ---------------- Impresión sin nueva ventana ---------------- */
 
 function printCurrentView() {
   const content = document.getElementById("content");
   if (!content) return;
 
-  const printContent = content.cloneNode(true);
+  // Guardar el HTML original
+  const originalHTML = content.innerHTML;
 
-  // Reemplazar inputs por spans con su valor
-  const inputs = printContent.querySelectorAll('input');
+  // Convertir inputs a texto
+  const inputs = content.querySelectorAll('input');
   inputs.forEach(input => {
     const span = document.createElement('span');
     span.textContent = input.value;
-    span.className = input.className; // opcional
+    span.className = input.className;
     input.parentNode.replaceChild(span, input);
   });
 
-  // Reemplazar selects por spans con la opción seleccionada
-  const selects = printContent.querySelectorAll('select');
+  // Convertir selects a texto
+  const selects = content.querySelectorAll('select');
   selects.forEach(select => {
     const selectedOption = select.options[select.selectedIndex];
     const span = document.createElement('span');
@@ -205,34 +206,28 @@ function printCurrentView() {
   });
 
   // Eliminar botones
-  const buttons = printContent.querySelectorAll('button');
+  const buttons = content.querySelectorAll('button');
   buttons.forEach(btn => btn.remove());
 
-  // Eliminar la cinta, pestañas, footer, contenedores de acciones vacíos
-  const unwanted = printContent.querySelectorAll('.ribbon, .tab-bar, .app-footer, #actions-section, .actions-section');
-  unwanted.forEach(el => el.remove());
+  // Eliminar contenedores de acciones
+  const actionSections = content.querySelectorAll('#actions-section, .actions-section');
+  actionSections.forEach(section => section.remove());
 
-  // También eliminar elementos con clase "row" que contengan botones (aunque ya los eliminamos, por si acaso)
-  // Pero queremos conservar las filas con labels y valores.
+  // Añadir clase temporal al body para ocultar elementos no deseados
+  document.body.classList.add('printing');
 
-  const printWindow = window.open('', '_blank');
-  printWindow.document.write('<html><head><title>Impresión de estructura</title>');
+  // Llamar a la impresión
+  window.print();
 
-  const styles = document.querySelectorAll('link[rel="stylesheet"], style');
-  styles.forEach(style => {
-    if (style.tagName === 'LINK') {
-      printWindow.document.write(`<link rel="stylesheet" href="${style.href}">`);
-    } else {
-      printWindow.document.write(`<style>${style.innerHTML}</style>`);
+  // Restaurar contenido y quitar clase tras un breve retraso
+  setTimeout(() => {
+    content.innerHTML = originalHTML;
+    document.body.classList.remove('printing');
+    // Reiniciar el simulador si existe la función
+    if (typeof window.initSimulator === "function") {
+      window.initSimulator();
     }
-  });
-
-  printWindow.document.write('</head><body>');
-  printWindow.document.write(printContent.innerHTML);
-  printWindow.document.write('</body></html>');
-  printWindow.document.close();
-
-  printWindow.print();
+  }, 100);
 }
 
 /* ---------------- Init ---------------- */
@@ -240,7 +235,6 @@ function printCurrentView() {
 document.addEventListener("DOMContentLoaded", () => {
   handleTabClick("busquedas");
 
-  // Activar el botón de impresión (quitando disabled en el HTML)
   const printBtn = document.getElementById("print-btn");
   if (printBtn) {
     printBtn.disabled = false;

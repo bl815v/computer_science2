@@ -262,3 +262,43 @@ button.danger:hover { background: var(--ms-error); color: white; }
   content: none; /* Elimina el índice de la izquierda */
 }
 
+/* =========================================
+   Estilos para impresión (usando clase .printing)
+   ========================================= */
+body.printing .title,
+body.printing .tab-bar,
+body.printing .ribbon,
+body.printing .app-footer,
+body.printing .footer-btns,
+body.printing button,
+body.printing input,
+body.printing select,
+body.printing #actions-section,
+body.printing .actions-section,
+body.printing .card .row button,
+body.printing .card .row input,
+body.printing .card .row select {
+  display: none !important;
+}
+
+body.printing .visual-wrapper,
+body.printing .card,
+body.printing #visualization,
+body.printing .blocks-container,
+body.printing .block,
+body.printing .cell {
+  display: block !important;
+}
+
+/* Asegurar que los bloques no se rompan en la impresión */
+@media print {
+  .block,
+  .cell,
+  #visualization,
+  .blocks-container,
+  .block-cells,
+  .block-cells .cell {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
