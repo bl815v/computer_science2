@@ -1,0 +1,255 @@
+/* ===============================================
+   Visualization & Data Cells
+   =============================================== */
+
+/* --- Visualization Container --- */
+#visualization,
+#bin-visualization {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-lg);
+  background: var(--ms-bg-secondary);
+  border: 1px solid var(--ms-border);
+  border-radius: var(--radius-md);
+  width: fit-content;
+  box-shadow: var(--shadow-inset);
+}
+
+/* Grid layout for horizontal cells */
+.blocks-container,
+.grid-horizontal {
+  display: flex;
+  flex-direction: row;
+  gap: var(--spacing-xs);
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+/* --- Cell / Data Block --- */
+.cell {
+  position: relative;
+  min-width: 80px;
+  min-height: 55px;
+  width: 80px;
+  height: 55px;
+  border: 1px solid var(--ms-border);
+  border-left: 4px solid var(--ms-blue);
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-xl);
+  font-weight: 500;
+  background: var(--ms-panel);
+  color: var(--ms-text);
+  transition: all var(--transition-slow);
+  cursor: default;
+  user-select: none;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.cell:last-child { border-bottom: none; }
+
+.cell::before {
+  content: attr(data-index);
+  position: absolute;
+  left: -35px;
+  font-size: var(--font-size-xs);
+  color: var(--ms-muted);
+  font-weight: 600;
+  font-family: var(--font-family-mono);
+}
+
+/* --- Cell States --- */
+.cell.active {
+  outline: 2px solid var(--ms-muted);
+  background: #edebe9 !important;
+  z-index: 2;
+  font-weight: 600;
+}
+
+.cell.visited {
+  background-color: #faf9f8 !important;
+  color: var(--ms-muted-light) !important;
+  opacity: 0.8;
+}
+
+.cell.found {
+  background-color: var(--ms-success-light) !important;
+  border-left-color: var(--ms-success) !important;
+  color: var(--ms-success) !important;
+  font-weight: 600;
+  animation: pulse-success 1s;
+}
+
+/* --- Binary Search Specific --- */
+.cell.discarded {
+  background-color: var(--ms-bg) !important;
+  color: var(--ms-border) !important;
+  opacity: 0.5;
+  text-decoration: line-through;
+  animation: slideOut 0.4s ease;
+}
+
+.cell.mid {
+  background-color: var(--ms-warning-light) !important;
+  border-left-color: var(--ms-warning) !important;
+  border: 2px solid var(--ms-warning) !important;
+  z-index: 5;
+  font-weight: 600;
+}
+
+/* --- Hash Table Specific --- */
+.cell.empty {
+  border-left-color: var(--ms-border);
+  color: var(--ms-muted-light);
+  font-style: italic;
+  background: #fdfdfd;
+}
+
+.cell.empty::after {
+  content: "Vacío";
+  font-size: var(--font-size-xs);
+}
+
+/* --- Highlights for Operations --- */
+.cell.highlight-insert {
+  background-color: var(--ms-success-light) !important;
+  border-left-color: var(--ms-success) !important;
+  border: 2px solid var(--ms-success) !important;
+  animation: pulse-success 1s;
+}
+
+.cell.highlight-search {
+  background-color: var(--ms-warning-light) !important;
+  border-left-color: var(--ms-warning) !important;
+  border: 2px solid var(--ms-warning) !important;
+  animation: pulse-warning 1s;
+}
+
+.cell.highlight-delete {
+  background-color: var(--ms-error-light) !important;
+  border-left-color: var(--ms-error) !important;
+  border: 2px solid var(--ms-error) !important;
+  animation: pulse-error 1s;
+}
+
+.cell.highlight-collision {
+  background-color: #ff8c00 !important;
+  border-left-color: #ff4500 !important;
+  border: 2px solid #ff4500 !important;
+  color: white !important;
+  animation: pulse-collision 1.5s;
+}
+
+/* --- Special Cell Types --- */
+.cell.dots {
+  background: transparent;
+  border: none;
+  color: var(--ms-muted);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  pointer-events: none;
+  min-width: 40px;
+}
+
+.cell.dots::before {
+  content: none;
+}
+
+/* --- Hover State --- */
+.cell:hover:not(.dots):not(.empty) {
+  transform: translateX(5px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--ms-blue);
+  z-index: 10;
+}
+
+/* --- Hash-specific horizontal layout --- */
+.cell[data-index] {
+  min-width: 120px;
+  min-height: 45px;
+}
+
+.cell[data-index]::before {
+  left: -100px;
+  width: 80px;
+  text-align: right;
+  font-size: var(--font-size-sm);
+  color: var(--ms-blue);
+}
+
+/* --- Tree/Graph Nodes --- */
+.node,
+.tree-node {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: var(--ms-panel);
+  border: 2px solid var(--ms-blue);
+  font-weight: 600;
+  cursor: default;
+  transition: all var(--transition-base);
+}
+
+.node:hover {
+  box-shadow: var(--shadow-md);
+  transform: scale(1.1);
+}
+
+.node.active {
+  background: var(--ms-blue);
+  color: white;
+}
+
+.node.visited {
+  opacity: 0.5;
+}
+
+/* --- Block Container --- */
+.block,
+.block-cells {
+  display: flex;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-md);
+}
+
+.block-label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--ms-muted);
+  margin-bottom: var(--spacing-xs);
+}
+
+/* --- Wrapper --- */
+.visual-wrapper {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin: var(--spacing-xl) 0;
+}
+
+.container-centered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- Print Media --- */
+@media print {
+  .cell,
+  .node,
+  #visualization,
+  .blocks-container,
+  .block,
+  .block-cells {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

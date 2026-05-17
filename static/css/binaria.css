@@ -1,55 +1,17 @@
-/* =======================================================
-   Fluent UI – Binary Search Specific Styles
-   ======================================================= */
+/* ===============================================
+   Binary Search - Specific Styles
+   =============================================== */
 
-/* Contenedor específico para mantener el ancho máximo del simulador */
-.binaria-container {
-  width: 100%;
-  max-width: 900px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin: 0 auto;
-}
-
-/* --- Estados de Celda exclusivos de Binaria --- */
-
-/* Celda descartada: se vuelve gris y semitransparente */
-.cell.discarded {
-  background-color: #f3f2f1 !important;
-  color: #c8c6c4 !important;
-  opacity: 0.5;
-  transition: all 0.4s ease;
-  text-decoration: line-through; /* Opcional: añade un tachado para enfatizar el descarte */
-}
-
-/* Punto medio (Pivote): Color amarillo suave estilo Office */
-.cell.mid {
-  background-color: #fff1cc !important; 
-  border: 2px solid #ffb900 !important;
-  z-index: 5;
-  font-weight: 600;
-}
-
-/* Ajuste para que la cuadrícula se vea centrada y limpia */
-#bin-visualization {
-  /* La mayoría de estilos ya vienen de index.css, aquí solo reforzamos el margen */
-  margin-bottom: 40px;
-}
-
-/* Soporte para animaciones de entrada (Opcional) */
-@keyframes slideIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
+/* Cell animations */
 .cell {
   animation: slideIn 0.3s ease forwards;
-  transition: background-color 0.5s ease, color 0.5s ease, opacity 0.5s ease;
 }
 
-.cell.discarded {
-  background-color: #f3f2f1 !important;
-  color: #c8c6c4 !important;
-  opacity: 0.5;
+/* Mid-point / Pivot highlight */
+.cell.mid {
+  animation: pulse-info 1s;
+}
+
+#bin-visualization {
+  margin-bottom: var(--spacing-xl);
 }

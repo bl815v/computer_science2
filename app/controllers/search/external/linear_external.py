@@ -45,8 +45,12 @@ from app.services.search.external.linear_external import LinearExternalSearch
 
 service = LinearExternalSearch()
 
+def get_service():
+	"""Return the linear external search service instance."""
+	return service
+
 router = create_external_search_router(
-	service,
+	get_service,
 	prefix='/external/linear',
 	tag='External Linear Search',
 )

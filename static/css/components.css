@@ -1,0 +1,263 @@
+/* ===============================================
+   Reusable Components
+   =============================================== */
+
+/* --- Card Component --- */
+.card {
+  background: var(--ms-panel);
+  border: 1px solid var(--ms-border);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  width: 100%;
+  max-width: 900px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+/* --- Flexbox Row (form elements) --- */
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+  padding-top: var(--spacing-sm);
+}
+
+.row:not(:last-child) {
+  margin-bottom: var(--spacing-md);
+}
+
+/* --- Labels --- */
+label {
+  font-weight: 600;
+  font-size: var(--font-size-base);
+  color: var(--ms-text);
+  user-select: none;
+}
+
+/* --- Input & Textarea --- */
+input,
+textarea {
+  padding: 6px 8px;
+  border: 1px solid var(--ms-border);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: var(--font-size-base);
+  background: var(--ms-panel);
+  color: var(--ms-text);
+  transition: border var(--transition-base), box-shadow var(--transition-base);
+}
+
+input:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--ms-blue);
+  box-shadow: 0 0 0 1px var(--ms-blue);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--ms-muted-light);
+}
+
+/* Input number spinners removal */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* --- Select --- */
+select,
+.select-wrapper {
+  padding: 6px 10px;
+  border: 1px solid var(--ms-border);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: var(--font-size-base);
+  background: var(--ms-panel);
+  color: var(--ms-text);
+  transition: border var(--transition-base), box-shadow var(--transition-base);
+  cursor: pointer;
+}
+
+select:focus {
+  outline: none;
+  border-color: var(--ms-blue);
+  box-shadow: 0 0 0 1px var(--ms-blue);
+}
+
+/* Custom select styling */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23323130' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 16px;
+  padding-right: 32px;
+}
+
+/* --- Button Component --- */
+button {
+  padding: 8px 20px;
+  border: 1px solid var(--ms-border);
+  border-radius: var(--radius-sm);
+  background: var(--ms-panel);
+  color: var(--ms-text);
+  font-family: inherit;
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  user-select: none;
+}
+
+button:hover:not(:disabled):not(.primary):not(.danger) {
+  background: var(--ms-bg);
+  border-color: var(--ms-border);
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  color: var(--ms-muted-light);
+}
+
+/* Primary button */
+button.primary {
+  background: var(--ms-blue);
+  color: white;
+  border-color: var(--ms-blue);
+  font-weight: 600;
+}
+
+button.primary:hover:not(:disabled) {
+  background: var(--ms-blue-hover);
+  border-color: var(--ms-blue-hover);
+}
+
+/* Danger button */
+button.danger {
+  border-color: var(--ms-error);
+  color: var(--ms-error);
+}
+
+button.danger:hover:not(:disabled) {
+  background: var(--ms-error);
+  color: white;
+  border-color: var(--ms-error);
+}
+
+/* Success button */
+button.success {
+  background: var(--ms-success);
+  color: white;
+  border-color: var(--ms-success);
+}
+
+button.success:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+/* --- Submenu / Panel --- */
+.submenu,
+.panel,
+.hash-submenu,
+.truncation-submenu,
+.collision-menu {
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-lg);
+  background-color: var(--ms-bg-secondary);
+  border-radius: var(--radius-md);
+  border-left: 4px solid var(--ms-blue);
+  box-shadow: var(--shadow-inset);
+}
+
+.collision-menu {
+  border-left-color: var(--ms-error);
+  background-color: var(--ms-error-light);
+}
+
+.warning-submenu {
+  border-left-color: var(--ms-warning);
+  background-color: var(--ms-warning-light);
+}
+
+.submenu .row,
+.panel .row {
+  margin-bottom: var(--spacing-sm);
+}
+
+.submenu .row:last-child,
+.panel .row:last-child {
+  margin-bottom: 0;
+}
+
+/* --- Badge / Pill --- */
+.badge,
+.hash-item,
+.tag {
+  background: var(--ms-blue);
+  color: white;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  display: inline-block;
+  margin-right: var(--spacing-xs);
+  white-space: nowrap;
+}
+
+.badge.success {
+  background: var(--ms-success);
+}
+
+.badge.error {
+  background: var(--ms-error);
+}
+
+.badge.warning {
+  background: var(--ms-warning);
+  color: #000;
+}
+
+/* --- Divider --- */
+.divider {
+  height: 1px;
+  background: var(--ms-border);
+  margin: var(--spacing-lg) 0;
+}
+
+/* --- Utility Classes --- */
+.text-center { text-align: center; }
+.text-muted { color: var(--ms-muted); }
+.text-error { color: var(--ms-error); }
+.text-success { color: var(--ms-success); }
+.text-warning { color: var(--ms-warning); }
+.text-primary { color: var(--ms-blue); }
+
+.font-bold { font-weight: 600; }
+.font-mono { font-family: var(--font-family-mono); }
+
+.mt-sm { margin-top: var(--spacing-sm); }
+.mt-md { margin-top: var(--spacing-md); }
+.mt-lg { margin-top: var(--spacing-lg); }
+
+.mb-sm { margin-bottom: var(--spacing-sm); }
+.mb-md { margin-bottom: var(--spacing-md); }
+.mb-lg { margin-bottom: var(--spacing-lg); }
+
+.gap-sm { gap: var(--spacing-sm) !important; }
+.gap-md { gap: var(--spacing-md) !important; }
+.gap-lg { gap: var(--spacing-lg) !important; }

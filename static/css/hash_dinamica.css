@@ -1,182 +1,102 @@
+/* ===============================================
+   Dynamic Hash (External) - Specific Styles
+   =============================================== */
+
+/* Container layout */
 .hash-dinamica-container {
   width: 100%;
-  max-width: 1200px;
+  max-width: 1000px;
   display: flex;
   flex-direction: column;
   align-items: center;
   margin: 0 auto;
 }
 
-/* Contenedor de la tabla */
-#visualization.hash-container {
+/* Dynamic hash visualization uses a table-like layout */
+.hash-dinamica-container #visualization {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  background: var(--ms-bg-secondary);
+  border: 1px solid var(--ms-border);
+  border-radius: var(--radius-md);
   width: 100%;
-  overflow-x: auto;
-  background: #faf9f8;
-  border: 1px solid #e1dfdd;
-  border-radius: 4px;
-  padding: 10px 0;
+  box-sizing: border-box;
 }
 
-/* Tabla estilo matriz */
-.hash-table {
-  border-collapse: collapse;
-  margin: 0 auto;
-  background: white;
-  font-family: 'Segoe UI', sans-serif;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+/* Bucket/block styling */
+.hash-dinamica-container .cell {
+  min-width: unset;
+  min-height: unset;
+  width: 100%;
+  height: auto;
+  padding: var(--spacing-md);
+  border: 1px solid var(--ms-border);
+  border-left: 4px solid var(--ms-blue);
+  border-radius: var(--radius-sm);
+  background: var(--ms-panel);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  transition: all var(--transition-base);
 }
 
-.hash-table th,
-.hash-table td {
-  border: 1px solid #c8c6c4;
-  padding: 8px 12px;
-  text-align: center;
-  min-width: 60px;
+.hash-dinamica-container .cell:hover {
+  box-shadow: var(--shadow-md);
+  border-left-color: var(--ms-blue-hover);
+  transform: translateY(-2px);
 }
 
-/* Encabezado de columna (posición) */
-.hash-table th {
-  background-color: #0078d4;
-  color: white;
-  font-weight: 600;
-  font-size: 14px;
+.hash-dinamica-container .cell.empty {
+  opacity: 0.6;
+  background: #fdfdfd;
 }
 
-/* Primera columna (número de cubeta) */
-.hash-table td:first-child,
-.hash-table th:first-child {
-  background-color: #e5f1fb;
-  color: #0078d4;
-  font-weight: 600;
-  border-right: 2px solid #0078d4;
-}
-
-/* Celdas de datos */
-.hash-table td {
-  background-color: white;
-  font-size: 16px;
-}
-
-.hash-table td.empty {
-  background-color: #f3f2f1;
-  color: #a19f9d;
+.hash-dinamica-container .cell.empty::after {
+  content: "Vacío";
+  font-size: var(--font-size-xs);
+  color: var(--ms-muted-light);
   font-style: italic;
 }
 
-.hash-table td.empty::after {
-  content: "vacío";
-  font-size: 10px;
+/* Bucket labels */
+.hash-dinamica-container .cell::before {
+  left: auto;
+  position: static;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--ms-blue);
+  margin-bottom: var(--spacing-xs);
 }
 
-/* Celdas de desbordamiento */
-.hash-table td.overflow {
-  background-color: #fff3e0;
-  border-left: 2px solid #ffb900;
+/* State colors */
+.hash-dinamica-container .cell.found {
+  background-color: var(--ms-success-light) !important;
+  border-left-color: var(--ms-success) !important;
 }
 
-/* Estados de animación */
-.hash-table td.active {
-  outline: 3px solid #0078d4;
-  background: #e5f1fb !important;
-  transform: scale(1.02);
-  position: relative;
-  z-index: 2;
-}
-
-.hash-table td.found {
-  background-color: #dff6dd !important;
-  border: 2px solid #107c10;
-}
-
-.hash-table td.discarded {
-  background-color: #f3f2f1 !important;
-  color: #c8c6c4 !important;
-  opacity: 0.5;
-}
-
-.hash-table td.highlight-insert {
-  background-color: #dff6dd !important;
-  border: 2px solid #107c10;
+.hash-dinamica-container .cell.highlight-insert {
+  background-color: var(--ms-success-light) !important;
+  border-left-color: var(--ms-success) !important;
   animation: pulse-success 1s;
 }
 
-.hash-table td.highlight-delete {
-  background-color: #fde7e9 !important;
-  border: 2px solid #d13438;
+.hash-dinamica-container .cell.highlight-search {
+  background-color: var(--ms-warning-light) !important;
+  border-left-color: var(--ms-warning) !important;
+  animation: pulse-warning 1s;
+}
+
+.hash-dinamica-container .cell.highlight-delete {
+  background-color: var(--ms-error-light) !important;
+  border-left-color: var(--ms-error) !important;
   animation: pulse-error 1s;
 }
 
-/* Resaltado de fila (cubeta activa) */
-.hash-table tr.active-row {
-  outline: 3px solid #ffb900;
-  box-shadow: 0 0 0 2px rgba(255, 185, 0, 0.5);
-}
-
-/* Animaciones */
-@keyframes pulse-success {
-  0% { box-shadow: 0 0 0 0 rgba(16,124,16,0.7); }
-  70% { box-shadow: 0 0 0 10px rgba(16,124,16,0); }
-  100% { box-shadow: 0 0 0 0 rgba(16,124,16,0); }
-}
-
-@keyframes pulse-error {
-  0% { box-shadow: 0 0 0 0 rgba(209,52,56,0.7); }
-  70% { box-shadow: 0 0 0 10px rgba(209,52,56,0); }
-  100% { box-shadow: 0 0 0 0 rgba(209,52,56,0); }
-}
-
-/* Mensaje vacío */
-#visualization .empty-message {
-  text-align: center;
-  padding: 20px;
-  color: #605e5c;
-}
-
-/* Estilos para los select (menús desplegables) */
-.hash-dinamica-container select {
-  padding: 8px 14px;
-  border-radius: 4px;
-  border: 1px solid var(--ms-border);
-  background: white;
-  font-family: inherit;
-  font-size: 13px;
-  color: var(--ms-text);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-width: 140px; /* Ancho mínimo para que se vean bien */
-  appearance: none; /* Elimina la flecha nativa del sistema */
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23323130' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  background-size: 16px;
-  padding-right: 36px; /* Espacio para la flecha personalizada */
-}
-
-.hash-dinamica-container select:hover:not(:disabled) {
-  background-color: #f3f2f1;
-  border-color: #8a8886;
-}
-
-.hash-dinamica-container select:focus {
-  outline: none;
-  border-color: var(--ms-blue);
-  box-shadow: 0 0 0 1px var(--ms-blue);
-}
-
-.hash-dinamica-container select:disabled {
-  background-color: #f3f2f1;
-  color: #a19f9d;
-  border-color: #e1dfdd;
-  cursor: not-allowed;
-}
-
-/* Ajuste para cuando el select está dentro de un .row y queremos alineación */
-.hash-dinamica-container .row select {
-  margin: 0 4px;
-}
-.hash-table td.empty-index {
-  background-color: #f0f0f0;
-  color: transparent;
+/* Responsive */
+@media (max-width: 768px) {
+  .hash-dinamica-container #visualization {
+    grid-template-columns: 1fr;
+  }
 }

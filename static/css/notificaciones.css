@@ -1,4 +1,7 @@
-/* Fondo oscuro */
+/* ===============================================
+   Notifications & Modals
+   =============================================== */
+
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -10,60 +13,60 @@
   animation: fadeIn 0.2s ease;
 }
 
-/* Ventana */
 .modal-box {
-  background: white;
-  padding: 20px 25px;
-  border-radius: 10px;
+  background: var(--ms-panel);
+  padding: var(--spacing-xl) calc(var(--spacing-xl) + 5px);
+  border-radius: var(--radius-lg);
   width: 320px;
   max-width: 90%;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--shadow-lg);
   text-align: center;
-  font-size: 14px;
+  font-size: var(--font-size-base);
 }
 
-/* Tipos */
 .modal-box.success {
-  border-top: 5px solid #107c10;
+  border-top: 5px solid var(--ms-success);
 }
 
 .modal-box.error {
-  border-top: 5px solid #d13438;
+  border-top: 5px solid var(--ms-error);
 }
 
 .modal-box.info {
-  border-top: 5px solid #0078d4;
+  border-top: 5px solid var(--ms-blue);
 }
 
 .modal-message {
   margin-bottom: 18px;
 }
 
-/* Botón */
 .modal-btn {
   padding: 6px 16px;
-  border-radius: 6px;
+  border-radius: var(--radius-lg);
   border: none;
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  transition: all var(--transition-base);
 }
 
 .modal-box.success .modal-btn {
-  background: #107c10;
+  background: var(--ms-success);
   color: white;
 }
 
 .modal-box.error .modal-btn {
-  background: #d13438;
+  background: var(--ms-error);
   color: white;
 }
 
 .modal-box.info .modal-btn {
-  background: #0078d4;
+  background: var(--ms-blue);
   color: white;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+.modal-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }

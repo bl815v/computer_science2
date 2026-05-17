@@ -1,0 +1,292 @@
+/* ===============================================
+   Layout & Structure
+   =============================================== */
+
+/* --- Header / Title Bar --- */
+.title {
+  background: var(--ms-blue);
+  color: white;
+  padding: var(--spacing-md) var(--spacing-xl);
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 100;
+}
+
+.title-text {
+  flex: 1;
+}
+
+.title-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: center;
+}
+
+/* --- Tab Bar --- */
+.tab-bar {
+  display: flex;
+  background: var(--ms-panel);
+  border-bottom: 1px solid var(--ms-border);
+  padding-left: var(--spacing-md);
+  gap: 0;
+}
+
+.tab {
+  padding: var(--spacing-sm) var(--spacing-xl);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  font-size: var(--font-size-base);
+  color: var(--ms-text);
+  transition: background var(--transition-fast), border-color var(--transition-base);
+  user-select: none;
+  white-space: nowrap;
+}
+
+.tab:hover {
+  background: var(--ms-bg-secondary);
+}
+
+.tab.active {
+  border-bottom-color: var(--ms-blue);
+  font-weight: 600;
+  color: var(--ms-text);
+}
+
+/* --- Ribbon (Toolbar) --- */
+.ribbon {
+  background: var(--ms-panel);
+  border-bottom: 1px solid var(--ms-border);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.ribbon-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+}
+
+.ribbon-buttons,
+.ribbon-group {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.ribbon-btn {
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  color: var(--ms-text);
+  transition: all var(--transition-base);
+  font-weight: 500;
+  user-select: none;
+}
+
+.ribbon-btn:hover:not(:disabled) {
+  background: var(--ms-blue-light);
+  border-color: var(--ms-blue-light);
+}
+
+.ribbon-btn.active {
+  background: var(--ms-blue-lighter);
+  color: var(--ms-blue);
+  font-weight: 600;
+  border-color: var(--ms-blue);
+}
+
+.ribbon-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  color: var(--ms-muted-light);
+}
+
+.ribbon-separator {
+  width: 1px;
+  height: 24px;
+  background: var(--ms-border);
+}
+
+.ribbon-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--ms-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: var(--spacing-sm) var(--spacing-xs) 0 0;
+}
+
+/* --- Main Content Area --- */
+main#content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--spacing-2xl) var(--spacing-xl);
+  box-sizing: border-box;
+  margin-bottom: 60px; /* Space for footer */
+  min-height: calc(100vh - 200px);
+}
+
+/* --- Container (for specific page content) --- */
+.binaria-container,
+.hash-container,
+.secuencial-container,
+.arbol-container,
+.huffman-container,
+.lineal-container {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 auto;
+}
+
+/* --- Footer --- */
+.app-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  background: var(--ms-bg);
+  border-top: 1px solid var(--ms-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-xl);
+  box-sizing: border-box;
+  z-index: 1000;
+  gap: var(--spacing-lg);
+}
+
+.footer-btns {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+}
+
+.footer-btns button {
+  background: var(--ms-panel);
+  border: 1px solid var(--ms-border);
+  padding: 4px 12px;
+  font-size: var(--font-size-sm);
+  margin: 0;
+}
+
+.footer-status {
+  flex: 1;
+  font-size: var(--font-size-sm);
+  color: var(--ms-muted);
+}
+
+/* --- Print Mode --- */
+body.printing .title,
+body.printing .tab-bar,
+body.printing .ribbon,
+body.printing .app-footer,
+body.printing .footer-btns,
+body.printing .actions-section,
+body.printing button,
+body.printing input,
+body.printing select,
+body.printing #actions-section {
+  display: none !important;
+}
+
+body.printing main#content {
+  margin-bottom: 0;
+  padding: var(--spacing-xl);
+}
+
+body.printing .visual-wrapper,
+body.printing .card,
+body.printing #visualization {
+  display: flex !important;
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+  main#content {
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+
+  .tab-bar {
+    padding-left: var(--spacing-sm);
+    overflow-x: auto;
+  }
+
+  .tab {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-size-sm);
+  }
+
+  .ribbon-row {
+    gap: var(--spacing-sm);
+  }
+
+  .ribbon-btn {
+    padding: 4px 8px;
+    font-size: var(--font-size-xs);
+  }
+
+  .app-footer {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+
+  .footer-btns {
+    width: 100%;
+  }
+
+  .cell {
+    min-width: 60px;
+    min-height: 45px;
+    width: 60px;
+    height: 45px;
+    font-size: var(--font-size-lg);
+  }
+}
+
+@media (max-width: 480px) {
+  .title {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-size-lg);
+  }
+
+  .row {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  label,
+  input,
+  button,
+  select {
+    width: 100%;
+  }
+
+  .ribbon-label {
+    display: none;
+  }
+
+  .cell {
+    min-width: 50px;
+    min-height: 40px;
+    width: 50px;
+    height: 40px;
+    font-size: var(--font-size-base);
+  }
+}

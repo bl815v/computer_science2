@@ -42,8 +42,12 @@ from app.services.search.external.binary_external import BinaryExternalSearch
 
 service = BinaryExternalSearch()
 
+def get_service():
+	"""Return the binary external search service instance."""
+	return service
+
 router = create_external_search_router(
-	service,
+	get_service,
 	prefix='/external/binary',
 	tag='External Binary Search',
 )
