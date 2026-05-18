@@ -133,6 +133,7 @@ class BaseSearchService(ABC):
 
 		self.data[index] = value
 		self.sort()
+		self.sort()
 
 		return index + 1
 
@@ -161,6 +162,7 @@ class BaseSearchService(ABC):
 		for pos in positions:
 			self.data[pos - 1] = None
 
+		self.sort()
 		self.sort()
 		return positions
 

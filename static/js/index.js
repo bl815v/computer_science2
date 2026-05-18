@@ -23,6 +23,7 @@ function setActiveTab(type) {
 }
 
 function handleTabClick(type) {
+  resetAllServices();
   setActiveTab(type);
   showContent(type);
 }
@@ -127,7 +128,15 @@ function showBusquedaExterna() {
 
 /* ---------------- Loader ---------------- */
 
+function resetAllServices() {
+  const services = ['http://127.0.0.1:8000/linear-search/reset', 'http://127.0.0.1:8000/binary-search/reset'];
+  services.forEach(url => {
+    fetch(url, { method: 'POST' }).catch(() => {});
+  });
+}
+
 function loadExternalPage(page) {
+  resetAllServices();
   const content = document.getElementById("content");
   content.innerHTML = "<p>Cargando simulador…</p>";
 

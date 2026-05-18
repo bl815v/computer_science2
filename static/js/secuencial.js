@@ -165,6 +165,47 @@
     return { found: foundAny, position: foundIndex };
   }
 
+  // --- ANIMACIÓN PARA INSERCIÓN (sin parada temprana por orden) ---
+  async function insertAnimation(targetValue, state, stepMs = 450) {
+    const grid = document.getElementById("visualization");
+    if (!grid) return { found: false, position: -1 };
+
+    const cells = Array.from(grid.querySelectorAll(".cell:not(.dots)"));
+    cells.sort((a, b) => parseInt(a.dataset.pos) - parseInt(b.dataset.pos));
+
+    let foundAny = false;
+    let foundIndex = -1;
+
+    cells.forEach(c => c.classList.remove("active", "found", "not-found", "visited"));
+
+    for (let i = 0; i < cells.length; i++) {
+      const cell = cells[i];
+      cells.forEach(c => c.classList.remove("active"));
+      cell.classList.add("active");
+
+      const cellContent = cell.textContent.trim();
+
+      if (cellContent !== "" && cellContent === targetValue) {
+        cell.classList.add("found");
+        foundAny = true;
+        foundIndex = parseInt(cell.dataset.pos);
+        break;
+      } else if (cellContent !== "") {
+        cell.classList.add("visited");
+      }
+
+      await sleep(stepMs);
+    }
+
+    if (foundAny) {
+      cells.forEach(c => c.classList.remove("active"));
+      await sleep(1000);
+      cells.forEach(c => c.classList.remove("found", "visited"));
+    }
+
+    return { found: foundAny, position: foundIndex };
+  }
+
   function enforceNumericDigits(input, digits) {
     const originalValue = input.value;
     const numericValue = originalValue.replace(/\D+/g, "");
@@ -254,8 +295,8 @@
             throw new Error(errorData.detail || "No se pudo insertar");
           }
 
-          await reload(); 
-          const result = await scanAnimation(value, currentState, 300); 
+          await reload();
+          const result = await insertAnimation(value, currentState, 300);
           notifySuccess(`Clave ${value} insertada correctamente en la dirección ${result.position}.`);
           valueEl.value = "";
         } catch (error) {

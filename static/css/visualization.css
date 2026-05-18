@@ -174,7 +174,7 @@
 }
 
 .cell[data-index]::before {
-  left: -100px;
+  left: -86px;
   width: 80px;
   text-align: right;
   font-size: var(--font-size-sm);

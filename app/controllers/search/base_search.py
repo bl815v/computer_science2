@@ -188,6 +188,14 @@ def create_search_router(service, prefix: str, tag: str) -> APIRouter:
 			'data': service.data,
 		}
 
+	@router.post('/reset')
+	async def reset_structure():
+		service.data = []
+		service.size = 0
+		service.digits = 0
+		service.initialized = False
+		return {'message': 'Estructura reseteada'}
+
 	@router.post('/insert')
 	async def insert_value(request: InsertRequest):
 		try:
