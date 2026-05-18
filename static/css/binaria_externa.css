@@ -1,4 +1,155 @@
 /* ===============================================
-   External Binary Search
-   Uses same styles as lineal_externa.css
+   External Binary Search - Specific Styles
    =============================================== */
+
+/* Blocks container with horizontal scroll */
+#visualization.blocks-container {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  gap: var(--spacing-lg);
+  justify-content: flex-start;
+  align-items: flex-start;
+  overflow-x: auto;
+  padding: var(--spacing-md) 0;
+  width: 100%;
+  min-height: 200px;
+  background: var(--ms-bg-secondary);
+  border: 1px solid var(--ms-border);
+  border-radius: var(--radius-md);
+}
+
+/* Individual block */
+.block {
+  border: 2px solid var(--ms-blue);
+  border-radius: var(--radius-md);
+  background: var(--ms-panel);
+  min-width: 150px;
+  flex: 0 0 auto;
+  box-shadow: var(--shadow-sm);
+}
+
+.block-header {
+  background: var(--ms-blue);
+  color: white;
+  padding: 6px;
+  text-align: center;
+  font-weight: 600;
+  font-size: var(--font-size-base);
+}
+
+.block-cells {
+  display: flex;
+  flex-direction: column;
+  padding: 5px;
+  padding-left: 50px;
+}
+
+.block-cells .cell {
+  min-width: 80px;
+  min-height: 40px;
+  border: 1px solid var(--ms-border);
+  margin: 2px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: var(--font-size-xl);
+  background: #f9f9f9;
+  position: relative;
+}
+
+.block-cells .cell::before {
+  content: attr(data-index);
+  position: absolute;
+  left: -100px;
+  font-size: var(--font-size-xs);
+  color: var(--ms-muted);
+}
+
+.block-cells .cell.empty {
+  background: #f0f0f0;
+  color: var(--ms-muted-light);
+  font-style: italic;
+}
+
+.block-cells .cell.empty::after {
+  content: "vacío";
+  font-size: var(--font-size-xs);
+}
+
+/* Block states */
+.block-cells .cell.active {
+  outline: 2px solid var(--ms-blue);
+  background: var(--ms-blue-light) !important;
+  transform: scale(1.02);
+}
+
+.block-cells .cell.found {
+  background-color: var(--ms-success-light) !important;
+  border: 2px solid var(--ms-success);
+}
+
+.block-cells .cell.discarded {
+  background-color: var(--ms-bg) !important;
+  color: var(--ms-border) !important;
+  opacity: 0.5;
+}
+
+.block-cells .cell.not-found {
+  background-color: var(--ms-error-light) !important;
+  color: var(--ms-error) !important;
+}
+
+/* Highlight animations for blocks */
+.block-cells .cell.highlight-insert {
+  background-color: var(--ms-success-light) !important;
+  border: 2px solid var(--ms-success);
+  animation: pulse-success 1s;
+}
+
+.block-cells .cell.highlight-search {
+  background-color: var(--ms-warning-light) !important;
+  border: 2px solid var(--ms-warning);
+  animation: pulse-warning 1s;
+}
+
+.block-cells .cell.highlight-delete {
+  background-color: var(--ms-error-light) !important;
+  border: 2px solid var(--ms-error);
+  animation: pulse-error 1s;
+}
+
+/* Empty message */
+#visualization .empty-message {
+  width: 100%;
+  text-align: center;
+  padding: var(--spacing-xl);
+  font-size: var(--font-size-xl);
+  color: var(--ms-muted);
+  background: transparent;
+  border: none;
+}
+
+/* Block active states */
+.block.block-active {
+  outline: 4px solid var(--ms-warning);
+  box-shadow: 0 0 0 3px rgba(255, 185, 0, 0.5);
+  transition: outline var(--transition-base);
+}
+
+.block.block-discarded {
+  opacity: 0.3;
+  filter: grayscale(0.8);
+  transition: opacity var(--transition-slow);
+}
+
+.block.block-candidate {
+  outline: 4px solid var(--ms-blue);
+  box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.5);
+}
+
+.block.block-active .block-header {
+  background: var(--ms-warning);
+  color: #000;
+}

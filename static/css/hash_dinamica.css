@@ -1,102 +1,389 @@
 /* ===============================================
-   Dynamic Hash (External) - Specific Styles
+   Dynamic Hash (External) - Table Visualization
+   Enhanced with real table styling
    =============================================== */
 
-/* Container layout */
 .hash-dinamica-container {
   width: 100%;
-  max-width: 1000px;
+  max-width: 1200px;
   display: flex;
   flex-direction: column;
   align-items: center;
   margin: 0 auto;
 }
 
-/* Dynamic hash visualization uses a table-like layout */
+/* Visualization wrapper */
 .hash-dinamica-container #visualization {
-  display: grid !important;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--spacing-md);
-  padding: var(--spacing-lg);
-  background: var(--ms-bg-secondary);
-  border: 1px solid var(--ms-border);
-  border-radius: var(--radius-md);
+  display: block;
   width: 100%;
   box-sizing: border-box;
-}
-
-/* Bucket/block styling */
-.hash-dinamica-container .cell {
-  min-width: unset;
-  min-height: unset;
-  width: 100%;
-  height: auto;
+  overflow-x: auto;
   padding: var(--spacing-md);
-  border: 1px solid var(--ms-border);
-  border-left: 4px solid var(--ms-blue);
-  border-radius: var(--radius-sm);
+  background: var(--ms-bg-secondary);
+  border: 2px solid var(--ms-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  margin: var(--spacing-lg) 0;
+}
+
+/* Table styling - real table with borders and structure */
+.hash-table {
+  width: 100%;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
   background: var(--ms-panel);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-  transition: all var(--transition-base);
+  border: 1px solid var(--ms-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  font-family: var(--font-family);
 }
 
-.hash-dinamica-container .cell:hover {
-  box-shadow: var(--shadow-md);
-  border-left-color: var(--ms-blue-hover);
-  transform: translateY(-2px);
+/* Table header styling */
+.hash-table thead {
+  background: linear-gradient(180deg, var(--ms-blue) 0%, #0066c0 100%);
+  color: white;
+  font-weight: 600;
 }
 
-.hash-dinamica-container .cell.empty {
-  opacity: 0.6;
-  background: #fdfdfd;
+.hash-table thead tr {
+  height: 50px;
 }
 
-.hash-dinamica-container .cell.empty::after {
-  content: "Vacío";
-  font-size: var(--font-size-xs);
-  color: var(--ms-muted-light);
+.hash-table thead th {
+  padding: 12px 8px;
+  text-align: center;
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  vertical-align: middle;
+}
+
+.hash-table thead th:last-child {
+  border-right: none;
+}
+
+.hash-table thead th:first-child {
+  min-width: 70px;
+  border-right: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Table body rows */
+.hash-table tbody {
+  background: var(--ms-panel);
+}
+
+.hash-table tbody tr {
+  height: 50px;
+  border-bottom: 1px solid var(--ms-border);
+  transition: background 0.15s ease;
+}
+
+.hash-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.hash-table tbody tr:hover {
+  background: #f8f8f8;
+}
+
+/* Table body cells */
+.hash-table tbody td {
+  padding: 12px 8px;
+  text-align: center;
+  border-right: 1px solid var(--ms-border);
+  vertical-align: middle;
+  font-weight: 500;
+  font-size: var(--font-size-base);
+  height: 50px;
+  line-height: 50px;
+  transition: all 0.2s ease;
+  background: var(--ms-panel);
+  color: var(--ms-text);
+}
+
+.hash-table tbody td:last-child {
+  border-right: none;
+}
+
+/* Row striping for better readability */
+.hash-table tbody tr:nth-child(odd) td {
+  background: #ffffff;
+}
+
+.hash-table tbody tr:nth-child(even) td {
+  background: #f8f8f8;
+}
+
+/* Position column styling */
+.hash-table tbody td:first-child {
+  background: linear-gradient(90deg, #f0f0f0 0%, #ffffff 100%);
+  color: var(--ms-blue);
+  font-weight: 700;
+  border-right: 2px solid var(--ms-blue);
+  min-width: 70px;
+  text-transform: uppercase;
+  font-size: var(--font-size-sm);
+}
+
+.hash-table tbody tr:odd td:first-child {
+  background: linear-gradient(90deg, #f0f0f0 0%, #ffffff 100%);
+}
+
+/* Col row (overflow indicator) */
+.hash-table tbody td:first-child.col-row {
+  background: linear-gradient(90deg, var(--ms-warning-light) 0%, #fffaeb 100%);
+  color: var(--ms-warning);
   font-style: italic;
 }
 
-/* Bucket labels */
-.hash-dinamica-container .cell::before {
-  left: auto;
-  position: static;
-  font-size: var(--font-size-sm);
+/* Overflow row indicator */
+.hash-table tbody tr .col-row {
+  font-style: italic;
+  color: var(--ms-warning);
+}
+
+/* Empty cells */
+.hash-table tbody td.empty {
+  color: var(--ms-muted-light);
+  font-style: italic;
+  opacity: 0.6;
+  background: #fefefe;
+}
+
+.hash-table tbody td.empty::before {
+  content: "—";
+}
+
+.hash-table td.empty::after {
+  content: "";
+}
+
+/* Overflow cells */
+.hash-table td.overflow {
+  border-left: 4px solid var(--ms-warning);
+  background: var(--ms-warning-light);
+  color: #8a5d00;
   font-weight: 600;
-  color: var(--ms-blue);
-  margin-bottom: var(--spacing-xs);
 }
 
-/* State colors */
-.hash-dinamica-container .cell.found {
-  background-color: var(--ms-success-light) !important;
-  border-left-color: var(--ms-success) !important;
+/* Active column highlighting */
+.hash-table tbody td.active-col {
+  background: var(--ms-blue-light);
+  border-left: 4px solid var(--ms-blue);
+  box-shadow: inset 0 0 0 1px var(--ms-blue);
 }
 
-.hash-dinamica-container .cell.highlight-insert {
-  background-color: var(--ms-success-light) !important;
-  border-left-color: var(--ms-success) !important;
-  animation: pulse-success 1s;
+.hash-table td[data-block].active-col {
+  background: var(--ms-blue-light) !important;
+  box-shadow: inset 0 0 0 2px var(--ms-blue);
 }
 
-.hash-dinamica-container .cell.highlight-search {
-  background-color: var(--ms-warning-light) !important;
-  border-left-color: var(--ms-warning) !important;
-  animation: pulse-warning 1s;
+/* Cell states - Active (being checked) */
+.hash-table tbody td.active {
+  background: var(--ms-blue);
+  color: white;
+  font-weight: 700;
+  line-height: 50px;
+  animation: scaleIn 0.3s ease-out;
+  box-shadow: 0 2px 8px rgba(0, 120, 212, 0.4);
+  z-index: 5;
 }
 
-.hash-dinamica-container .cell.highlight-delete {
-  background-color: var(--ms-error-light) !important;
-  border-left-color: var(--ms-error) !important;
-  animation: pulse-error 1s;
+.hash-table td.active {
+  background: var(--ms-blue) !important;
+  color: white !important;
+  font-weight: 700;
+  animation: scaleIn 0.3s ease-out;
 }
 
-/* Responsive */
+/* Cell states - Found (success) */
+.hash-table tbody td.found {
+  background: var(--ms-success-light);
+  color: var(--ms-success);
+  font-weight: 700;
+  border: 2px solid var(--ms-success);
+  animation: pulse-success 1s ease-out;
+  box-shadow: 0 0 12px rgba(16, 124, 16, 0.3);
+}
+
+.hash-table td.found {
+  background: var(--ms-success-light) !important;
+  color: var(--ms-success) !important;
+  font-weight: 700;
+  border: 2px solid var(--ms-success);
+  animation: pulse-success 1s ease-out;
+  box-shadow: 0 0 8px rgba(16, 124, 16, 0.3);
+}
+
+/* Cell states - Discarded (not found) */
+.hash-table tbody td.discarded {
+  background: #f0f0f0;
+  color: var(--ms-muted-light);
+  opacity: 0.5;
+  text-decoration: line-through;
+  animation: fadeOut 0.4s ease-out;
+}
+
+.hash-table td.discarded {
+  background: var(--ms-bg) !important;
+  color: var(--ms-muted-light) !important;
+  opacity: 0.5;
+  text-decoration: line-through;
+  animation: fadeOut 0.4s ease-out;
+}
+
+/* Cell states - Highlight insert */
+.hash-table tbody td.highlight-insert {
+  background: var(--ms-success-light);
+  border: 2px solid var(--ms-success);
+  animation: pulse-success 1s ease-out;
+  box-shadow: 0 0 12px rgba(16, 124, 16, 0.25);
+}
+
+.hash-table td.highlight-insert {
+  background: var(--ms-success-light) !important;
+  border: 2px solid var(--ms-success);
+  animation: pulse-success 1s ease-out;
+}
+
+/* Cell states - Highlight search */
+.hash-table tbody td.highlight-search {
+  background: var(--ms-warning-light);
+  border: 2px solid var(--ms-warning);
+  animation: pulse-warning 1s ease-out;
+  box-shadow: 0 0 12px rgba(255, 185, 0, 0.25);
+}
+
+.hash-table td.highlight-search {
+  background: var(--ms-warning-light) !important;
+  border: 2px solid var(--ms-warning);
+  animation: pulse-warning 1s ease-out;
+}
+
+/* Cell states - Highlight delete */
+.hash-table tbody td.highlight-delete {
+  background: var(--ms-error-light);
+  border: 2px solid var(--ms-error);
+  animation: pulse-error 1s ease-out;
+  box-shadow: 0 0 12px rgba(209, 52, 56, 0.25);
+}
+
+.hash-table td.highlight-delete {
+  background: var(--ms-error-light) !important;
+  border: 2px solid var(--ms-error);
+  animation: pulse-error 1s ease-out;
+}
+
+/* Hover state for data cells */
+.hash-table tbody td:not(:first-child):hover {
+  background: var(--ms-blue-light);
+  box-shadow: 0 2px 6px rgba(0, 120, 212, 0.15);
+  border-bottom-color: var(--ms-blue);
+}
+
+.hash-table tbody td:not(:first-child):hover:not(.empty) {
+  background: var(--ms-blue-light) !important;
+  box-shadow: 0 2px 8px rgba(0, 120, 212, 0.2);
+  transform: scale(1.05);
+  z-index: 10;
+}
+
+/* Empty message */
+#visualization .empty-message {
+  width: 100%;
+  text-align: center;
+  padding: var(--spacing-3xl);
+  font-size: var(--font-size-lg);
+  color: var(--ms-muted);
+  background: transparent;
+  border: none;
+}
+
+/* Responsive styles */
+@media (max-width: 1024px) {
+  .hash-table thead th,
+  .hash-table tbody td {
+    padding: 10px 6px;
+    font-size: var(--font-size-sm);
+  }
+
+  .hash-table tbody tr {
+    height: 45px;
+    line-height: 45px;
+  }
+
+  .hash-table thead tr {
+    height: 45px;
+  }
+}
+
+@media (max-width: 900px) {
+  .hash-dinamica-container #visualization {
+    padding: var(--spacing-sm);
+  }
+
+  .hash-table thead th,
+  .hash-table tbody td {
+    padding: 10px 6px;
+    font-size: var(--font-size-sm);
+  }
+
+  .hash-table tbody td:first-child {
+    min-width: 50px;
+  }
+}
+
 @media (max-width: 768px) {
   .hash-dinamica-container #visualization {
-    grid-template-columns: 1fr;
+    overflow-x: auto;
+    padding: var(--spacing-sm);
+  }
+
+  .hash-table {
+    font-size: var(--font-size-xs);
+    min-width: 500px;
+  }
+
+  .hash-table thead th,
+  .hash-table tbody td {
+    padding: 8px 4px;
+    font-size: var(--font-size-xs);
+  }
+
+  .hash-table tbody tr {
+    height: 40px;
+    line-height: 40px;
+  }
+
+  .hash-table thead th:first-child,
+  .hash-table tbody td:first-child {
+    min-width: 50px;
+  }
+}
+
+@media (max-width: 480px) {
+  .hash-table {
+    font-size: var(--font-size-xs);
+    min-width: 350px;
+  }
+
+  .hash-table thead th,
+  .hash-table tbody td {
+    padding: 6px 3px;
+    height: auto;
+  }
+
+  .hash-table tbody tr {
+    height: auto;
+    line-height: 1.5;
+  }
+
+  .hash-table tbody td:first-child {
+    min-width: 40px;
+    padding: 6px 2px;
   }
 }
