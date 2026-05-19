@@ -111,11 +111,7 @@ def handle_insert(service, request: InsertRequest) -> dict:
 def handle_search(service, value: str) -> dict:
 	"""Handle search logic."""
 	if not service.initialized:
-		return {
-			'position': [],
-			'value': value,
-			'message': 'EStructura no inicializada'
-		}
+		return {'position': [], 'value': value, 'message': 'EStructura no inicializada'}
 
 	result = service.search(value)
 
@@ -123,14 +119,10 @@ def handle_search(service, value: str) -> dict:
 		return {
 			'position': result,
 			'value': value,
-			'message': f'Clave encontrada en la dirección {result}'
+			'message': f'Clave encontrada en la dirección {result}',
 		}
 
-	return {
-		'position': [],
-		'value': value,
-		'message': 'Clave no encontrada en la estructura'
-	}
+	return {'position': [], 'value': value, 'message': 'Clave no encontrada en la estructura'}
 
 
 def handle_delete(service, value: str) -> dict:
@@ -190,10 +182,7 @@ def create_search_router(service, prefix: str, tag: str) -> APIRouter:
 
 	@router.post('/reset')
 	async def reset_structure():
-		service.data = []
-		service.size = 0
-		service.digits = 0
-		service.initialized = False
+		service.reset()
 		return {'message': 'Estructura reseteada'}
 
 	@router.post('/insert')

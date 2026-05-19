@@ -133,7 +133,6 @@ class BaseSearchService(ABC):
 
 		self.data[index] = value
 		self.sort()
-		self.sort()
 
 		return index + 1
 
@@ -163,7 +162,6 @@ class BaseSearchService(ABC):
 			self.data[pos - 1] = None
 
 		self.sort()
-		self.sort()
 		return positions
 
 	def sort(self) -> None:
@@ -179,6 +177,19 @@ class BaseSearchService(ABC):
 		self._validate_structure()
 
 		self.data = sorted(v for v in self.data if v is not None) + [None] * self.data.count(None)
+
+	def reset(self) -> None:
+		"""Reset the structure to its initial unconfigured state.
+
+		Clear all stored data and restore the default configuration.
+		Subclasses can override this method if they need to reset
+		additional attributes.
+
+		"""
+		self.data = []
+		self.size = 0
+		self.digits = 0
+		self.initialized = False
 
 	@abstractmethod
 	def search(self, value: str) -> List[int]:
