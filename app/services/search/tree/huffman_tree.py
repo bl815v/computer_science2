@@ -1,10 +1,30 @@
 """
-Implement Huffman coding tree structure and related utilities.
+Provide Huffman tree construction, visualization, and search services.
 
-This module provides an implementation of the Huffman coding algorithm
-using a binary tree structure. The tree is constructed from a text input
-based on character frequencies and generates optimal prefix-free binary
-codes for compression.
+This module implements a complete Huffman coding system using binary trees.
+It includes:
+
+    - Huffman tree generation from input text.
+    - Character frequency analysis.
+    - Binary code assignment using Huffman encoding.
+    - Search operations over the generated tree.
+    - Step-by-step visualization of the construction process.
+    - Graphical plotting of the Huffman tree structure.
+    - High-level service wrapper for API integration.
+
+The implementation uses:
+
+    - `heapq` for priority queue management.
+    - `Counter` for frequency analysis.
+    - `networkx` for graph representation.
+    - `matplotlib` for visualization rendering.
+
+Classes:
+    HuffmanTree:
+        Represent and manage a Huffman coding tree.
+
+    HuffmanSearchService:
+        High-level service wrapper for Huffman operations.
 
 Author: Juan Esteban Bedoya <jebedoyal@udistrital.edu.co>
 
@@ -23,6 +43,7 @@ General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with ComputerScience2. If not, see <https://www.gnu.org/licenses/>.
 """
+
 import heapq
 from collections import Counter
 from typing import Dict, List, Optional
@@ -708,3 +729,214 @@ class HuffmanTree(BaseTree):
 			result_steps.append({'step': step_num, 'items': items})
 
 		return {'steps': result_steps}
+
+
+class HuffmanSearchService(BaseSearchService):
+	"""
+	Provide a high-level service interface for Huffman tree operations.
+
+	This service acts as a wrapper around `HuffmanTree` and exposes
+	methods used by controllers and API routes. It centralizes the
+	management of:
+
+	    - Huffman tree creation.
+	    - Character search operations.
+	    - Huffman code retrieval.
+	    - Encoding statistics generation.
+	    - Construction step inspection.
+	    - Tree visualization rendering.
+
+	The service maintains an internal `HuffmanTree` instance and
+	tracks whether the structure has already been initialized.
+
+	Attributes:
+	    tree (Optional[HuffmanTree]):
+	        Internal Huffman tree instance.
+
+	    initialized (bool):
+	        Indicates whether a Huffman tree has been created.
+
+	    size (int):
+	        Number of unique characters stored in the tree.
+
+	    digits (int):
+	        Compatibility attribute inherited from
+	        `BaseSearchService`.
+
+	    data (dict):
+	        Internal data representation inherited from the tree.
+
+	"""
+
+	def __init__(self):
+		"""
+		Initialize an empty Huffman search service.
+
+		The service starts without a generated tree and remains
+		uninitialized until `create()` is called.
+		"""
+		self.tree: Optional[HuffmanTree] = None
+		self.initialized = False
+		self.size = 0
+		self.digits = 1
+		self.data = {}
+
+	def create(self, text: str) -> Dict:
+		"""
+		Create a Huffman tree from the provided text.
+
+		The method generates a new `HuffmanTree` instance,
+		stores it internally, and updates the service state.
+
+		Args:
+		    text (str):
+		        Input text used to build the Huffman tree.
+
+		Returns:
+		    Dict:
+		        Dictionary containing summary information
+		        about the generated tree.
+
+		        Returned fields:
+
+		            - 'message':
+		              Status message.
+
+		            - 'text':
+		              Normalized input text.
+
+		            - 'frequencies':
+		              Character frequency table.
+
+		            - 'codes':
+		              Generated Huffman binary codes.
+
+		"""
+		self.tree = HuffmanTree(text)
+		self.initialized = True
+		self.size = self.tree.size
+		self.data = self.tree.data
+
+		return {
+			'message': 'Huffman tree created',
+			'text': self.tree.text,
+			'frequencies': self.tree.freq_dict,
+			'codes': self.tree.letter_to_code,
+		}
+
+	def search(self, value: str) -> List[int]:
+		"""
+		Search for a character in the Huffman tree.
+
+		Args:
+		    value (str):
+		        Character to search.
+
+		Returns:
+		    List[int]:
+		        List containing the matching node position.
+
+		        Returns an empty list if the tree is not
+		        initialized or if the character does not exist.
+
+		"""
+		if self.tree is None:
+			return []
+
+		return self.tree.search(value)
+
+	def get_codes(self) -> Optional[Dict[str, str]]:
+		"""
+		Retrieve all generated Huffman codes.
+
+		Returns:
+		    Optional[Dict[str, str]]:
+		        Dictionary mapping characters to their
+		        Huffman binary codes.
+
+		        Returns `None` if the tree has not
+		        been initialized.
+
+		"""
+		if self.tree is None:
+			return None
+
+		return self.tree.letter_to_code
+
+	def get_table(self) -> Optional[Dict]:
+		"""
+		Retrieve the Huffman encoding table.
+
+		The returned structure includes:
+
+		    - Character frequencies.
+		    - Huffman binary codes.
+		    - Code lengths.
+		    - Compression statistics.
+
+		Returns:
+		    Optional[Dict]:
+		        Huffman encoding table and metrics.
+
+		        Returns `None` if the tree has not
+		        been initialized.
+
+		"""
+		if self.tree is None:
+			return None
+
+		return self.tree.show_table()
+
+	def get_steps(self) -> Optional[Dict]:
+		"""
+		Return Huffman construction steps.
+
+		Returns:
+			Optional[Dict]:
+				Construction process steps.
+
+		"""
+		if self.tree is None:
+			return None
+
+		return self.tree.show_steps()
+
+	def generate_plot(self, filename: str) -> None:
+		"""
+		Generate Huffman tree visualization.
+
+		Args:
+			filename (str):
+				Output image filename.
+
+		"""
+		if self.tree is None:
+			return
+
+		self.tree.plot(filename)
+
+	def generate_search_plot(self, letter: str, filename: str) -> None:
+		"""
+		Generate a Huffman tree visualization highlighting a character.
+
+		The corresponding node associated with the searched
+		character is highlighted in the generated image.
+
+		Args:
+		    letter (str):
+		        Character to highlight.
+
+		    filename (str):
+		        Output image filename.
+
+		"""
+		if self.tree is None:
+			return
+
+		result = self.tree.search(letter)
+
+		if not result:
+			return
+
+		highlight_index = result[0] - 1
+		self.tree.plot(filename, highlight_index=highlight_index)
