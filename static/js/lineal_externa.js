@@ -310,6 +310,7 @@
         }
         await loadState();
         actionsSection.style.display = "block";
+        window.markStructureDirty?.();
         notifySuccess("Estructura creada correctamente.");
         valueInput.placeholder = `Máx: ${digits} dígitos`;
       } catch (err) {
@@ -353,9 +354,11 @@
           // Mostrar animación de búsqueda para resaltar dónde quedó la clave insertada
           const foundPos = await linearExternalSearchAnimation(value, { autoClear: true, resultClass: 'highlight-insert' });
           if (foundPos) {
+            window.markStructureDirty?.();
             notifySuccess(`Clave ${value} insertada en bloque ${foundPos.block}, posición ${foundPos.cell}`);
           } else {
             // Si no se encuentra (raro), igual notificamos éxito
+            window.markStructureDirty?.();
             notifySuccess(`Clave ${value} insertada.`);
           }
           clearInput();
@@ -423,10 +426,12 @@
 
         if (res.ok && positions.length > 0) {
           await loadState();
+          window.markStructureDirty?.();
           notifySuccess(`Clave ${value} eliminada.`);
         } else {
           if (res.ok) {
             await loadState();
+            window.markStructureDirty?.();
             notifySuccess(`Clave ${value} eliminada.`);
           } else {
             const errorMsg = data.detail || data.message || `No se pudo eliminar (código ${res.status})`;

@@ -22,9 +22,9 @@
 
   async function fetchState() {
     try {
-      const res = await fetch(`${API_BASE}/state`);
-      if (!res.ok) return { size: 0, digits: 0, data: [] };
-      return await res.json();
+      const response = await fetch(`${API_BASE}/state`);
+      if (!response.ok) return { size: 0, digits: 0, data: [] };
+      return await response.json();
     } catch (error) {
       console.warn("No se pudo obtener el estado:", error);
       return { size: 0, digits: 0, data: [] };
@@ -261,6 +261,7 @@
         });
         if (!response.ok) throw new Error("Error al crear estructura");
         await reload();
+        window.markStructureDirty?.();
         notifySuccess("Estructura creada correctamente.");
       } catch (error) {
         notifyError(error.message);
@@ -280,22 +281,23 @@
         try {
           if (!currentState.size) throw new Error("Primero crea la estructura.");
           if (!valueEl.value) throw new Error("Ingresa una clave.");
-
+        
           insertBtn.disabled = true;
           const value = toDigits(valueEl.value, currentState.digits);
-
+        
           const res = await fetch(`${API_BASE}/insert`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ value }),
           });
-
+        
           if (!res.ok) {
             const errorData = await res.json();
             throw new Error(errorData.detail || "No se pudo insertar");
           }
-
+        
           await reload();
+          window.markStructureDirty?.();   // <--- AÑADIR (ya estaba pero bien ubicado)
           const result = await insertAnimation(value, currentState, 300);
           notifySuccess(`Clave ${value} insertada correctamente en la dirección ${result.position}.`);
           valueEl.value = "";
@@ -343,6 +345,7 @@
           
           if (res.ok) {
             await reload();
+            window.markStructureDirty?.();
             notifySuccess(`Clave ${value} eliminada de la dirección ${result.position}.`);
             valueEl.value = "";
           } else {

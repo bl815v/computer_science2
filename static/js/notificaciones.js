@@ -45,4 +45,75 @@
   window.notifySuccess = (msg) => createModal(msg, "success");
   window.notifyError = (msg) => createModal(msg, "error");
   window.notifyInfo = (msg) => createModal(msg, "info");
+
+  window.confirmModal = (message, onConfirm, onCancel) => {
+    const existing = document.querySelector(".modal-overlay");
+    if (existing) existing.remove();
+  
+    const overlay = document.createElement("div");
+    overlay.className = "modal-overlay";
+  
+    const box = document.createElement("div");
+    box.className = "modal-box info";
+  
+    const msg = document.createElement("div");
+    msg.className = "modal-message";
+    msg.textContent = message;
+  
+    // Botón Confirmar (estilo primary)
+    const btnConfirm = document.createElement("button");
+    btnConfirm.className = "modal-btn";
+    btnConfirm.textContent = "Continuar";
+    btnConfirm.style.marginRight = "8px";
+    btnConfirm.style.background = "var(--ms-blue)";
+    btnConfirm.style.color = "white";
+    btnConfirm.style.border = "none";
+    btnConfirm.style.cursor = "pointer";
+    btnConfirm.style.transition = "all var(--transition-base)";
+    btnConfirm.onmouseenter = () => {
+      btnConfirm.style.background = "var(--ms-blue-hover)";
+    };
+    btnConfirm.onmouseleave = () => {
+      btnConfirm.style.background = "var(--ms-blue)";
+    };
+  
+    // Botón Cancelar (estilo danger)
+    const btnCancel = document.createElement("button");
+    btnCancel.className = "modal-btn";
+    btnCancel.textContent = "Cancelar";
+    btnCancel.style.background = "white";
+    btnCancel.style.color = "var(--ms-error)";
+    btnCancel.style.border = `1px solid var(--ms-error)`;
+    btnCancel.style.cursor = "pointer";
+    btnCancel.style.transition = "all var(--transition-base)";
+    btnCancel.onmouseenter = () => {
+      btnCancel.style.background = "var(--ms-error)";
+      btnCancel.style.color = "white";
+    };
+    btnCancel.onmouseleave = () => {
+      btnCancel.style.background = "white";
+      btnCancel.style.color = "var(--ms-error)";
+    };
+  
+    const buttonGroup = document.createElement("div");
+    buttonGroup.appendChild(btnConfirm);
+    buttonGroup.appendChild(btnCancel);
+  
+    btnConfirm.addEventListener("click", () => {
+      overlay.remove();
+      if (onConfirm) onConfirm();
+    });
+    btnCancel.addEventListener("click", () => {
+      overlay.remove();
+      if (onCancel) onCancel();
+    });
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) overlay.remove();
+    });
+  
+    box.appendChild(msg);
+    box.appendChild(buttonGroup);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+  };
 })();

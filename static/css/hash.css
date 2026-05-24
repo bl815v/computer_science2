@@ -2,11 +2,11 @@
    Hash Table (Internal) - Specific Styles
    =============================================== */
 
-/* Only apply horizontal layout when inside hash container */
+/* Only apply VERTICAL layout for hash container */
 .hash-container,
 .hash-dinamica-container #visualization {
-  flex-direction: row !important;
-  flex-wrap: wrap !important;
+  flex-direction: column !important;
+  flex-wrap: nowrap !important;
   justify-content: flex-start !important;
 }
 
@@ -19,7 +19,7 @@
 
 .hash-container .cell::before,
 .hash-dinamica-container .cell::before {
-  left: -100px;
+  left: -90px;
   width: 80px;
   text-align: right;
   font-size: var(--font-size-sm);

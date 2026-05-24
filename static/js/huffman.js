@@ -204,6 +204,7 @@
       resultsSection.style.display = 'block';
       loadImage(`${API_BASE}/plot`);
 
+      window.markStructureDirty?.();
       notifySuccess('Árbol de Huffman creado correctamente.');
     } catch (error) {
       notifyError(error.message);
@@ -215,8 +216,12 @@
 
   // --- Buscar letra ---
   async function handleSearchLetter() {
-    const letter = searchLetterInput.value.trim();
-    if (!letter) {
+    const rawLetter = searchLetterInput.value;
+    // No usar trim() aquí para permitir espacios como carácter válido
+    // Solo remover saltos de línea y caracteres de control
+    const letter = rawLetter.replace(/[\n\r]/g, '');
+    
+    if (letter === '') {
       notifyError('Ingresa una letra para buscar.');
       return;
     }
