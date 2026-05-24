@@ -441,6 +441,7 @@
 
         await loadState();
         actionsSection.style.display = "block";
+        window.markStructureDirty?.();
         notifySuccess("Estructura creada correctamente.");
         valueInput.placeholder = `Máx: ${digits} dígitos`;
       } catch (err) {
@@ -482,14 +483,18 @@
               const bc = globalPosToBlockCell(posActual);
               if (bc) {
                 highlightCells([bc], 'highlight-insert', 2000); // 2 segundos para que se note
+                window.markStructureDirty?.();
                 notifySuccess(`Clave ${value} insertada en bloque ${bc.block}, ${bc.location === 'overflow' ? 'overflow' : 'posición'} ${bc.cell}`);
               } else {
+                window.markStructureDirty?.();
                 notifySuccess(`Clave ${value} insertada.`);
               }
             } else {
+              window.markStructureDirty?.();
               notifySuccess(`Clave ${value} insertada.`);
             }
           } else {
+            window.markStructureDirty?.();
             notifySuccess(`Clave ${value} insertada.`);
           }
           clearInput();
@@ -545,6 +550,7 @@
         if (res.ok) {
           await loadState();
           if (data.deleted_positions && data.deleted_positions.length > 0) {
+            window.markStructureDirty?.();
             notifySuccess(`Clave ${value} eliminada.`);
           } else {
             notifyError(`Clave ${value} no encontrada.`);

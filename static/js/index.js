@@ -1,5 +1,14 @@
 const appState = {
   loadedScripts: new Set(),
+  structureDirty: false, 
+};
+
+window.markStructureDirty = () => {
+  appState.structureDirty = true;
+};
+
+window.resetStructureDirty = () => {
+  appState.structureDirty = false;
 };
 
 function setActiveRibbonButton(button) {
@@ -23,9 +32,22 @@ function setActiveTab(type) {
 }
 
 function handleTabClick(type) {
-  resetAllServices();
-  setActiveTab(type);
-  showContent(type);
+  if (appState.structureDirty) {
+    window.confirmModal(
+      "Has creado una estructura. Si cambias de pestaña, se perderán los datos no guardados. ¿Deseas continuar?",
+      () => {
+        resetAllServices();
+        setActiveTab(type);
+        showContent(type);
+        window.resetStructureDirty();
+      },
+      () => {} // cancelar no hace nada
+    );
+  } else {
+    resetAllServices();
+    setActiveTab(type);
+    showContent(type);
+  }
 }
 
 /* ---------------- Main switch ---------------- */
@@ -91,8 +113,22 @@ function showBusquedaInterna() {
 
   lvl2.querySelectorAll("[data-page]").forEach(btn => {
     btn.addEventListener("click", function () {
-      setActiveRibbonButton(this);
-      loadExternalPage(this.dataset.page);
+
+      if (appState.structureDirty) {
+        window.confirmModal(
+          "Has creado una estructura. Si cambias de simulador, se perderán los datos no guardados. ¿Deseas continuar?",
+          () => {
+            setActiveRibbonButton(this);
+            loadExternalPage(this.dataset.page);
+            window.resetStructureDirty();
+          },
+          () => {}
+        );
+      } else {
+        setActiveRibbonButton(this);
+        loadExternalPage(this.dataset.page);
+      }
+
     });
   });
 }
@@ -120,8 +156,22 @@ function showBusquedaExterna() {
 
   lvl2.querySelectorAll("[data-page]").forEach(btn => {
     btn.addEventListener("click", function () {
-      setActiveRibbonButton(this);
-      loadExternalPage(this.dataset.page);
+
+      if (appState.structureDirty) {
+        window.confirmModal(
+          "Has creado una estructura. Si cambias de simulador, se perderán los datos no guardados. ¿Deseas continuar?",
+          () => {
+            setActiveRibbonButton(this);
+            loadExternalPage(this.dataset.page);
+            window.resetStructureDirty();
+          },
+          () => {}
+        );
+      } else {
+        setActiveRibbonButton(this);
+        loadExternalPage(this.dataset.page);
+      }
+
     });
   });
 }
@@ -137,6 +187,7 @@ function resetAllServices() {
 
 function loadExternalPage(page) {
   resetAllServices();
+  window.resetStructureDirty();
   const content = document.getElementById("content");
   content.innerHTML = "<p>Cargando simulador…</p>";
 

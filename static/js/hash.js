@@ -322,6 +322,7 @@
         
         collisionMenu.style.display = "none";
         document.getElementById("actions-section").style.display = "block";
+        window.markStructureDirty?.();
         notifySuccess(`Estructura lista para ${digits} dígitos.`);
         clearInput();
       } catch (err) { notifyError(err.message); }
@@ -375,10 +376,12 @@
               }
             }
             renderGrid();
+            window.markStructureDirty?.();
             notifySuccess(`Clave ${value} insertada en Dir: ${positionsToHighlight.join(", ")}`);
             highlightCells(positionsToHighlight, 'highlight-insert');
           } else {
             await loadState();
+            window.markStructureDirty?.();
             notifySuccess(`Clave ${value} insertada.`);
           }
           
@@ -479,6 +482,7 @@
           
           if (hasPosition) {
             const dirs = data.position.join(", ");
+            window.markStructureDirty?.();
             notifySuccess(`Clave ${value} eliminada de Dir: ${dirs}`);
             highlightCells(data.position, 'highlight-delete');
 

@@ -144,6 +144,7 @@
         throw new Error(errorData.detail || 'Error al crear la estructura');
       }
       notify('Estructura creada correctamente', 'success');
+      window.markStructureDirty?.();
       // Mostrar las operaciones y el slider
       if (actionsSection) actionsSection.style.display = 'block';
       loadImage(`${baseURL}/plot`);
@@ -170,6 +171,7 @@
         throw new Error(errorData.detail || 'Error al insertar la letra');
       }
       notify(`Letra ${letter} insertada correctamente`, 'success');
+      window.markStructureDirty?.();
       loadImage(`${baseURL}/plot`);
       letterInput.value = '';
     } catch (err) {
@@ -223,6 +225,7 @@
         throw new Error(errorData.detail || 'Error al eliminar la letra');
       }
       notify(`Letra ${letter} eliminada correctamente`, 'success');
+      window.markStructureDirty?.();
       loadImage(`${baseURL}/plot`);
       letterInput.value = '';
     } catch (err) {

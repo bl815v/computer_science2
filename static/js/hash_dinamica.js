@@ -364,6 +364,7 @@
         }
 
         await loadState();
+        window.markStructureDirty?.();
         window.notifySuccess?.("Estructura creada correctamente.");
         if (valueInput) valueInput.placeholder = `Máx: ${digits} dígitos`;
       } catch (err) {
@@ -409,8 +410,10 @@
             const rowIdx = getRowIndexForValueInBucket(value, blockIdx);
             const isOverflow = rowIdx >= currentState.bucket_size;
             if (isOverflow) {
+              window.markStructureDirty?.();
               window.notifySuccess?.(`Clave ${value} insertada en colisión de cubeta ${pos.block_index}`);
             } else {
+              window.markStructureDirty?.();
               window.notifySuccess?.(`Clave ${value} insertada en cubeta ${pos.block_index}, posición ${pos.block_position}`);
             }
             const table = document.querySelector(".hash-table");
@@ -422,6 +425,7 @@
               }
             }
           } else {
+            window.markStructureDirty?.();
             window.notifySuccess?.(`Clave ${value} insertada.`);
           }
           clearInput();
@@ -555,8 +559,10 @@
         }
         await loadState();
         if (isOverflow) {
+          window.markStructureDirty?.();
           window.notifySuccess?.(`Clave ${value} eliminada de colisión en cubeta ${pos.block_index}`);
         } else {
+          window.markStructureDirty?.();
           window.notifySuccess?.(`Clave ${value} eliminada de cubeta ${pos.block_index}, posición ${pos.block_position}`);
         }
         clearInput();

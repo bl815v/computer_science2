@@ -62,7 +62,7 @@
     };
 
     if (occupied.length === 0) {
-      const end = Math.min(5, totalSize) - 1;
+      const end = Math.min(1, totalSize) - 1;
       for (let i = 0; i <= end; i++) {
         appendCell(i);
       }
@@ -213,6 +213,7 @@
           body: JSON.stringify({ size, digits }),
         });
         await reload();
+        window.markStructureDirty?.();
         notifySuccess("Estructura creada.");
       } catch (error) {
         notifyError(error.message);
@@ -245,6 +246,7 @@
         }
 
         await reload();
+        window.markStructureDirty?.();
         notifySuccess(`Valor ${val} insertado.`);
         valInput.value = "";
       } catch (error) {
@@ -280,6 +282,7 @@
             }
 
             await reload();
+            window.markStructureDirty?.();
             notifySuccess(`Valor ${val} eliminado.`);
             valInput.value = "";
           }

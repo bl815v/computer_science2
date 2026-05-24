@@ -358,6 +358,7 @@
         }
         await loadState();
         actionsSection.style.display = "block";
+        window.markStructureDirty?.();
         notifySuccess("Estructura creada correctamente.");
         valueInput.placeholder = `Máx: ${digits} dígitos`;
       } catch (err) {
@@ -402,12 +403,15 @@
             if (posInfo.block_index !== undefined && posInfo.block_position !== undefined) {
               const block = posInfo.block_index;
               const cell = posInfo.block_position;
+              window.markStructureDirty?.();
               notifySuccess(`Clave ${value} insertada en bloque ${block}, posición ${cell}`);
               highlightCells([{ block, cell }], 'highlight-insert');
             } else {
+              window.markStructureDirty?.();
               notifySuccess(`Clave ${value} insertada.`);
             }
           } else {
+            window.markStructureDirty?.();
             notifySuccess(`Clave ${value} insertada.`);
           }
           clearInput();
@@ -484,11 +488,13 @@
 
         if (res.ok && positions.length > 0) {
           await loadState(); // Recargar estado (se borran los resaltados)
+          window.markStructureDirty?.();
           notifySuccess(`Clave ${value} eliminada.`);
         } else {
           // Si no hay positions pero el status es ok, puede que se haya eliminado igual
           if (res.ok) {
             await loadState();
+            window.markStructureDirty?.();
             notifySuccess(`Clave ${value} eliminada.`);
           } else {
             const errorMsg = data.detail || data.message || `No se pudo eliminar (código ${res.status})`;

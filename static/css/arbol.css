@@ -1,0 +1,104 @@
+/* ===============================================
+   Árboles (Trees) - Specific Styles
+   =============================================== */
+
+.arbol-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-lg);
+  width: 100%;
+}
+
+/* Tipo buttons */
+.type-buttons {
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.type-btn {
+  padding: 8px 16px;
+  border: 1px solid var(--ms-border);
+  border-radius: var(--radius-sm);
+  background: var(--ms-panel);
+  color: var(--ms-text);
+  cursor: pointer;
+  font-weight: 500;
+  transition: all var(--transition-base);
+}
+
+.type-btn:hover {
+  background: var(--ms-bg);
+  border-color: var(--ms-blue);
+}
+
+.type-btn.active {
+  background: var(--ms-blue);
+  color: white;
+  border-color: var(--ms-blue);
+}
+
+/* M field (para Multiple Residue) */
+#m-field {
+  display: none;
+  margin: var(--spacing-md) 0;
+}
+
+/* Tree visualization */
+.tree-image-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+  width: 100%;
+  margin: var(--spacing-lg) 0;
+}
+
+#tree-image {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--ms-border);
+  border-radius: var(--radius-md);
+  background: var(--ms-panel);
+  padding: var(--spacing-md);
+}
+
+/* Image size slider */
+.image-size-control {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin: var(--spacing-md) 0;
+}
+
+#image-size-slider {
+  flex: 1;
+  min-width: 200px;
+}
+
+#image-size-value {
+  min-width: 60px;
+  text-align: right;
+  font-family: var(--font-family-mono);
+  font-weight: 600;
+}
+
+/* Actions section */
+.tree-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+}
+
+.tree-actions input {
+  min-width: 150px;
+}
+
+/* View tree button */
+#view-tree-btn {
+  margin-top: var(--spacing-md);
+}
