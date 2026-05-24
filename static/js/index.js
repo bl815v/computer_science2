@@ -101,6 +101,7 @@ function showBusquedaInterna() {
       <button class="ribbon-btn" data-page="hash">Hash</button>
       <button class="ribbon-btn" data-page="arbol">Árboles</button>
       <button class="ribbon-btn" data-page="huffman">Huffman</button>
+      <button class="ribbon-btn" data-page="indices">Índices</button>
     </div>
   `;
 

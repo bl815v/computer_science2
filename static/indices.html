@@ -1,0 +1,39 @@
+<h2>Estructuras de Índices</h2>
+
+<div class="indices-container">
+  <!-- Configuración -->
+  <div class="card">
+    <h3>Parámetros del problema</h3>
+    <div class="row">
+      <label>Registros (r):</label>
+      <input type="number" id="total-records" value="500000" min="1" />
+
+      <label>Tamaño bloque (bytes):</label>
+      <input type="number" id="block-size" value="4096" min="1" />
+
+      <label>Longitud registro dato (bytes):</label>
+      <input type="number" id="record-length" value="120" min="1" />
+
+      <label>Longitud registro índice (bytes):</label>
+      <input type="number" id="index-record-length" value="15" min="1" />
+    </div>
+
+    <div class="row">
+      <label>Tipo de índice:</label>
+      <select id="index-type">
+        <option value="primary">Primario</option>
+        <option value="secondary">Secundario</option>
+        <option value="multilevel-primary">Multinivel Primario</option>
+        <option value="multilevel-secondary">Multinivel Secundario</option>
+      </select>
+      <button id="calculate-btn" class="primary">Calcular y visualizar</button>
+    </div>
+  </div>
+
+  <!-- Resultados (ocultos inicialmente) -->
+  <div id="results-section" class="card" style="display: none;">
+    <h3>Estructura resultante</h3>
+    <div id="stats-summary" class="stats-summary"></div>
+    <div id="visualization" class="indices-visualization"></div>
+  </div>
+</div>
