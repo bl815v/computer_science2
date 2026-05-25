@@ -1,19 +1,35 @@
 <h2>Grafos</h2>
 
 <style>
-  .graphs-layout { display: grid; grid-template-columns: 320px 1fr 1fr; gap: 12px; align-items: start; }
+  .graphs-layout { display: grid; grid-template-columns: 320px repeat(3, 1fr); gap: 12px; align-items: start; }
   .panel { background: #ffffff; border-radius:6px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); padding:12px; max-height:70vh; overflow:auto; }
-  .bottom-results { margin-top:12px; background:#fff; border-radius:6px; padding:12px; box-shadow:0 1px 3px rgba(0,0,0,0.08); max-height:22vh; overflow:auto; }
+  .row { display:flex; flex-wrap:wrap; gap:8px; align-items:flex-start; margin:8px 0; }
+  .row button { min-width: 120px; }
+  .row input, .row select { min-width: 100px; }
+  .form-field-row { width: 100%; align-items:flex-start; }
+  .form-field-row input,
+  .form-field-row select { min-width: 120px; flex: 1 1 160px; }
+  .form-field-row button { flex: 0 0 auto; }
+  .bottom-results { margin-top:12px; background:#fff; border-radius:6px; padding:12px; box-shadow:0 1px 3px rgba(0,0,0,0.08); min-height:260px; max-height:42vh; overflow:auto; }
+  .matrix-card { margin-top: 12px; padding: 16px; border: 1px solid #d1d5db; border-radius: 8px; background: #f8fafc; min-height: 240px; }
+  .matrix-card h5 { margin-bottom: 10px; }
+  .matrix-card td { min-width: 40px; }
+  .matrix-card table { border-collapse: collapse; width: 100%; text-align: center; font-family: 'Segoe UI', sans-serif; }
+  .matrix-card th,
+  .matrix-card td { border: 1px solid #cbd5e1; padding: 8px 10px; }
+  .matrix-card th { background: #e2e8f0; font-weight: 700; }
+  .matrix-card td { background: #ffffff; }
+  .matrix-card .table-scroll { overflow-x: auto; }
   .accordion { border-bottom:1px solid #eee; }
   .accordion .head { display:flex; justify-content:space-between; align-items:center; cursor:pointer; padding:8px 0; }
   .accordion .body { max-height:0; overflow:hidden; transition:max-height 220ms ease; }
-  .accordion.expanded .body { max-height:600px; }
+  .accordion.expanded .body { max-height:800px; }
 </style>
 
 <div class="graphs-layout">
   <!-- Left panel: menus (accordion) -->
   <div class="panel" id="left-panel">
-    <div class="accordion" data-key="graph-a">
+    <div class="accordion expanded" data-key="graph-a">
       <div class="head"><strong>Graph A</strong><span>▾</span></div>
       <div class="body">
         <div class="row">
@@ -37,25 +53,25 @@
           <input type="text" id="graphA-vertex-name" placeholder="Ej: A" />
           <button id="add-vertexA-btn">Agregar</button>
         </div>
-        <div class="row">
+        <div class="row" style="align-items:flex-end;">
           <label>Operación arista:</label>
           <select id="graphA-edge-op"><option value="add">Agregar</option><option value="delete">Eliminar</option></select>
+          <button id="add-edgeA-btn" class="primary">Agregar arista</button>
         </div>
-        <div id="graphA-edge-add-fields" class="row">
-          <input type="text" id="graphA-edge-name" placeholder="nombre" />
-          <input type="text" id="graphA-edge-source" placeholder="origen" />
-          <input type="text" id="graphA-edge-target" placeholder="destino" />
+        <div id="graphA-edge-add-fields" class="row form-field-row">
+          <input type="text" id="graphA-edge-name" placeholder="Nombre" />
+          <input type="text" id="graphA-edge-source" placeholder="Origen" />
+          <input type="text" id="graphA-edge-target" placeholder="Destino" />
           <input type="number" id="graphA-edge-weight" value="1" step="1" />
-          <button id="add-edgeA-btn" class="primary">Ejecutar</button>
         </div>
-        <div id="graphA-edge-delete-fields" class="row" style="display:none">
-          <input type="text" id="graphA-delete-edge-name" placeholder="nombre arista" />
+        <div id="graphA-edge-delete-fields" class="row form-field-row" style="display:none">
+          <input type="text" id="graphA-delete-edge-name" placeholder="Nombre arista" />
           <button id="delete-edgeA-btn" class="danger">Eliminar</button>
         </div>
       </div>
     </div>
 
-    <div class="accordion" data-key="graph-b">
+    <div class="accordion expanded" data-key="graph-b">
       <div class="head"><strong>Graph B</strong><span>▾</span></div>
       <div class="body">
         <div class="row">
@@ -79,26 +95,26 @@
           <input type="text" id="graphB-vertex-name" placeholder="Ej: B" />
           <button id="add-vertexB-btn">Agregar</button>
         </div>
-        <div class="row">
+        <div class="row" style="align-items:flex-end;">
           <label>Operación arista:</label>
           <select id="graphB-edge-op"><option value="add">Agregar</option><option value="delete">Eliminar</option></select>
+          <button id="add-edgeB-btn" class="primary">Agregar arista</button>
         </div>
-        <div id="graphB-edge-add-fields" class="row">
-          <input type="text" id="graphB-edge-name" placeholder="nombre" />
-          <input type="text" id="graphB-edge-source" placeholder="origen" />
-          <input type="text" id="graphB-edge-target" placeholder="destino" />
+        <div id="graphB-edge-add-fields" class="row form-field-row">
+          <input type="text" id="graphB-edge-name" placeholder="Nombre" />
+          <input type="text" id="graphB-edge-source" placeholder="Origen" />
+          <input type="text" id="graphB-edge-target" placeholder="Destino" />
           <input type="number" id="graphB-edge-weight" value="1" step="1" />
-          <button id="add-edgeB-btn" class="primary">Ejecutar</button>
         </div>
-        <div id="graphB-edge-delete-fields" class="row" style="display:none">
-          <input type="text" id="graphB-delete-edge-name" placeholder="nombre arista" />
+        <div id="graphB-edge-delete-fields" class="row form-field-row" style="display:none">
+          <input type="text" id="graphB-delete-edge-name" placeholder="Nombre arista" />
           <button id="delete-edgeB-btn" class="danger">Eliminar</button>
         </div>
       </div>
     </div>
 
     <div class="accordion" data-key="operations">
-      <div class="head"><strong>Operaciones</strong><span>▾</span></div>
+      <div class="head"><strong>Operaciones Binarias</strong><span>▾</span></div>
       <div class="body">
         <div class="row">
           <label>Grafo A:</label>
@@ -120,6 +136,23 @@
             <option value="composition">Composición</option>
           </select>
           <button id="binary-op-btn" class="primary">Ejecutar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion" data-key="unary-operations">
+      <div class="head"><strong>Operaciones Unarias</strong><span>▾</span></div>
+      <div class="body">
+        <div class="row">
+          <label>Grafo:</label>
+          <select id="unary-graph"></select>
+          <label>Operación:</label>
+          <select id="unary-op">
+            <option value="">-- Selecciona --</option>
+            <option value="complement">Complemento</option>
+            <option value="reverse">Inverso</option>
+          </select>
+          <button id="unary-op-btn" class="primary">Ejecutar</button>
         </div>
       </div>
     </div>
@@ -156,6 +189,10 @@
       <div class="head"><strong>Matrices</strong><span>▾</span></div>
       <div class="body">
         <div class="row">
+          <label>Grafo:</label>
+          <select id="matrix-graph"></select>
+        </div>
+        <div class="row">
           <label>Matriz:</label>
           <select id="matrix-type"><option value="incidence">Incidencia</option><option value="vertex-adjacency">Adyacencia vértices</option><option value="edge-adjacency">Adyacencia aristas</option></select>
           <button id="matrix-btn">Mostrar</button>
@@ -166,6 +203,10 @@
     <div class="accordion" data-key="coloring">
       <div class="head"><strong>Coloreado</strong><span>▾</span></div>
       <div class="body">
+        <div class="row">
+          <label>Grafo:</label>
+          <select id="color-graph"></select>
+        </div>
         <div class="row">
           <button id="vertex-coloring-btn">Colorear vértices</button>
           <button id="edge-coloring-btn">Colorear aristas</button>
@@ -211,6 +252,13 @@
     <h3>Graph B</h3>
     <div class="visual-wrapper"><canvas id="graph-canvas-b" width="600" height="400"></canvas></div>
     <p class="text-muted" style="font-size:12px">Arrastra vértices</p>
+  </div>
+
+  <!-- Result: Graph R -->
+  <div class="panel" id="result-panel">
+    <h3>Resultado</h3>
+    <div class="visual-wrapper"><canvas id="graph-canvas-result" width="600" height="400"></canvas></div>
+    <p class="text-muted" style="font-size:12px">Resultado de operaciones</p>
   </div>
 </div>
 

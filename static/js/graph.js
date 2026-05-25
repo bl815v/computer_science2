@@ -21,6 +21,14 @@
       dragging: false,
       draggedVertex: null,
       dragOffset: { x: 0, y: 0 }
+    },
+    R: {
+      graphId: null,
+      graphData: { vertices: [], edges: [], directed: true, weighted: true, derived: {} },
+      positions: new Map(),
+      dragging: false,
+      draggedVertex: null,
+      dragOffset: { x: 0, y: 0 }
     }
   };
 
@@ -83,6 +91,8 @@
     const selectedBinaryB = getInput('binary-graph-b')?.value;
     const selectedUnary = getInput('unary-graph')?.value;
     const selectedPath = getInput('path-graph')?.value;
+    const selectedMatrix = getInput('matrix-graph')?.value;
+    const selectedColor = getInput('color-graph')?.value;
 
     populateSelect('graphA-selector', '-- Seleccionar A --', selectedA);
     populateSelect('graphB-selector', '-- Seleccionar B --', selectedB);
@@ -90,6 +100,8 @@
     populateSelect('binary-graph-b', '-- Grafo B --', selectedBinaryB);
     populateSelect('unary-graph', '-- Grafo --', selectedUnary);
     populateSelect('path-graph', '-- Grafo --', selectedPath);
+    populateSelect('matrix-graph', '-- Grafo --', selectedMatrix);
+    populateSelect('color-graph', '-- Grafo --', selectedColor);
   }
 
   function renderSummaryCard(title, graph) {
@@ -125,8 +137,17 @@
           }
         });
 
+        const resultState = getGraphState('R');
+        if (resultState.graphId) {
+          const resultGraph = getGraphById(resultState.graphId);
+          if (resultGraph) {
+            resultState.graphData = normalizeGraphData(resultGraph);
+          }
+        }
+
         renderAllGraphCanvases();
-        renderGraphResult('Resumen actual', `${renderSummaryCard('Graph A', getGraphById(graphSides.A.graphId))}${renderSummaryCard('Graph B', getGraphById(graphSides.B.graphId))}`);
+        const summaryContent = `${renderSummaryCard('Graph A', getGraphById(graphSides.A.graphId))}${renderSummaryCard('Graph B', getGraphById(graphSides.B.graphId))}`;
+        renderGraphResult('Resumen actual', summaryContent);
       })
       .catch(err => {
         console.error(err);
@@ -143,10 +164,10 @@
   }
 
   function renderAllGraphCanvases() {
-    ['A', 'B'].forEach(side => {
+    ['A', 'B', 'R'].forEach(side => {
       const sideState = getGraphState(side);
-      const graph = getGraphById(sideState.graphId);
-      renderGraphOnCanvas(`graph-canvas-${side.toLowerCase()}`, graph, sideState.positions);
+      const graph = getGraphById(sideState.graphId) || sideState.graphData;
+      renderGraphOnCanvas(`graph-canvas-${side === 'R' ? 'result' : side.toLowerCase()}`, graph, sideState.positions);
     });
   }
 
@@ -189,6 +210,43 @@
     return `<div class="matrix-card"><h5>${title}</h5><div class="table-scroll"><table><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table></div></div>`;
   }
 
+  function renderColoringResult(payload) {
+    if (!payload) return '<p>No hay resultados.</p>';
+    const chromatic = payload.chromatic_number || payload.chromatic_polynomial || payload.chromatic_classes;
+    const vertexColors = payload.vertex_colors || payload.vertex_coloring || payload.vertexColors || {};
+    const edgeColors = payload.edge_colors || payload.edge_coloring || payload.edgeColors || {};
+    const classEntries = payload.chromatic_classes || payload.color_classes || payload.classes || {};
+    let html = '<div style="display:grid;gap:10px">';
+    if (payload.chromatic_number !== undefined) html += `<div><strong>Número cromático:</strong> ${payload.chromatic_number}</div>`;
+    if (payload.chromatic_polynomial !== undefined) html += `<div><strong>Polinomio cromático:</strong> ${payload.chromatic_polynomial}</div>`;
+    if (Object.keys(classEntries).length > 0) {
+      html += '<div><strong>Clases cromáticas:</strong><div style="display:grid;gap:6px;margin-top:6px;">';
+      Object.entries(classEntries).forEach(([colorKey, members]) => {
+        html += `<div><strong>${colorKey}:</strong> ${Array.isArray(members) ? members.join(', ') : members}</div>`;
+      });
+      html += '</div></div>';
+    }
+    if (Object.keys(vertexColors).length > 0) {
+      html += '<div><strong>Colores de vértices:</strong><div style="display:grid;gap:4px;margin-top:6px;">';
+      Object.entries(vertexColors).forEach(([vertex, color]) => {
+        html += `<div><strong>${vertex}:</strong> ${color}</div>`;
+      });
+      html += '</div></div>';
+    }
+    if (Object.keys(edgeColors).length > 0) {
+      html += '<div><strong>Colores de aristas:</strong><div style="display:grid;gap:4px;margin-top:6px;">';
+      Object.entries(edgeColors).forEach(([edge, color]) => {
+        html += `<div><strong>${edge}:</strong> ${color}</div>`;
+      });
+      html += '</div></div>';
+    }
+    if (!chromatic && Object.keys(vertexColors).length === 0 && Object.keys(edgeColors).length === 0) {
+      html += '<p>Sin información de coloreado.</p>';
+    }
+    html += '</div>';
+    return html;
+  }
+
   function renderCircuitResult(payload) {
     if (!payload || !payload.circuits) return '<p>Sin circuitos.</p>';
     return payload.circuits.map((circuit, index) => `<div><strong>Circuito ${index + 1}:</strong> ${circuit.join(', ')}</div>`).join('');
@@ -201,6 +259,10 @@
     }
     if (payload.matrix) {
       renderGraphResult(title, renderMatrix(title, payload));
+      return;
+    }
+    if (payload.chromatic_number !== undefined || payload.chromatic_polynomial !== undefined || payload.chromatic_classes || payload.vertex_colors || payload.vertex_coloring || payload.edge_colors || payload.edge_coloring) {
+      renderGraphResult(title, renderColoringResult(payload));
       return;
     }
     if (payload.circuits) {
@@ -436,6 +498,29 @@
     return positionsLocal;
   }
 
+  const cssColorPattern = /^(#([0-9a-f]{3}|[0-9a-f]{6})|rgb(a)?\(|hsl(a)?\()/i;
+
+  function isCssColor(value) {
+    return typeof value === 'string' && cssColorPattern.test(value.trim());
+  }
+
+  function createColorPalette(count) {
+    const baseHue = Math.floor(Math.random() * 360);
+    const step = count > 1 ? Math.floor(360 / count) : 180;
+    return Array.from({ length: count }, (_, index) => {
+      const hue = (baseHue + index * step) % 360;
+      return `hsl(${hue}, 72%, 58%)`;
+    });
+  }
+
+  function getColorFromValue(value) {
+    const normalized = String(value || '').trim();
+    if (!normalized) return '#60a5fa';
+    if (isCssColor(normalized)) return normalized;
+    const seed = [...normalized].reduce((sum, char) => sum + char.charCodeAt(0), 0);
+    return `hsl(${seed % 360}, 72%, 58%)`;
+  }
+
   function renderGraphOnCanvas(canvasId, graph, positionsMap) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return;
@@ -452,6 +537,8 @@
     const positionsLocal = positionsMap && positionsMap.size > 0 ? positionsMap : layoutPositionsFor(graph, canvas);
 
     const highlights = highlightDerivedEdges(graph);
+    const edgeColors = graph.derived?.edge_colors || graph.derived?.edge_coloring || graph.derived?.edgeColors || {};
+    const vertexColors = graph.derived?.vertex_colors || graph.derived?.vertex_coloring || graph.derived?.vertexColors || {};
 
     (graph.edges || []).forEach(edge => {
       const source = typeof edge.source === 'object' ? edge.source.name : edge.source;
@@ -460,16 +547,17 @@
       const to = positionsLocal.get(target);
       if (!from || !to) return;
       const isHighlighted = highlights.has(edge.name);
+      const edgeColor = edgeColors[edge.name] || edgeColors[`${source}-${target}`] || edgeColors[`${target}-${source}`];
       ctxLocal.beginPath();
       ctxLocal.moveTo(from.x, from.y);
       ctxLocal.lineTo(to.x, to.y);
-      ctxLocal.strokeStyle = isHighlighted ? '#d13438' : '#0078d4';
-      ctxLocal.lineWidth = isHighlighted ? 3 : 2;
+      ctxLocal.strokeStyle = edgeColor || (isHighlighted ? '#d13438' : '#0078d4');
+      ctxLocal.lineWidth = edgeColor ? 3 : isHighlighted ? 3 : 2;
       ctxLocal.stroke();
       if (graph.directed) {
         const angle = Math.atan2(to.y - from.y, to.x - from.x);
         const arrowSize = 8;
-        ctxLocal.fillStyle = '#0078d4';
+        ctxLocal.fillStyle = edgeColor || '#0078d4';
         ctxLocal.beginPath();
         ctxLocal.moveTo(to.x, to.y);
         ctxLocal.lineTo(to.x - arrowSize * Math.cos(angle - Math.PI / 6), to.y - arrowSize * Math.sin(angle - Math.PI / 6));
@@ -491,9 +579,10 @@
       const pos = positionsLocal.get(name);
       if (!pos) return;
       const isOnPath = pathVertices.includes(name);
+      const fillColor = vertexColors[name] ? getColorFromValue(vertexColors[name]) : (isOnPath ? '#ffd2d0' : '#e5f1fb');
       ctxLocal.beginPath();
       ctxLocal.arc(pos.x, pos.y, 22, 0, 2 * Math.PI);
-      ctxLocal.fillStyle = isOnPath ? '#ffd2d0' : '#e5f1fb';
+      ctxLocal.fillStyle = fillColor;
       ctxLocal.fill();
       ctxLocal.strokeStyle = '#0078d4';
       ctxLocal.lineWidth = 2;
@@ -507,8 +596,8 @@
   function canvasPointerDown(side, event) {
     const canvas = getCanvas(side);
     const sideState = getGraphState(side);
-    const graph = getGraphById(sideState.graphId);
-    if (!canvas || !graph) return;
+    const graph = getGraphById(sideState.graphId) || sideState.graphData;
+    if (!canvas || !graph || !graph.vertices) return;
 
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
@@ -549,7 +638,7 @@
     mouseY = Math.min(Math.max(mouseY, 22), canvas.height - 22);
     const newPos = { x: mouseX + sideState.dragOffset.x, y: mouseY + sideState.dragOffset.y };
     sideState.positions.set(sideState.draggedVertex, newPos);
-    renderGraphOnCanvas(canvas.id, getGraphById(sideState.graphId), sideState.positions);
+    renderGraphOnCanvas(canvas.id, getGraphById(sideState.graphId) || sideState.graphData, sideState.positions);
   }
 
   function canvasPointerUp(side, event) {
@@ -619,10 +708,28 @@
         throw new Error(error.detail || 'Error al ejecutar operación binaria');
       }
       const payload = await res.json();
-      graphSides.A.graphId = resultId;
-      await refreshGraphState();
-      showAlgorithmResult(`Resultado ${operation}`, payload);
+      if (payload && payload.graph_id && (payload.vertices || payload.edges)) {
+        graphList = (graphList || []).filter(g => g.graph_id !== payload.graph_id);
+        graphList.push({
+          graph_id: payload.graph_id,
+          vertices: payload.vertices || [],
+          edges: payload.edges || [],
+          directed: payload.directed,
+          weighted: payload.weighted,
+          derived: payload.derived || {}
+        });
+        graphSides.R.graphId = payload.graph_id;
+        graphSides.R.graphData = normalizeGraphData(payload);
+        graphSides.R.positions.clear();
+        populateGraphSelectors();
+        renderAllGraphCanvases();
+        renderGraphResult(`Resultado ${operation}`, renderSummaryCard('Resultado', payload));
+      } else {
+        await refreshGraphState();
+        showAlgorithmResult(`Operación: ${operation}`, payload);
+      }
       window.notifySuccess?.('Operación binaria ejecutada.');
+      window.markStructureDirty?.();
     } catch (err) {
       window.notifyError?.(err.message);
     }
@@ -640,7 +747,7 @@
       let options = { method: 'POST', headers: { 'Content-Type': 'application/json' } };
       if (operation === 'complement') {
         endpoint = `${API_BASE}/complement`;
-        options.body = JSON.stringify({ graph_id: graphId, result_id: 'result_graph' });
+        options.body = JSON.stringify({ graph_id: graphId, result_id: `${graphId}_${operation}` });
       }
       const res = await fetch(endpoint, options);
       if (!res.ok) {
@@ -648,12 +755,28 @@
         throw new Error(error.detail || 'Error al ejecutar operación unaria');
       }
       const payload = await res.json();
-      if (operation === 'complement') {
-        graphSides.A.graphId = 'result_graph';
+      if (payload && payload.graph_id && (payload.vertices || payload.edges)) {
+        graphList = (graphList || []).filter(g => g.graph_id !== payload.graph_id);
+        graphList.push({
+          graph_id: payload.graph_id,
+          vertices: payload.vertices || [],
+          edges: payload.edges || [],
+          directed: payload.directed,
+          weighted: payload.weighted,
+          derived: payload.derived || {}
+        });
+        graphSides.R.graphId = payload.graph_id;
+        graphSides.R.graphData = normalizeGraphData(payload);
+        graphSides.R.positions.clear();
+        populateGraphSelectors();
+        renderAllGraphCanvases();
+        renderGraphResult(`Resultado ${operation}`, renderSummaryCard('Resultado', payload));
+      } else {
+        await refreshGraphState();
+        showAlgorithmResult(`Operación: ${operation}`, payload);
       }
-      await refreshGraphState();
-      showAlgorithmResult(`Resultado ${operation}`, payload);
       window.notifySuccess?.('Operación unaria ejecutada.');
+      window.markStructureDirty?.();
     } catch (err) {
       window.notifyError?.(err.message);
     }
@@ -680,7 +803,14 @@
         throw new Error(error.detail || 'Error Bellman');
       }
       const payload = await res.json();
-      showAlgorithmResult('Bellman', payload);
+      const graph = getGraphById(graphId);
+      if (graph && payload.path) {
+        graph.derived = graph.derived || {};
+        graph.derived.path = payload.path;
+        renderAllGraphCanvases();
+      }
+      showAlgorithmResult('Camino mínimo (Bellman)', payload);
+      window.notifySuccess?.('Bellman ejecutado.');
     } catch (err) {
       window.notifyError?.(err.message);
     }
@@ -707,14 +837,21 @@
         throw new Error(error.detail || 'Error Dijkstra');
       }
       const payload = await res.json();
-      showAlgorithmResult('Dijkstra', payload);
+      const graph = getGraphById(graphId);
+      if (graph && payload.path) {
+        graph.derived = graph.derived || {};
+        graph.derived.path = payload.path;
+        renderAllGraphCanvases();
+      }
+      showAlgorithmResult('Camino mínimo (Dijkstra)', payload);
+      window.notifySuccess?.('Dijkstra ejecutado.');
     } catch (err) {
       window.notifyError?.(err.message);
     }
   }
 
   async function computeMatrix() {
-    const graphId = getInput('path-graph')?.value;
+    const graphId = getInput('matrix-graph')?.value;
     const type = getInput('matrix-type')?.value;
     if (!graphId || !type) {
       window.notifyError?.('Selecciona grafo y tipo de matriz.');
@@ -733,8 +870,222 @@
     }
   }
 
+  async function computeCircuits() {
+    const graphId = getInput('path-graph')?.value;
+    if (!graphId) {
+      window.notifyError?.('Selecciona un grafo.');
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/${graphId}/circuits`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.detail || 'Error detectando circuitos');
+      }
+      const payload = await res.json();
+      showAlgorithmResult('Circuitos detectados', payload);
+      await refreshGraphState();
+    } catch (err) {
+      window.notifyError?.(err.message);
+    }
+  }
+
+  async function computeFundamentalCircuits() {
+    const graphId = getInput('path-graph')?.value;
+    if (!graphId) {
+      window.notifyError?.('Selecciona un grafo.');
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/${graphId}/fundamental-circuits`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.detail || 'Error calculando circuitos fundamentales');
+      }
+      const payload = await res.json();
+      showAlgorithmResult('Circuitos fundamentales', payload);
+      await refreshGraphState();
+    } catch (err) {
+      window.notifyError?.(err.message);
+    }
+  }
+
+  function buildVertexColorMap(payload) {
+    const vertexColors = payload.vertex_colors || payload.vertex_coloring || payload.vertexColors || {};
+    const classes = payload.chromatic_classes || payload.color_classes || payload.classes || {};
+    Object.entries(classes).forEach(([className, members]) => {
+      const color = getColorFromValue(className);
+      if (Array.isArray(members)) {
+        members.forEach(vertex => {
+          if (vertex) vertexColors[vertex] = color;
+        });
+      }
+    });
+    return vertexColors;
+  }
+
+  function buildColorMap(payload, classKeys, valueKeys) {
+    const rawColors = valueKeys.reduce((acc, key) => acc || payload[key], null) || {};
+    const classGroups = classKeys.map(key => payload[key]).find(v => v && typeof v === 'object') || null;
+    const result = {};
+
+    const normalizeGroups = groups => {
+      const classNames = Object.keys(groups);
+      const palette = createColorPalette(classNames.length);
+      const classToColor = Object.fromEntries(classNames.map((name, index) => [name, palette[index]]));
+      Object.entries(groups).forEach(([className, members]) => {
+        const color = classToColor[className];
+        if (Array.isArray(members)) {
+          members.forEach(item => {
+            if (item) result[item] = color;
+          });
+        } else if (members) {
+          result[members] = color;
+        }
+      });
+    };
+
+    if (classGroups && Object.values(classGroups).some(value => Array.isArray(value))) {
+      normalizeGroups(classGroups);
+      return result;
+    }
+
+    const uniqueLabels = [...new Set(Object.values(rawColors).filter(value => !isCssColor(value)))];
+    const palette = createColorPalette(uniqueLabels.length);
+    const labelToColor = Object.fromEntries(uniqueLabels.map((label, index) => [label, palette[index]]));
+
+    Object.entries(rawColors).forEach(([key, value]) => {
+      if (isCssColor(value)) {
+        result[key] = value;
+      } else if (labelToColor[value]) {
+        result[key] = labelToColor[value];
+      } else {
+        result[key] = getColorFromValue(value);
+      }
+    });
+
+    return result;
+  }
+
+  async function computeVertexColoring() {
+    const graphId = getInput('color-graph')?.value;
+    if (!graphId) {
+      window.notifyError?.('Selecciona un grafo.');
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/${graphId}/vertex-coloring`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.detail || 'Error coloreando vértices');
+      }
+      const payload = await res.json();
+      const graph = getGraphById(graphId);
+      if (graph) {
+        graph.derived = graph.derived || {};
+        graph.derived.vertex_colors = buildColorMap(payload, ['chromatic_classes', 'color_classes', 'classes'], ['vertex_colors', 'vertexColors']);
+        graph.derived.edge_colors = {};
+        renderAllGraphCanvases();
+      }
+      showAlgorithmResult('Coloreado de vértices', payload);
+    } catch (err) {
+      window.notifyError?.(err.message);
+    }
+  }
+
+  async function computeEdgeColoring() {
+    const graphId = getInput('color-graph')?.value;
+    if (!graphId) {
+      window.notifyError?.('Selecciona un grafo.');
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/${graphId}/edge-coloring`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.detail || 'Error coloreando aristas');
+      }
+      const payload = await res.json();
+      const graph = getGraphById(graphId);
+      if (graph) {
+        graph.derived = graph.derived || {};
+        graph.derived.edge_colors = buildColorMap(payload, ['edge_classes', 'color_classes', 'classes'], ['edge_colors', 'edgeColors']);
+        graph.derived.vertex_colors = {};
+        renderAllGraphCanvases();
+      }
+      showAlgorithmResult('Coloreado de aristas', payload);
+    } catch (err) {
+      window.notifyError?.(err.message);
+    }
+  }
+
+  async function computeIndependentSets() {
+    const graphId = getInput('path-graph')?.value;
+    if (!graphId) {
+      window.notifyError?.('Selecciona un grafo.');
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/${graphId}/independent-sets`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.detail || 'Error calculando conjuntos independientes');
+      }
+      const payload = await res.json();
+      showAlgorithmResult('Conjuntos independientes', payload);
+    } catch (err) {
+      window.notifyError?.(err.message);
+    }
+  }
+
+  async function computeMST() {
+    const graphId = getInput('path-graph')?.value;
+    if (!graphId) {
+      window.notifyError?.('Selecciona un grafo.');
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/${graphId}/mst`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.detail || 'Error calculando MST');
+      }
+      const payload = await res.json();
+      showAlgorithmResult('Árbol generador mínimo', payload);
+      await refreshGraphState();
+    } catch (err) {
+      window.notifyError?.(err.message);
+    }
+  }
+
   function initSimulator() {
-    ['A', 'B'].forEach(side => {
+    // Setup accordion toggles
+    document.querySelectorAll('.accordion .head').forEach(head => {
+      head.addEventListener('click', function() {
+        const accordion = this.closest('.accordion');
+        accordion?.classList.toggle('expanded');
+      });
+    });
+
+    ['A', 'B', 'R'].forEach(side => {
       resizeCanvas(side);
       const canvas = getCanvas(side);
       if (!canvas) return;
@@ -745,7 +1096,7 @@
     });
 
     window.addEventListener('resize', () => {
-      ['A', 'B'].forEach(side => {
+      ['A', 'B', 'R'].forEach(side => {
         resizeCanvas(side);
       });
       renderAllGraphCanvases();
@@ -768,6 +1119,12 @@
     getInput('bellman-btn')?.addEventListener('click', computeBellman);
     getInput('dijkstra-btn')?.addEventListener('click', computeDijkstra);
     getInput('matrix-btn')?.addEventListener('click', computeMatrix);
+    getInput('circuits-btn')?.addEventListener('click', computeCircuits);
+    getInput('fundamental-circuits-btn')?.addEventListener('click', computeFundamentalCircuits);
+    getInput('vertex-coloring-btn')?.addEventListener('click', computeVertexColoring);
+    getInput('edge-coloring-btn')?.addEventListener('click', computeEdgeColoring);
+    getInput('independent-sets-btn')?.addEventListener('click', computeIndependentSets);
+    getInput('mst-btn')?.addEventListener('click', computeMST);
     getInput('export-graph-btn')?.addEventListener('click', exportGraph);
     getInput('import-graph-btn')?.addEventListener('click', importGraph);
     getInput('refresh-graph-btn')?.addEventListener('click', refreshGraphState);

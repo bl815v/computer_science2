@@ -107,7 +107,12 @@
       digits: FIXED_DIGITS
     };
     if (currentType === TREE_TYPES.multiple) {
-      body.m = parseInt(mInput.value) || FIXED_M;
+      let mVal = FIXED_M;
+      if (mInput && mInput.value !== undefined && mInput.value !== null && String(mInput.value).trim() !== '') {
+        const parsed = parseInt(mInput.value, 10);
+        if (!isNaN(parsed) && parsed > 0) mVal = parsed;
+      }
+      body.m = mVal;
     }
 
     try {

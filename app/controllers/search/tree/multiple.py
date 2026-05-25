@@ -89,7 +89,7 @@ async def multiple_create(request: MultipleResidueCreateRequest):
 	"""
 	global multiple_service
 	try:
-		if multiple_service is None:
+		if multiple_service is None or getattr(multiple_service, 'm', None) != request.m:
 			multiple_service = MultipleResidueTree(m=request.m, encoding='ABC')
 		multiple_service.create(size=request.size, digits=request.digits)
 		return {
