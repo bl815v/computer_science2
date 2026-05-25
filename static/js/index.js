@@ -1,6 +1,7 @@
 const appState = {
   loadedScripts: new Set(),
-  structureDirty: false, 
+  structureDirty: false,
+  currentSimulator: null,
 };
 
 window.markStructureDirty = () => {
@@ -187,6 +188,7 @@ function resetAllServices() {
 }
 
 function loadExternalPage(page) {
+  appState.currentSimulator = page;
   resetAllServices();
   window.resetStructureDirty();
   const content = document.getElementById("content");
@@ -301,4 +303,157 @@ document.addEventListener("DOMContentLoaded", () => {
     printBtn.disabled = false;
     printBtn.addEventListener("click", printCurrentView);
   }
+
+  // Setup save/open buttons
+  const saveBtn = document.getElementById("save-btn");
+  const openBtn = document.getElementById("open-btn");
+
+  if (saveBtn) {
+    saveBtn.addEventListener("click", handleSave);
+  }
+
+  if (openBtn) {
+    openBtn.addEventListener("click", handleOpen);
+  }
 });
+
+/**
+ * Map page names to API endpoints and filenames
+ */
+function getSimulatorConfig(pageName) {
+  const configs = {
+    secuencial: { endpoint: '/linear-search/export', filename: 'busqueda_secuencial.json' },
+    binaria: { endpoint: '/binary-search/export', filename: 'busqueda_binaria.json' },
+    hash: { endpoint: '/hash/export', filename: 'tabla_hash.json' },
+    arbol: { endpoint: null, filename: null }, // Has submenu (simple, multiple, digital)
+    'simple-residue': { endpoint: '/simple-residue/export', filename: 'arbol_simple.json' },
+    'multiple-residue': { endpoint: '/multiple-residue/export', filename: 'arbol_multiple.json' },
+    digital: { endpoint: '/digital/export', filename: 'arbol_digital.json' },
+    huffman: { endpoint: '/huffman/export', filename: 'arbol_huffman.json' },
+    indices: { endpoint: null, filename: null }, // Has multiple index types
+    'primary-index': { endpoint: '/search/index/primary/export', filename: 'indice_primario.json' },
+    'secondary-index': { endpoint: '/search/index/secondary/export', filename: 'indice_secundario.json' },
+    lineal_externa: { endpoint: '/external/linear/export', filename: 'busqueda_lineal_externa.json' },
+    binaria_externa: { endpoint: '/external/binary/export', filename: 'busqueda_binaria_externa.json' },
+    hash_externa: { endpoint: '/hash-external/export', filename: 'hash_externo.json' },
+    hash_dinamica: { endpoint: '/dynamic-hash/export', filename: 'hash_dinamico.json' },
+  };
+  return configs[pageName];
+}
+
+/**
+ * Detect current simulator page
+ */
+function getCurrentSimulatorPage() {
+  // Primary: use tracked current simulator
+  if (appState.currentSimulator) {
+    return appState.currentSimulator;
+  }
+
+  // Fallback 1: find active ribbon button
+  const activeBtn = document.querySelector('.ribbon-btn.active');
+  if (activeBtn && activeBtn.dataset.page) {
+    return activeBtn.dataset.page;
+  }
+
+  // Fallback 2: detect from loaded scripts
+  for (let url of appState.loadedScripts) {
+    const match = url.match(/\/js\/(\w+)\.js/);
+    if (match) {
+      const page = match[1];
+      if (page !== 'index' && page !== 'notificaciones' && page !== 'save-utils') {
+        return page;
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Handle save button click
+ */
+async function handleSave() {
+  const page = getCurrentSimulatorPage();
+  
+  if (!page) {
+    if (window.notifyInfo) {
+      window.notifyInfo('Por favor, selecciona un simulador primero.');
+    }
+    return;
+  }
+
+  const config = getSimulatorConfig(page);
+  
+  if (!config || !config.endpoint) {
+    if (window.notifyError) {
+      window.notifyError('Este simulador aún no soporta guardar.');
+    }
+    return;
+  }
+
+  try {
+    if (!window.saveUtils) {
+      if (window.notifyError) {
+        window.notifyError('Sistema de guardado no disponible.');
+      }
+      return;
+    }
+
+    await window.saveUtils.saveStructureAs(config.endpoint, config.filename);
+    window.resetStructureDirty?.();
+  } catch (error) {
+    console.error('Save error:', error);
+  }
+}
+
+/**
+ * Handle open button click
+ */
+async function handleOpen() {
+  const page = getCurrentSimulatorPage();
+  
+  if (!page) {
+    if (window.notifyInfo) {
+      window.notifyInfo('Por favor, selecciona un simulador primero.');
+    }
+    return;
+  }
+
+  const config = getSimulatorConfig(page);
+  
+  if (!config || !config.endpoint) {
+    if (window.notifyError) {
+      window.notifyError('Este simulador aún no soporta abrir archivos.');
+    }
+    return;
+  }
+
+  try {
+    if (!window.saveUtils) {
+      if (window.notifyError) {
+        window.notifyError('Sistema de carga no disponible.');
+      }
+      return;
+    }
+
+    // Extract endpoint without /export to get import endpoint
+    const importEndpoint = config.endpoint.replace('/export', '/import');
+    const state = await window.saveUtils.loadStructure(importEndpoint);
+    
+    // Give backend a moment to update state, then reload simulator
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    if (typeof window.initSimulator === 'function') {
+      window.initSimulator();
+    }
+    
+    window.notifySuccess('Estructura cargada correctamente.');
+    window.resetStructureDirty?.();
+  } catch (error) {
+    console.error('Open error:', error);
+    if (window.notifyError) {
+      window.notifyError('Error al cargar la estructura: ' + (error.message || 'Error desconocido'));
+    }
+  }
+}
