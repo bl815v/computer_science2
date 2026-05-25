@@ -1,0 +1,879 @@
+\documentclass[12pt,onecolumn]{IEEEtran}
+
+\usepackage[utf8]{inputenc}
+\usepackage{newunicodechar}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{cite}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{enumitem}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{xcolor}
+\usepackage{xurl}
+\usepackage{ragged2e}
+\usepackage{hyperref}
+\usepackage{bookmark}
+\usepackage{listings}
+\usepackage{csquotes}
+
+\setlength{\emergencystretch}{2em}
+\setlist[itemize]{leftmargin=1.4em}
+\setlist[enumerate]{leftmargin=1.6em}
+
+\definecolor{cs2blue}{HTML}{173F5F}
+\definecolor{cs2teal}{HTML}{206A5D}
+\definecolor{cs2gold}{HTML}{C17F00}
+\definecolor{cs2gray}{HTML}{F4F6F8}
+\definecolor{cs2dark}{HTML}{222222}
+\definecolor{cs2codebg}{HTML}{F8FAFC}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=cs2blue,
+  urlcolor=cs2teal,
+  citecolor=cs2gold,
+  pdftitle={Manual técnico - Ciencias2},
+  pdfauthor={Juan Esteban Bedoya Lautero y Andrés Cerdas Padilla}
+}
+
+\urlstyle{same}
+\interdisplaylinepenalty=2500
+\pagestyle{plain}
+
+\lstdefinestyle{cs2base}{
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{cs2codebg},
+  frame=single,
+  rulecolor=\color{black!15},
+  breaklines=true,
+  breakatwhitespace=true,
+  showstringspaces=false,
+  columns=fullflexible,
+  keepspaces=true,
+  tabsize=2,
+  aboveskip=0.9em,
+  belowskip=0.9em
+}
+\lstdefinestyle{cs2bash}{style=cs2base,language=bash}
+\lstdefinestyle{cs2json}{style=cs2base}
+\lstdefinestyle{cs2tree}{style=cs2base}
+\lstset{style=cs2base}
+
+\newcommand{\placeholderfigure}[2]{%
+  \begin{figure}[H]
+    \centering
+    \fbox{\parbox[c][7cm][c]{0.88\linewidth}{\centering\textit{#2}}}
+    \caption{#1}
+    \label{#2}
+  \end{figure}
+}
+
+\newcommand{\diagramplaceholder}[3]{%
+  \begin{figure}[H]
+    \centering
+    \fbox{\parbox[c][#2][c]{0.88\linewidth}{\centering\textit{#3}}}
+    \caption{#1}
+    \label{#3}
+  \end{figure}
+}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+
+\vspace*{1.5cm}
+
+{\scshape\LARGE Universidad Distrital Francisco José de Caldas \par}
+
+\vspace{0.5cm}
+
+{\scshape\Large Ciencias de la Computación II \par}
+
+\vspace{2.5cm}
+
+{\Huge\bfseries Manual Técnico \par}
+
+\vspace{0.7cm}
+
+{\LARGE Proyecto Ciencias2 \par}
+
+\vspace{2cm}
+
+\begin{flushleft}
+\large
+\textbf{Profesor:} Julio César Flórez Báez \\[0.4cm]
+
+\textbf{Integrantes:}
+\begin{itemize}
+    \item Juan Esteban Bedoya Lautero -- 20231020057
+    \item Andrés Cerdas Padilla -- 20231020053
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Entrega:} Examen Final
+\end{flushleft}
+
+\vfill
+
+{\large Bogotá, Colombia \par}
+{\large \today \par}
+
+\end{titlepage}
+
+\begin{abstract}
+Este documento presenta el manual técnico del proyecto final \textit{Ciencias2}, una aplicación académica desarrollada para simular estructuras de datos, algoritmos de búsqueda, indices de almacenamiento secundario y operaciones sobre grafos. La documentación describe la arquitectura modular del sistema, sus tecnologías, la organización de los servicios, el esquema de persistencia por snapshots y la interfaz REST expuesta por FastAPI. El manual esta redactado en español y estructurado con un estilo académico compatible con IEEE.
+\end{abstract}
+
+\begin{IEEEkeywords}
+FastAPI, Python, estructuras de datos, snapshots JSON, grafos, tablas hash, arboles de búsqueda.
+\end{IEEEkeywords}
+
+\newpage
+
+\tableofcontents
+
+\pagenumbering{arabic}
+
+\newpage
+
+\section{Introduccion}
+El proyecto \textit{Ciencias2} corresponde a una nota de examen final del curso Ciencias de la Computación II y fue concebido como una plataforma académica de simulación de estructuras de datos y algoritmos. Su propósito técnico consistió en materializar en un entorno interactivo varios conceptos vistos en la asignatura, de manera que el estudiante pudiera observar el comportamiento interno de las estructuras, consultar sus estados y restaurar su contenido mediante mecanismos de persistencia local.
+
+Desde el punto de vista pedagógico, el sistema se ubica en el contexto de una aplicación didáctica de apoyo a la teoría de estructuras de datos, algoritmos de búsqueda, indices de almacenamiento secundario y operaciones sobre grafos. El enfoque adoptado privilegia la separación modular de responsabilidades: una capa de control expone servicios HTTP, una capa de servicios implementa la lógica algorítmica y una capa estática ofrece la interfaz visual construida con HTML, CSS y JavaScript.
+
+El alcance del sistema es académico y demostrativo. No pretende reemplazar una solución de producción con persistencia corporativa, autenticación o almacenamiento transaccional. Por el contrario, su objetivo es representar con fidelidad el funcionamiento interno de estructuras como búsqueda lineal, búsqueda binaria, tablas hash, arboles binarios y multirrama, árbol de Huffman, indices primario/secundario y grafos con sus algoritmos clásicos. La aplicación opera enteramente en memoria y utiliza snapshots JSON para exportar e importar estados.
+
+Los objetivos técnicos principales del proyecto son los siguientes:
+\begin{itemize}
+  \item Implementar simuladores interactivos para estructuras de datos y algoritmos de la asignatura.
+  \item Exponer operaciones mediante una API REST basada en FastAPI.
+  \item Separar la lógica en módulos reutilizables para facilitar mantenimiento y extensión.
+  \item Incorporar persistencia local mediante snapshots versionados en formato JSON.
+  \item Permitir ejecución como aplicación web y como ejecutable de escritorio para Windows.
+\end{itemize}
+
+\section{Tecnologías utilizadas}
+El sistema fue construido sobre un conjunto de tecnologías coherentes con un desarrollo académico en Python. Cada tecnología cumple una función especifica dentro de la arquitectura.
+
+\subsection{Python}
+Python constituye el lenguaje principal del backend y de la lógica algorítmica. Su selección responde a la claridad sintáctica, a la disponibilidad de bibliotecas para estructuras de datos, a la facilidad para prototipar algoritmos y a la compatibilidad directa con FastAPI y PyInstaller. El proyecto se declara compatible con Python 3.11.9, versión que también se documenta en el README del repositorio.
+
+\subsection{FastAPI}
+FastAPI es el framework HTTP utilizado para construir la API REST. El archivo principal \texttt{main.py} instancia la aplicación, registra routers, configura CORS y sirve el archivo \texttt{index.html} desde el directorio \texttt{static}. En el proyecto, FastAPI actúa como capa de entrada para operaciones sobre estructuras de búsqueda, indices y grafos.
+
+\subsection{UV}
+UV es el gestor de dependencias y entornos empleado por el proyecto. En \texttt{docs/build.md} se documenta su uso para crear el entorno virtual, sincronizar dependencias y ejecutar el servidor de desarrollo. Su adopción simplifica la instalación reproducible del proyecto sin requerir gestores adicionales.
+
+\subsection{PyInstaller}
+PyInstaller se utiliza para empaquetar la aplicación como ejecutable de Windows. El archivo \texttt{app\_launcher.py} arranca el servidor FastAPI en un hilo secundario, espera la disponibilidad del servicio y luego abre una ventana nativa mediante \texttt{pywebview}. Este flujo permite distribuir el proyecto como \texttt{.exe} sin necesidad de un navegador externo.
+
+\subsection{Postman}
+Postman se emplea como herramienta de verificación de la API. El repositorio incluye una colección en \texttt{postman/graphs}\_collection.postman\_collection.json, lo que permite probar rutas de grafos y validar respuestas, códigos HTTP y estructuras JSON. En el contexto académico, Postman facilita la comprobación manual de los endpoints.
+
+\subsection{HTML, CSS y JavaScript}
+El frontend fue desarrollado con HTML, CSS y JavaScript estándar. Los archivos HTML se ubican en \texttt{static/}, mientras que la lógica interactiva reside en \texttt{static/js/} y los estilos en \texttt{static/css/}. Esta decisión elimina la dependencia de frameworks frontend y mantiene la interfaz ligera y totalmente servida por FastAPI.
+
+\subsection{NetworkX, Matplotlib y NumPy}
+Estas bibliotecas se utilizan en la visualización y modelado de estructuras. NetworkX soporta la representación de grafos y arboles en memoria, Matplotlib genera figuras y diagramas, y NumPy aporta utilidades numéricas para coordenadas y distribución visual. En los arboles y grafos estas herramientas se combinan para producir salidas gráficas consistentes.
+
+\subsection{Requests y PyWebView}
+Requests se usa en el lanzador de escritorio para verificar la disponibilidad del servidor local. PyWebView permite abrir la interfaz web dentro de una ventana nativa. Juntas, estas bibliotecas convierten la aplicación web en una experiencia de escritorio sin introducir contenedores ni servicios adicionales.
+
+\subsection{Tecnologias descartadas}
+El proyecto no utiliza Docker, no depende de una base de datos y no declara variables de entorno en archivos \texttt{.env}. La persistencia se resuelve enteramente por medio de estructuras en memoria y exportaciones JSON. Esta ausencia simplifica el despliegue y evita capas de infraestructura ajenas al objetivo académico.
+
+\section{Arquitectura del sistema}
+La arquitectura general del sistema sigue un estilo modular por capas. El punto de entrada \texttt{main.py} crea la aplicación FastAPI, monta recursos estáticos y registra routers especializados. A partir de allí, el sistema se divide en controladores y servicios:
+
+\begin{itemize}
+  \item La capa de control recibe solicitudes HTTP, valida modelos Pydantic y traduce errores a respuestas HTTP.
+  \item La capa de servicios implementa las estructuras de datos, algoritmos, validaciones internas y persistencia por snapshots.
+  \item La capa estática proporciona la interfaz gráfica que consume la API.
+\end{itemize}
+
+La comunicación entre capas se realiza de forma unidireccional. Los routers llaman a servicios o a funciones auxiliares de persistencia; los servicios no conocen el framework web y se limitan a exponer operaciones de dominio. Esta separación mejora mantenibilidad y facilita la reutilización de algoritmos fuera del contexto HTTP.
+
+\subsection{Flujo de datos}
+El flujo típico inicia en la interfaz web. El usuario realiza una acción sobre una estructura, la aplicación JavaScript construye una solicitud JSON y la envía al endpoint correspondiente. FastAPI valida la carga útil mediante modelos Pydantic, ejecuta el controlador y delega en el servicio. El servicio actualiza el estado interno, produce el resultado y el controlador lo retorna en un formato serializable.
+
+Para importación y exportación, el flujo se complementa con snapshots JSON versionados. El servicio genera un objeto con campos \texttt{type}, \texttt{version}, \texttt{config} y \texttt{state}; luego el controlador o la interfaz lo almacena o lo reinyecta al sistema. Esta estrategia preserva consistencia y permite restaurar estructuras sin base de datos.
+
+\subsection{Diagrama general de clases}
+La Figura~\ref{fig:clases-app} reserva el espacio para el diagrama general de clases del paquete \texttt{app}. El diagrama definitivo puede insertarse posteriormente sin afectar la compilación del documento.
+
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox[c][7cm][c]{0.88\linewidth}{\centering\textit{Espacio reservado para el diagrama general de clases del paquete app.}}}
+  \caption{Diagrama general de clases del paquete app}
+  \label{fig:clases-app}
+\end{figure}
+
+\subsection{Diagrama de clases de services}
+La Figura~\ref{fig:clases-services} reserva el espacio para el diagrama de clases de la capa de servicios. Allí se espera representar las jerarquías de búsqueda, arboles, indices y grafos.
+
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox[c][7cm][c]{0.88\linewidth}{\centering\textit{Espacio reservado para el diagrama de clases de la capa services.}}}
+  \caption{Diagrama de clases de la capa services}
+  \label{fig:clases-services}
+\end{figure}
+
+\subsection{Responsabilidad por capas}
+\begin{itemize}
+  \item \textbf{Controllers:} agrupan rutas REST y adaptan excepciones a códigos HTTP adecuados.
+  \item \textbf{Services:} ejecutan algoritmos y mantienen el estado de cada estructura.
+  \item \textbf{Static:} contiene el frontend y los recursos visuales.
+  \item \textbf{Build y dist:} concentran artefactos de empaquetado y distribución generados por herramientas de construcción.
+  \item \textbf{Docs:} conserva instrucciones de compilación y uso, como \texttt{docs/build.md}.
+  \item \textbf{Postman:} almacena colecciones de pruebas manuales de la API.
+\end{itemize}
+
+\newpage
+
+\section{Estructura del proyecto}
+La siguiente representación resume la organización del repositorio de trabajo:
+
+\begin{lstlisting}[style=cs2tree,caption={Estructura logica del proyecto},label={lst:tree-proyecto}]
+computer_science2/
++-- app/
+|   +-- controllers/
+|   |   +-- graphs/
+|   |   +-- search/
+|   +-- services/
+|       +-- graphs/
+|       +-- search/
++-- static/
+|   +-- css/
+|   +-- js/
++-- docs/
++-- postman/
++-- build/
++-- app_launcher.py
++-- main.py
++-- pyproject.toml
++-- README.md
++-- ruff.toml
+\end{lstlisting}
+
+\subsection{controllers}
+El directorio \texttt{app/controllers} contiene los routers FastAPI y las utilidades de validación de solicitudes. Su función es exponer la lógica de dominio mediante HTTP sin mezclarla con detalles de la interfaz gráfica. En búsqueda, los controladores centralizan la creación de endpoints comunes y la adaptación de snapshots. En grafos, cada ruta se vincula directamente con un método del servicio de grafos.
+
+\subsection{services}
+El directorio \texttt{app/services} concentra la lógica real del sistema. Allí se implementan las estructuras de búsqueda, los arboles, las tablas hash, los indices de almacenamiento secundario y los algoritmos de grafos. También se ubican los mecanismos de persistencia JSON y los modelos de dominio usados por la capa de grafos.
+
+\subsection{build}
+El directorio \texttt{build} almacena artefactos intermedios generados durante el empaquetado con PyInstaller. En este proyecto aparece asociado a \texttt{app\_launcher}. Su contenido no forma parte del código fuente funcional, pero resulta útil para diagnostico y trazabilidad del proceso de construcción.
+
+\subsection{dist}
+Aunque el árbol mostrado no lo incluye explícitamente, el directorio \texttt{dist} es el destino habitual del ejecutable final generado por PyInstaller. En términos técnicos, allí se concentran los binarios distribuidos al usuario final. Si el empaquetado se ejecuta localmente, este directorio puede aparecer como salida de distribución.
+
+\subsection{static}
+\texttt{static} contiene la interfaz visual. Los archivos HTML funcionan como vistas principales, mientras que CSS define el estilo visual y JavaScript implementa la interacción con la API. La estructura por subcarpetas permite separar estilos globales, componentes, animaciones y scripts por tipo de estructura de datos.
+
+\subsection{docs}
+\texttt{docs} conserva documentación operativa, como instrucciones de ejecución y compilación. En particular, \texttt{docs/build.md} especifica como crear el entorno, instalar dependencias, iniciar el servidor y construir el ejecutable.
+
+\subsection{out}
+No se observa un directorio \texttt{out} versionado en el repositorio. Si se genera en ejecuciones locales o en entornos de exportación, su función típica es almacenar salidas auxiliares, reportes o artefactos temporales. Para este manual, el proyecto real no depende de dicho directorio.
+
+\subsection{postman}
+\texttt{postman} contiene colecciones de prueba para explorar y validar la API. La presencia de una colección para gráficos permite reproducir escenarios de uso, verificar validaciones y documentar respuestas esperadas.
+
+\subsection{archivos principales}
+\begin{itemize}
+  \item \texttt{main.py}: instancia FastAPI, registra routers, monta estáticos y expone la ruta principal.
+  \item \texttt{app\_launcher.py}: inicia el servidor y abre la interfaz de escritorio.
+  \item \texttt{pyproject.toml}: declara dependencias y requisitos de Python.
+  \item \texttt{README.md}: ofrece una descripción general y referencias de ejecución.
+  \item \texttt{ruff.toml}: configura reglas de linting y estilo.
+\end{itemize}
+
+\section{Instalación y configuración del entorno}
+El montaje del sistema esta pensado para una instalación local reproducible. El procedimiento documentado en \texttt{docs/build.md} es compatible con Windows y sigue el uso de UV como gestor principal.
+
+\subsection{Requisitos previos}
+\begin{itemize}
+  \item Python 3.11.9 o una versión plenamente compatible.
+  \item UV instalado en el sistema.
+  \item Acceso al repositorio del proyecto.
+  \item PyInstaller disponible dentro del entorno virtual.
+\end{itemize}
+
+\subsection{Creación del entorno}
+El flujo recomendado es el siguiente:
+
+\begin{lstlisting}[style=cs2bash,caption={Creación y activación del entorno con UV},label={lst:uv-setup}]
+uv venv
+.\.venv\Scripts\activate
+uv sync
+\end{lstlisting}
+
+\subsection{Ejecución en desarrollo}
+Para levantar el servidor en modo desarrollo se usa Uvicorn:
+
+\begin{lstlisting}[style=cs2bash,caption={Ejecución del servidor de desarrollo},label={lst:run-dev}]
+uvicorn main:app --reload
+\end{lstlisting}
+
+\subsection{Ejecución de escritorio}
+El lanzador \texttt{app\_launcher.py} ejecuta la API en un hilo secundario, verifica su disponibilidad mediante Requests y finalmente abre una ventana nativa con PyWebView. Este mecanismo permite usar la aplicación como programa de escritorio sin navegar manualmente a una URL.
+
+\subsection{Construcción del ejecutable}
+La documentación del proyecto incluye el siguiente comando de PyInstaller:
+
+\begin{lstlisting}[style=cs2bash,caption={Construcción del ejecutable con PyInstaller},label={lst:pyinstaller}]
+python -m PyInstaller --noconfirm --onefile --icon=icon.ico --noconsole --name app_launcher --add-data "static;static" app_launcher.py
+\end{lstlisting}
+
+Este comando empaqueta el lanzador y copia el directorio \texttt{static} para que la interfaz siga disponible dentro del ejecutable.
+
+\section{Configuración general del sistema}
+La configuración general se distribuye entre el lanzador, la aplicación FastAPI y las capas de persistencia de cada servicio. No existe archivo \texttt{.env} ni mecanismo de variables de entorno para el estado funcional del proyecto; en consecuencia, la configuración es explicita y local al código.
+
+\subsection{Configuración de FastAPI}
+En \texttt{main.py} la aplicación se crea con titulo, descripción y versión. Ademas, se configura CORS para permitir peticiones desde \texttt{http://localhost:8000} y \texttt{http://127.0.0.1:8000}. Esta decisión simplifica la interacción del frontend servido localmente con la API.
+
+\subsection{Rutas y recursos estáticos}
+El directorio \texttt{static} se monta mediante \texttt{StaticFiles}, y la ruta raíz retorna \texttt{index.html} mediante \texttt{FileResponse}. El frontend se sirve sin necesidad de servidores externos adicionales.
+
+\subsection{Manejo de archivos}
+El sistema trabaja principalmente con memoria y archivos estáticos. Los snapshots se exportan como diccionarios JSON serializables que pueden ser copiados, almacenados o importados por el usuario. Los diagramas y figuras no se generan por defecto en tiempo de compilación, sino que quedan como placeholders en la documentación técnica.
+
+\subsection{Persistencia local}
+La persistencia se basa en snapshots versionados de estructura \texttt{type/version/config/state}. Esta convención aparece tanto en la capa general de búsqueda como en la de grafos. En busca de reproducibilidad, los servicios reconstruyen su estado exactamente a partir de esa información.
+
+\subsection{Restricciones declaradas}
+\begin{itemize}
+  \item No existe base de datos.
+  \item No se utiliza Docker.
+  \item No se usan archivos \texttt{.env}.
+  \item La persistencia es local y en memoria.
+\end{itemize}
+
+\section{Descripción técnica de módulos}
+En esta sección se documentan los módulos reales del proyecto. Se priorizan los archivos que controlan la lógica funcional, la persistencia y la exposición HTTP.
+
+\subsection{Capa de control general}
+\subsubsection{main.py}
+Este archivo inicializa FastAPI, incorpora CORS, registra todos los routers y monta los recursos estáticos. También define la ruta raíz que sirve \texttt{index.html}. Desde el punto de vista arquitectónico, es el punto de ensamblaje de toda la aplicación.
+
+\subsubsection{app/controllers/search/base\_search.py}
+Define un generador reutilizable de routers para estructuras de búsqueda. Declara los modelos \texttt{CreateRequest} e \texttt{InsertRequest}, normaliza claves numéricas y centraliza operaciones de creación, inserción, búsqueda, eliminación, exportación, importación y reseteo. El patrón de este archivo reduce duplicación entre las familias lineal y binaria, y también sirve como base conceptual para controladores afines.
+
+\subsubsection{app/controllers/search/snapshot.py}
+Centraliza el modelo \texttt{SnapshotRequest} y dos helpers: \texttt{handle\_export\_snapshot} y \texttt{handle\_import\_snapshot}. Su propósito es aislar la lógica común de importación/exportación para que los routers no repitan el manejo de snapshots ni la traducción de excepciones.
+
+\subsubsection{app/controllers/search/external/base\_external.py}
+Extiende el esquema común de búsqueda para estructuras externas. Define \texttt{CreateExternalRequest} y helpers específicos de creación e inserción. El archivo incorpora la noción de bloques y expone el tamaño de bloque y la cantidad de bloques en el estado del servicio.
+
+\subsubsection{app/controllers/search/hash/router.py}
+Este router maneja la tabla hash configurable. Permite seleccionar función hash, estrategia de colisión, crear la tabla, consultar estado, exportar, importar, insertar, buscar y eliminar. La variable global \texttt{service} almacena la instancia activa del hash table y asegura que la configuración previa influya en las operaciones posteriores.
+
+\subsubsection{app/controllers/search/external/external\_router\_factory.py}
+Genera routers reutilizables para estructuras externas como búsqueda lineal externa y binaria externa. Su diseno evita referencias obsoletas a servicios y centraliza las rutas comunes de crear, consultar estado, exportar, importar, insertar, buscar y eliminar.
+
+\subsubsection{app/controllers/search/index/router.py}
+Expone cálculos de indices de almacenamiento secundario. Incluye rutas para indice primario, secundario, multilevel primario y multilevel secundario, con endpoints de calculo, exportación e importación. Adicionalmente conserva la ultima configuración recibida por endpoint para permitir exportaciones sin cuerpo cuando ya existió una configuración previa.
+
+\subsubsection{app/controllers/search/tree/tree.py}
+Agrupa los routers de arboles de búsqueda: digital, simple residue y multiple residue. Su única responsabilidad es combinar las rutas especializadas en un router común para inclusión en \texttt{main.py}.
+
+\subsubsection{app/controllers/graphs/graph\_controller.py}
+Define todos los endpoints de grafos. La ruta controla operaciones CRUD sobre vértices y aristas, uniones, intersecciones, suma, complemento, productos cartesiano y tensorial, composición, fusión de vértices, contracción de aristas, MST, centro, distancia entre arboles, ordinal, Bellman, Dijkstra, circuitos, matrices, coloreado e importación/exportación de snapshots. Las excepciones de validación se normalizan mediante \texttt{\_handle\_error}.
+
+\subsection{Capa de servicios de búsqueda}
+\subsubsection{app/services/search/base\_search.py}
+Esta clase abstracta define la base comun para estructuras de búsqueda con claves numéricas de longitud fija. Proporciona \texttt{create}, validacion de estructura, validación de valor, insercion ordenada, eliminación, ordenamiento, reseteo y soporte nativo de snapshots mediante \texttt{save\_state} y \texttt{load\_state}. Su diseño establece el contrato que deben cumplir los servicios concretos.
+
+La complejidad de \texttt{insert} y \texttt{delete} depende del costo del ordenamiento interno, mientras que \texttt{search} queda delegado a cada estrategia concreta. Para busqueda lineal, la complejidad es $O(n)$; para búsqueda binaria, $O(\log n)$ sobre los elementos validos ordenados.
+
+\subsubsection{app/services/search/linear\_search.py}
+Implementa la búsqueda secuencial sobre el arreglo interno. Recorre todos los elementos y retorna las posiciones 1-based donde coincida la clave. Es una implementación simple y directa, apropiada para demostrar el comportamiento básico de búsqueda lineal.
+
+\subsubsection{app/services/search/binary\_search.py}
+Implementa búsqueda binaria sobre la porción útil del arreglo ordenado. Primero aísla los valores no nulos, luego ubica una ocurrencia con búsqueda binaria y finalmente expande a izquierda y derecha para devolver coincidencias consecutivas. Esta estrategia supone que la estructura mantiene orden ascendente.
+
+\subsubsection{app/services/search/persistence.py}
+Es el modulo central de persistencia. Define la versión de snapshot \texttt{1}, la clase \texttt{SnapshotError} y utilidades para construir y validar envolturas JSON. Ademas, serializa listas, nodos binarios, funciones hash y resolutores de colisión. Este modulo es el soporte transversal de exportación e importación para búsqueda y estructuras afines.
+El formato general de snapshot es:
+\begin{lstlisting}[style=cs2json,caption={Estructura canónica de snapshot},label={lst:snapshot-envelope}]
+{
+  "type": "...",
+  "version": 1,
+  "config": { ... },
+  "state": { ... }
+}
+\end{lstlisting}
+
+\subsubsection{app/services/search/hash/hash\_function.py}
+Define las estrategias de hash: modulo, cuadrado medio, truncamiento y plegado. Cada una transforma una clave numérica en un indice candidato. El modulo trabaja como conversión directa a entero, el cuadrado medio extrae dígitos centrales del cuadrado, el truncamiento selecciona posiciones especificas y el plegado agrupa dígitos con suma o multiplicación.
+
+\subsubsection{app/services/search/hash/collision\_simple.py}
+Implementa resolución de colisiones para direccionamiento abierto. Incluye resolución lineal, cuadrática y doble hashing. La versión de doble hashing aplica una segunda función hash como secuencia de sondeo. Estas estrategias permiten comparar técnicas clásicas de sondeo en tablas hash.
+
+\subsubsection{app/services/search/hash/abstract\_hash.py}
+Aporta \texttt{HashMixin}, una capa de utilidades compartidas para estructuras hash. Normaliza el hash dentro de los limites de la tabla y delega al resolutor la siguiente posicion de sondeo. Esta mezcla desacopla el calculo hash de la logica de almacenamiento.
+
+\subsubsection{app/services/search/hash/hash\_table.py}
+Define la tabla hash principal del proyecto. Soporta tres modos de operacion: sin estrategia de colision, direccionamiento abierto y encadenamiento. El servicio controla insercion, busqueda, eliminacion, conmutacion a encadenamiento y serializacion del estado, incluyendo marcadores de eliminados para direccionamiento abierto.
+
+Desde el punto de vista tecnico, el modulo preserva la configuracion de la funcion hash, el modo de resolucion y el resolutor de colisiones dentro del snapshot. En direccionamiento abierto, los huecos eliminados se representan con un marcador especial para evitar perdida de informacion durante la restauracion.
+
+\subsubsection{app/services/search/external/base\_external.py}
+Define la abstraccion para estructuras externas por bloques. Calcula automaticamente el tamano de bloque como parte entera de $\sqrt{n}$, organiza el almacenamiento en bloques y provee insercion ordenada, eliminacion, compactacion y restauracion mediante snapshots. Esta estrategia emula modelos clasicos de almacenamiento externo orientados a bloques.
+
+\subsubsection{app/services/search/external/linear\_external.py}
+Implementa busqueda lineal sobre bloques ordenados. Primero compara el valor objetivo con el maximo de cada bloque y, cuando procede, realiza una busqueda lineal interna. La estrategia permite una reduccion parcial del espacio de busqueda frente a una busqueda secuencial global.
+
+\subsubsection{app/services/search/external/binary\_external.py}
+Implementa busqueda binaria en dos niveles: primero sobre bloques y luego dentro del bloque candidato. Es el enfoque mas eficiente de la familia externa ordenada implementada en el proyecto, porque reduce tanto el numero de bloques a revisar como la cantidad de comparaciones internas.
+
+\subsubsection{app/services/search/external/hash\_external.py}
+Modela una estructura externa hash con bloques y listas de overflow. Si una posicion ideal dentro del bloque esta ocupada, el valor se desplaza a una lista de desborde asociada al bloque. El modulo conserva la funcion hash en el snapshot y puede reconstruir el estado completo, incluidas las listas de overflow y los offsets de bloque.
+
+\subsubsection{app/services/search/external/dynamic\_hash.py}
+Implementa una version dinamica de hash externo con redimensionamiento automatico. La estructura crece o decrece segun umbrales de carga, rehashing y politica de expansion total o parcial. Este modulo permite estudiar el impacto del factor de carga en la distribucion de claves y en la eficiencia de insercion y busqueda.
+
+\subsubsection{app/services/search/tree/basic\_tree.py}
+Aporta la infraestructura basica para arboles de letras. Define nodos binarios simples y multiway, codificacion ABC o ASCII, validacion de letras, conversion letra-binario y reconstruccion de arboles desde el arreglo serializado. Tambien contiene la logica de snapshot comun a todos los arboles.
+
+\subsubsection{app/services/search/tree/digital\_tree.py}
+Implementa un arbol digital binario. Inserta cada letra siguiendo la secuencia de bits de su codificacion, recorriendo izquierda para 0 y derecha para 1. Su costo de busqueda depende de la longitud del codigo binario, y su visualizacion se apoya en NetworkX y Matplotlib.
+
+\subsubsection{app/services/search/tree/multiple\_residue\_tree.py}
+Implementa un arbol de residuos multiple basado en segmentos binarios de tamano \(m\). Cada nivel procesa un bloque de bits y dispone de \(2^m\) hijos por nodo. Cuando se detectan colisiones, el modulo crea nodos internos y redistribuye hojas, manteniendo la consistencia del arbol.
+
+\subsubsection{app/services/search/tree/huffman\_tree.py}
+Construye un arbol de Huffman a partir de un texto. Usa \texttt{Counter} para frecuencias, \texttt{heapq} para la cola de prioridad y genera codigos binarios para cada caracter. El arbol es inmutable una vez construido, por lo que no permite inserciones ni eliminaciones. El snapshot de Huffman es mas estricto que el de otras estructuras porque valida texto original, frecuencias, codigos y forma del arbol.
+
+\subsubsection{app/services/search/index/base\_index.py}
+Define el fundamento comun de los calculos de indice secundario. Calcula factor de bloque de datos, numero de bloques, factor de bloque de indice, accesos por busqueda binaria y jerarquia multilevel. Tambien implementa persistencia por snapshots para configuraciones de indices.
+
+\subsubsection{app/services/search/index/primary\_index.py}
+Calcula metricas de indice primario. Su formula utiliza el numero de bloques de datos y suma un acceso adicional para recuperar el bloque objetivo. El resultado se entrega en un modelo de respuesta tipado.
+
+\subsubsection{app/services/search/index/secondary\_index.py}
+Calcula metricas de indice secundario. A diferencia del indice primario, considera una entrada de indice por cada registro, por lo que el numero de entradas se relaciona con \(r\) y no solo con los bloques de datos.
+
+\subsubsection{app/services/search/index/multilevel\_index.py}
+Extiende los calculos de indice con jerarquias multilevel. Genera una lista de niveles y ajusta el numero de accesos estimado para reflejar la busqueda en capas adicionales. El proyecto lo usa para representar estructuras primarias y secundarias de varios niveles.
+
+\subsubsection{app/services/search/index/models.py}
+Contiene modelos de datos ligeros para niveles de indice y resultados de calculo. Estos dataclasses encapsulan los resultados que luego serializa FastAPI en las respuestas HTTP.
+
+\subsection{Capa de servicios de grafos}
+\subsubsection{app/services/graphs/models.py}
+Define los modelos de dominio: \texttt{Graph}, \texttt{Vertex}, \texttt{Edge} y estructuras derivadas como \texttt{MSTResult}, \texttt{PathResult}, \texttt{BellmanResult}, \texttt{DijkstraResult}, \texttt{CircuitResult}, \texttt{ColoringResult}, \texttt{IndependentSetsResult} y \texttt{TreeDistanceResult}. La eleccion de dataclasses simplifica serializacion, lectura de codigo y mantenimiento.
+
+\subsubsection{app/services/graphs/validators.py}
+Agrupa validaciones de integridad. Verifica existencia de grafos, unicidad de vertices y aristas, compatibilidad entre grafos, presencia de pesos y condiciones para algoritmos especificos. Este modulo evita que la logica algoritimica opere sobre estructuras invalidas.
+
+\subsubsection{app/services/graphs/serializer.py}
+Implementa snapshots para grafos. El formato usa \texttt{type = graph} y \texttt{version = 1}. Serializa vertices, aristas y datos derivados de forma determinista. La restauracion reconstruye el grafo completo, incluidas sus estructuras derivadas cuando estas forman parte del estado exportado.
+
+\subsubsection{app/services/graphs/matrix\_utils.py}
+Calcula matrices de incidencia, adyacencia de vertices y adyacencia de aristas. Estas matrices se derivan directamente del estado del grafo y alimentan la visualizacion o el analisis estructural.
+
+\subsubsection{app/services/graphs/graph\_service.py}
+Es el orquestador central de grafos. Mantiene un registro en memoria de grafos por identificador y expone operaciones CRUD, algebra de grafos, transformaciones, algoritmos de recorrido y analisis estructural. Tambien centraliza la generacion de derivados almacenados dentro de cada grafo.
+
+\subsubsection{app/services/graphs/algorithms/*}
+El subpaquete de algoritmos contiene las operaciones especializadas: \texttt{operations} para union, interseccion, suma, complemento y productos; \texttt{paths} para Bellman, Dijkstra y distancia de arboles; \texttt{mst} para arbol generador minimo y centro/bicentro; \texttt{circuits} para circuitos; \texttt{coloring} para coloreado de vertices y aristas; \texttt{independent\_sets} para conjuntos independientes; y \texttt{ordinal} para funciones ordinales. En conjunto, este subpaquete concentra la logica matematica del dominio de grafos.
+
+\subsection{Frontend estatico}
+\subsubsection{static/js}
+Los scripts del frontend se agrupan por tipo de estructura y por responsabilidad visual. \texttt{index.js} coordina la pagina principal; \texttt{secuencial.js} y \texttt{binaria.js} gestionan las simulaciones de busqueda interna; \texttt{hash.js} y \texttt{hash\_dinamica.js} administran la tabla hash clasica y la version dinamica; \texttt{hash\_externa.js}, \texttt{lineal\_externa.js} y \texttt{binaria\_externa.js} operan sobre las estructuras externas; \texttt{arbol.js} controla las interfaces de arboles; \texttt{huffman.js} concentra la vista de Huffman; \texttt{indices.js} interactua con los calculos de indices; \texttt{notificaciones.js} estandariza avisos al usuario; y \texttt{save-utils.js} apoya la exportacion e importacion de estados.
+
+\subsubsection{static/css}
+Las hojas de estilo separan la presentacion por capas. \texttt{global-reset.css} limpia estilos base, \texttt{layout.css} establece la disposicion general, \texttt{components.css} define componentes reutilizables, \texttt{animations.css} incorpora transiciones, \texttt{visualization.css} ajusta contenedores de grafica y cada archivo especifico de estructura de datos refina la apariencia de su simulador.
+
+\subsubsection{Vistas HTML}
+El directorio raiz \texttt{static} incluye las vistas \texttt{index.html}, \texttt{secuencial.html}, \texttt{binaria.html}, \texttt{hash.html}, \texttt{hash\_dinamica.html}, \texttt{hash\_externa.html}, \texttt{lineal\_externa.html}, \texttt{binaria\_externa.html}, \texttt{arbol.html}, \texttt{huffman.html} e \texttt{indices.html}. Esta organizacion permite cargar una pantalla dedicada por familia funcional sin duplicar el backend.
+
+\section{API REST}
+La API REST se organiza por familias funcionales. Los endpoints devuelven principalmente JSON, aunque algunos flujos de visualizacion pueden apoyarse en recursos graficos generados por los servicios. La validacion de entrada se realiza con modelos Pydantic y la mayoria de errores de negocio se transforman en respuestas HTTP 400.
+
+\subsection{Estructura comun de busqueda}
+Las estructuras de busqueda interna reutilizan el mismo conjunto de rutas base. Este conjunto aplica para los routers de busqueda lineal y busqueda binaria, y tambien sirve como referencia para estructuras externas con adaptaciones menores.
+
+\begin{longtable}{>{\raggedright\arraybackslash}p{3.2cm}p{2.4cm}p{4.1cm}p{5.0cm}}
+\caption{Endpoints comunes de busqueda}\label{tab:endpoints-search}\\
+\toprule
+Ruta & Metodo & Entrada & Respuesta o efecto \\
+\midrule
+\endfirsthead
+\toprule
+Ruta & Metodo & Entrada & Respuesta o efecto \\
+\midrule
+\endhead
+\texttt{/create} & POST & \texttt{\{size, digits\}} & Inicializa la estructura y devuelve mensaje de creacion. \\
+\texttt{/state} & GET & Ninguna & Retorna tamano, digitos y arreglo interno. \\
+\texttt{/export} & POST & Ninguna & Serializa snapshot versionado. \\
+\texttt{/import} & POST & \texttt{\{snapshot\}} & Restaura snapshot y devuelve estado restaurado. \\
+\texttt{/reset} & POST & Ninguna & Limpia la estructura y restablece configuracion. \\
+\texttt{/insert} & POST & \texttt{\{value\}} & Inserta la clave y retorna posicion 1-based. \\
+\texttt{/search/\{value\}} & GET & Parametro de ruta & Retorna posiciones encontradas o arreglo vacio. \\
+\texttt{/delete/\{value\}} & DELETE & Parametro de ruta & Elimina la clave y retorna posiciones afectadas. \\
+\bottomrule
+\end{longtable}
+
+\subsection{Estructuras externas}
+Las rutas de estructuras externas amplian las rutas comunes con informacion de bloques.
+
+\begin{longtable}{>{\raggedright\arraybackslash}p{3.2cm}p{2.4cm}p{4.1cm}p{5.0cm}}
+\caption{Endpoints de busqueda externa}\label{tab:endpoints-external}\\
+\toprule
+Ruta & Metodo & Entrada & Respuesta o efecto \\
+\midrule
+\endfirsthead
+\toprule
+Ruta & Metodo & Entrada & Respuesta o efecto \\
+\midrule
+\endhead
+\texttt{/create} & POST & \texttt{\{size, digits\}} & Inicializa bloques y reporta tamano de bloque. \\
+\texttt{/state} & GET & Ninguna & Retorna tamano, digitos, bloque y bloques internos. \\
+\texttt{/export} & POST & Ninguna & Exporta snapshot con bloques y metadatos. \\
+\texttt{/import} & POST & \texttt{\{snapshot\}} & Restaura bloques y overflow desde snapshot. \\
+\texttt{/insert} & POST & \texttt{\{value\}} & Inserta la clave en bloque o desborde. \\
+\texttt{/search/\{value\}} & GET & Parametro de ruta & Busca en bloque y overflow. \\
+\texttt{/delete/\{value\}} & DELETE & Parametro de ruta & Elimina la clave y compacta. \\
+\bottomrule
+\end{longtable}
+
+\subsection{Tabla hash}
+La tabla hash utiliza un flujo de configuracion previa antes de crear la estructura.
+
+\begin{longtable}{>{\raggedright\arraybackslash}p{3.3cm}p{2.3cm}p{4.4cm}p{4.7cm}}
+\caption{Endpoints de la tabla hash}\label{tab:endpoints-hash}\\
+\toprule
+Ruta & Metodo & Entrada & Respuesta o efecto \\
+\midrule
+\endfirsthead
+\toprule
+Ruta & Metodo & Entrada & Respuesta o efecto \\
+\midrule
+\endhead
+\path{/set-hash} & POST & \texttt{\{type, positions?, group\_size?, operation?\}} & Configura la funcion hash principal. \\
+\path{/set-collision} & POST & \texttt{\{type, second\_hash\_type?\}} & Configura encadenamiento, lineal, cuadratica o doble hashing. \\
+\path{/create} & POST & \texttt{\{size, digits\}} & Crea la tabla hash. \\
+\path{/state} & GET & Ninguna & Retorna tamano, digitos y datos internos. \\
+\path{/export} & POST & Ninguna & Exporta snapshot de tabla hash. \\
+\path{/import} & POST & \texttt{\{snapshot\}} & Restaura hash, resolutor y datos. \\
+\path{/insert} & POST & \texttt{\{value\}} & Inserta segun el modo activo. \\
+\path{/search/{value}} & GET & Parametro de ruta & Busca la clave. \\
+\path{/delete/{value}} & DELETE & Parametro de ruta & Elimina la clave. \\
+\bottomrule
+\end{longtable}
+
+\subsection{Indices de almacenamiento}
+Los calculos de indices usan la misma estructura de request y response para las cuatro variantes.
+
+\begin{longtable}{>{\raggedright\arraybackslash}p{3.4cm}p{2.3cm}p{4.3cm}p{4.7cm}}
+\caption{Endpoints de indices}\label{tab:endpoints-index}\\
+\toprule
+Ruta & Metodo & Entrada & Respuesta o efecto \\
+\midrule
+\endfirsthead
+\toprule
+Ruta & Metodo & Entrada & Respuesta o efecto \\
+\midrule
+\endhead
+\path{/primary} & POST & \texttt{\{r, block\_size, record\_length, index\_record\_length\}} & Calcula indice primario. \\
+\path{/primary/export} & POST & Opcionalmente \texttt{IndexRequest} & Exporta snapshot de configuracion. \\
+\path{/primary/import} & POST & \texttt{\{snapshot\}} & Restaura y recalcula. \\
+\path{/secondary} & POST & Igual que primary & Calcula indice secundario. \\
+\path{/secondary/export} & POST & Opcionalmente \texttt{IndexRequest} & Exporta snapshot secundario. \\
+\path{/secondary/import} & POST & \texttt{\{snapshot\}} & Restaura y recalcula. \\
+\path{/multilevel-primary} & POST & Igual que primary & Calcula indice primario multilevel. \\
+\path{/multilevel-primary/export} & POST & Opcionalmente \texttt{IndexRequest} & Exporta snapshot multilevel primario. \\
+\path{/multilevel-primary/import} & POST & \texttt{\{snapshot\}} & Restaura y recalcula. \\
+\path{/multilevel-secondary} & POST & Igual que primary & Calcula indice secundario multilevel. \\
+\path{/multilevel-secondary/export} & POST & Opcionalmente \texttt{IndexRequest} & Exporta snapshot multilevel secundario. \\
+\path{/multilevel-secondary/import} & POST & \texttt{\{snapshot\}} & Restaura y recalcula. \\
+\bottomrule
+\end{longtable}
+
+\subsection{Arboles de busqueda}
+Los arboles digital, simple residue y multiple residue comparten una interfaz REST muy similar.
+
+\begin{longtable}{>{\raggedright\arraybackslash}p{3.3cm}p{2.4cm}p{4.2cm}p{4.8cm}}
+\caption{Endpoints de arboles de busqueda}\label{tab:endpoints-trees}\\
+\toprule
+Ruta & Metodo & Entrada & Respuesta o efecto \\
+\midrule
+\endfirsthead
+\toprule
+Ruta & Metodo & Entrada & Respuesta o efecto \\
+\midrule
+\endhead
+\path{/create} & POST & \texttt{\{size, digits\}} o parametros de arbol & Crea el arbol y configura codificacion. \\
+\path{/insert} & POST & \texttt{\{letter\}} & Inserta una letra normalizada. \\
+\path{/search/{letter}} & GET & Parametro de ruta & Busca la letra y devuelve su posicion. \\
+\path{/delete/{letter}} & DELETE & Parametro de ruta & Elimina la letra. \\
+\path{/plot} & GET & Ninguna & Retorna o genera la visualizacion del arbol. \\
+\path{/search-plot/{letter}} & GET & Parametro de ruta & Genera la visualizacion de la busqueda. \\
+\path{/export} & POST & Ninguna & Exporta snapshot del arbol. \\
+\path{/import} & POST & \texttt{\{snapshot\}} & Restaura el arbol. \\
+\bottomrule
+\end{longtable}
+
+Huffman expone rutas adicionales para analisis interno:
+\begin{itemize}
+  \item \texttt{/codes}: devuelve el mapa letra--codigo.
+  \item \texttt{/table}: expone la tabla de frecuencias o equivalentes internos.
+  \item \texttt{/steps}: retorna la secuencia de construccion del arbol.
+\end{itemize}
+
+\subsection{Grafos}
+La API de grafos concentra la mayor diversidad funcional del proyecto. La tabla siguiente resume las rutas por categoria.
+\small
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\begin{longtable}{%
+    >{\raggedright\arraybackslash}p{2.8cm}
+    >{\raggedright\arraybackslash}p{2.2cm}
+    >{\raggedright\arraybackslash}p{5.1cm}
+    >{\raggedright\arraybackslash}p{4.8cm}
+}
+\caption{Endpoints principales de grafos}\label{tab:endpoints-graphs}\\
+\toprule
+\textbf{Categoria} & \textbf{Metodo} & \textbf{Ruta o conjunto de rutas} & \textbf{Efecto general} \\
+\midrule
+\endfirsthead
+
+\toprule
+\textbf{Categoria} & \textbf{Metodo} & \textbf{Ruta o conjunto de rutas} & \textbf{Efecto general} \\
+\midrule
+\endhead
+
+Estado y creacion & GET/POST & \path{/graphs/state}, \path{/graphs/create} & Lista grafos y crea un grafo en memoria. \\
+Vertices y aristas & POST/DELETE & \path{/graphs/{graph_id}/vertex}, \path{/graphs/{graph_id}/vertex/{name}}, \path{/graphs/{graph_id}/edge}, \path{/graphs/{graph_id}/edge/{name}} & Gestion CRUD de vertices y aristas. \\
+Operaciones binarias & POST & \path{/graphs/union}, \path{/graphs/intersection}, \path{/graphs/ring-sum}, \path{/graphs/sum}, \path{/graphs/cartesian-product}, \path{/graphs/tensor-product}, \path{/graphs/composition} & Calcula operaciones algebraicas entre grafos. \\
+Operaciones unarias & POST & \path{/graphs/complement}, \path{/graphs/{graph_id}/vertex-fusion}, \path{/graphs/{graph_id}/edge-contraction} & Transforma un grafo existente. \\
+Analisis de arboles & POST & \path{/graphs/{graph_id}/mst}, \path{/graphs/{graph_id}/center}, \path{/graphs/tree-distance} & Obtiene MST, centro y distancia entre arboles. \\
+Recorridos y rutas & POST & \path{/graphs/{graph_id}/ordinal}, \path{/graphs/{graph_id}/bellman}, \path{/graphs/{graph_id}/dijkstra} & Calcula ordinals y caminos minimos. \\
+Circuitos & POST & \path{/graphs/{graph_id}/circuits}, \path{/graphs/{graph_id}/fundamental-circuits} & Detecta circuitos y circuitos fundamentales. \\
+Matrices & GET & \path{/graphs/{graph_id}/matrices/incidence}, \path{/graphs/{graph_id}/matrices/vertex-adjacency}, \path{/graphs/{graph_id}/matrices/edge-adjacency} & Retorna matrices estructurales. \\
+Coloracion y conjuntos & POST & \path{/graphs/{graph_id}/vertex-coloring}, \path{/graphs/{graph_id}/edge-coloring}, \path{/graphs/{graph_id}/independent-sets} & Calcula numeros cromaticos e independencia. \\
+Persistencia & POST & \path{/graphs/export}, \path{/graphs/import} & Exporta o restaura el registro completo. \\
+\bottomrule
+\end{longtable}
+
+\subsection{Validaciones y codigos de estado}
+Los endpoints suelen responder con \texttt{200 OK} cuando la operacion concluye correctamente y con \texttt{400 Bad Request} cuando la entrada no cumple las reglas del dominio. En grafos, las validaciones se traducen desde \texttt{GraphValidationError} y \texttt{GraphSnapshotError}; en busqueda y arboles, las inconsistencias de snapshot se transforman en errores de restauracion o en excepciones de validacion.
+
+\subsection{Ejemplos JSON}
+\begin{lstlisting}[style=cs2json,caption={Ejemplo de creacion de estructura de busqueda},label={lst:json-search-create}]
+{
+  "size": 10,
+  "digits": 4
+}
+\end{lstlisting}
+
+\begin{lstlisting}[style=cs2json,caption={Ejemplo de snapshot versionado},label={lst:json-snapshot}]
+{
+  "type": "linear_search",
+  "version": 1,
+  "config": {
+    "size": 10,
+    "digits": 4,
+    "initialized": true
+  },
+  "state": {
+    "data": ["0001", null, "0010", null]
+  }
+}
+\end{lstlisting}
+
+\section{Persistencia de datos}
+La persistencia del proyecto es local, in-memory y basada en snapshots JSON. El sistema no utiliza base de datos relacional ni NoSQL. En su lugar, cada estructura conserva un estado serializable que puede exportarse, transportarse y restaurarse con validacion estricta.
+
+\subsection{Estructura de snapshot}
+La envoltura comun usa cuatro campos:
+\begin{itemize}
+  \item \texttt{type}: identifica la familia de estructura.
+  \item \texttt{version}: fija la version de formato.
+  \item \texttt{config}: conserva parametros de configuracion.
+  \item \texttt{state}: almacena el estado runtime.
+\end{itemize}
+
+La version actual es 1. El modulo comun de persistencia rechaza snapshots que no sean objetos JSON, que no coincidan con el tipo esperado o que presenten versiones incompatibles. Esta politica evita restauraciones ambiguas y facilita evolucion futura del formato.
+
+\subsection{Persistencia en estructuras de busqueda}
+Las estructuras lineales y binarias exportan \texttt{size}, \texttt{digits} e \texttt{initialized} en \texttt{config}, y la lista de datos en \texttt{state}. Las estructuras externas agregan \texttt{block\_size} y, segun el caso, bloques y overflow. La restauracion reconstruye el contenedor, valida longitudes y vuelve a poblar el estado interno.
+
+\subsection{Persistencia de tablas hash}
+La tabla hash conserva la funcion hash, el modo de resolucion y el resolutor de colisiones. En direccionamiento abierto, los espacios eliminados se marcan con un marcador especial para no confundir un hueco vacio con un registro removido. En encadenamiento, cada posicion se serializa como un arreglo de claves.
+
+\subsection{Persistencia de arboles}
+Los arboles serializan el vector interno de datos y reconstruyen la jerarquia nodo por nodo. En los arboles digitales y de residuos multiples, el proceso reconstituye la forma estructural a partir del arreglo y de los codigos binarios. En Huffman, la persistencia es mas rigurosa: el snapshot debe contener el texto original, la codificacion, las frecuencias y la forma exacta del arbol; cualquier divergencia provoca una excepcion de snapshot.
+
+\subsection{Persistencia de grafos}
+Los grafos se exportan como una lista de grafos serializados. Cada grafo conserva vertices, aristas, propiedades de direccionamiento, pesos y datos derivados. Durante la importacion, el servicio valida la coherencia de referencias entre vertices y aristas y despues reconstruye el registro completo en memoria.
+
+\subsection{Importacion y exportacion}
+La importacion y exportacion funcionan como un mecanismo de clonacion del estado funcional. Esto permite:
+\begin{itemize}
+  \item Guardar simulaciones para revisarlas posteriormente.
+  \item Intercambiar configuraciones entre sesiones.
+  \item Restaurar estructuras sin recalcular manualmente sus datos.
+\end{itemize}
+
+\section{Pruebas realizadas}
+El repositorio no muestra una bateria automatizada exhaustiva en el arbol principal; por ello, esta seccion documenta escenarios tecnicos de verificacion coherentes con el comportamiento observado en el codigo y con el uso de Postman como herramienta principal de prueba manual.
+
+\subsection{Pruebas con Postman}
+La coleccion ubicada en \path{postman/graphs_collection.postman_collection.json} permite probar la API de grafos. El mismo enfoque puede extenderse a busqueda, arboles e indices.
+
+\begin{longtable}{>{\raggedright\arraybackslash}p{3.2cm}p{4.2cm}p{4.8cm}p{2.5cm}}
+\caption{Casos de prueba tecnicos}\label{tab:test-cases}\\
+\toprule
+Escenario & Peticion & Resultado esperado & Tipo \\
+\midrule
+\endfirsthead
+\toprule
+Escenario & Peticion & Resultado esperado & Tipo \\
+\midrule
+\endhead
+Crear estructura lineal & POST \texttt{/create} con size y digits validos & Estructura inicializada y mensaje de exito & Funcional \\
+Insertar y buscar clave & POST \texttt{/insert}, luego GET \texttt{/search/\{value\}} & La posicion devuelta coincide con el estado interno & Funcional \\
+Eliminar clave & DELETE \texttt{/delete/\{value\}} & La posicion se libera y la busqueda posterior falla & Persistencia \\
+Exportar snapshot & POST \texttt{/export} & Se obtiene JSON versionado con type/config/state & Persistencia \\
+Importar snapshot & POST \texttt{/import} con snapshot previo & La estructura se restaura con el mismo contenido & Persistencia \\
+Crear grafo y agregar vertices & POST \texttt{/graphs/create} y POST \texttt{/graphs/\{id\}/vertex} & El grafo queda registrado y visible en state & API REST \\
+Calcular MST & POST \texttt{/graphs/\{id\}/mst} & Se retorna el arbol generador minimo y metadatos & Algoritmico \\
+Calcular indices & POST \texttt{/search/index/primary} & Se obtienen BFR, B, BFR\_i, B\_i y accesos & Analitico \\
+Construir Huffman & POST \texttt{/huffman/create} & Se generan codigos y arbol de frecuencias & Algoritmico \\
+\bottomrule
+\end{longtable}
+
+\subsection{Verificacion funcional}
+Los escenarios funcionales mas relevantes son los siguientes:
+\begin{itemize}
+  \item validacion de claves numericas y de longitud fija en busqueda interna;
+  \item comprobacion de colisiones en tabla hash con resolucion seleccionada;
+  \item verificacion de reordenamiento y compactacion en estructuras externas;
+  \item restauracion fiel de snapshots para arboles, hashes y grafos;
+  \item comprobacion de respuestas tipadas en calculos de indices.
+\end{itemize}
+
+\subsection{Verificacion de persistencia}
+Se recomienda validar al menos los siguientes recorridos:
+\begin{enumerate}
+  \item crear una estructura;
+  \item insertar varios elementos;
+  \item exportar el snapshot;
+  \item destruir o reiniciar la instancia;
+  \item importar el snapshot;
+  \item verificar que el estado retornado por \texttt{state} sea identico al previo.
+\end{enumerate}
+
+\section{Consideraciones tecnicas}
+El diseno del sistema presenta varias fortalezas y limitaciones que deben documentarse de manera explicita.
+
+\subsection{Decisiones de diseno}
+La principal decision de diseno fue separar la logica de control HTTP de la logica de dominio. Adicionalmente, se eligio un modelo de persistencia por snapshots para evitar introducir bases de datos y concentrar el esfuerzo pedagogico en las estructuras mismas. El uso de dataclasses en grafos y modelos de indice mejora la legibilidad y reduce la complejidad del codigo auxiliar.
+
+\subsection{Ventajas de la arquitectura}
+\begin{itemize}
+  \item Modularidad alta y bajo acoplamiento entre capas.
+  \item Reutilizacion de controladores para familias de estructuras similares.
+  \item Persistencia versionada que facilita importacion y exportacion.
+  \item Despliegue simple gracias a la ausencia de contenedores o base de datos.
+  \item Compatibilidad con ejecucion web y de escritorio.
+\end{itemize}
+
+\subsection{Limitaciones actuales}
+\begin{itemize}
+  \item El estado vive en memoria, por lo que se pierde al cerrar el proceso si no se exporta manualmente.
+  \item No existe autenticacion ni control de acceso.
+  \item No hay persistencia transaccional ni concurrencia distribuida.
+  \item Los grafos y arboles grandes pueden incrementar el costo visual y de memoria.
+\end{itemize}
+
+\subsection{Escalabilidad}
+El sistema escala de forma aceptable para fines academicos, pero no busca optimizacion industrial. Las estructuras de busqueda lineal y las matrices de grafos presentan crecimiento lineal o cuadratico segun el caso, mientras que los calculos de indices se mantienen en complejidad aritmetica constante. La tabla hash y las estructuras externas ofrecen mejor comportamiento promedio, aunque dependen del control de colisiones y del factor de carga.
+
+\subsection{Complejidad computacional}
+\begin{itemize}
+  \item Busqueda lineal: $O(n)$.
+  \item Busqueda binaria: $O(\log n)$ sobre datos ordenados.
+  \item Insercion y eliminacion en busquedas ordenadas: dominadas por el reordenamiento del arreglo.
+  \item Operaciones hash: promedio cercano a $O(1)$, peor caso $O(n)$ con colisiones severas.
+  \item Matrices de grafos: costo dependiente de $|V|$ y $|E|$.
+  \item Indices: calculos aritmeticos de costo constante.
+\end{itemize}
+
+\subsection{Manejo de errores}
+El proyecto traduce errores de dominio a HTTP 400 y reserva HTTP 500 para fallos internos inesperados. Las validaciones previenen claves no numericas, estructuras no inicializadas, snapshots incompatibles, vertices o aristas duplicadas y pesos ausentes en grafos ponderados.
+
+\subsection{Mantenibilidad}
+La existencia de modulos comunes, modelos tipados y utilidades de snapshot mejora la mantenibilidad. Una nueva estructura puede integrarse con el patron existente si respeta el contrato de base search, el modelo de snapshot y la filosofia de controladores del proyecto.
+
+\section{Conclusiones}
+El proyecto \textit{Ciencias2} logro integrar de manera coherente varias estructuras de datos y algoritmos clasicos dentro de una aplicacion academica util para visualizacion y consulta interactiva. La combinacion de backend modular, frontend estatico y persistencia por snapshots permitio construir una solucion funcional, extensible y pedagogicamente clara.
+
+Desde el punto de vista tecnico, el sistema fortalece el entendimiento de la separacion por capas, la reutilizacion de patrones comunes y la implementacion de estrategias de busqueda, hashing, arboles y grafos. Tambien evidencia la utilidad de disenar servicios que serialicen su estado para facilitar pruebas, intercambio de configuraciones y restauracion de simulaciones.
+
+Entre los aprendizajes mas relevantes se destacan la gestion de inconsistencias mediante validacion temprana, el diseno de modelos de dominio para respuestas estructuradas y la importancia de mantener una arquitectura simple cuando el objetivo es educativo. Asimismo, el uso de herramientas como FastAPI, UV, PyInstaller y Postman muestra una cadena de trabajo moderna y reproducible.
+
+Como posibles mejoras futuras se identifican la incorporacion de pruebas automatizadas, la exportacion de reportes mas detallados, la ampliacion de visualizaciones, la integracion de persistencia opcional en archivo y la adiccion de autenticacion o perfiles de usuario si el proyecto se extendiera a un entorno mas amplio.
+
+\section{Bibliografia}
+\begin{thebibliography}{99}
+
+\bibitem{python}
+Python Software Foundation, ``Python 3 Documentation,'' 2026. [En linea]. Disponible en: \url{https://docs.python.org/3/}
+
+\bibitem{fastapi}
+FastAPI, ``FastAPI Documentation,'' 2026. [En linea]. Disponible en: \url{https://fastapi.tiangolo.com/}
+
+\bibitem{uv}
+Astral, ``UV: Fast Python package and project manager,'' 2026. [En linea]. Disponible en: \url{https://docs.astral.sh/uv/}
+
+\bibitem{pyinstaller}
+PyInstaller Development Team, ``PyInstaller Manual,'' 2026. [En linea]. Disponible en: \url{https://pyinstaller.org/}
+
+\bibitem{postman}
+Postman, ``Postman Learning Center and API Client Documentation,'' 2026. [En linea]. Disponible en: \url{https://learning.postman.com/}
+
+\bibitem{html}
+MDN Web Docs, ``HTML: HyperText Markup Language,'' 2026. [En linea]. Disponible en: \url{https://developer.mozilla.org/docs/Web/HTML}
+
+\bibitem{css}
+MDN Web Docs, ``CSS: Cascading Style Sheets,'' 2026. [En linea]. Disponible en: \url{https://developer.mozilla.org/docs/Web/CSS}
+
+\bibitem{javascript}
+MDN Web Docs, ``JavaScript,'' 2026. [En linea]. Disponible en: \url{https://developer.mozilla.org/docs/Web/JavaScript}
+
+\bibitem{networkx}
+NetworkX Developers, ``NetworkX Documentation,'' 2026. [En linea]. Disponible en: \url{https://networkx.org/documentation/stable/}
+
+\bibitem{matplotlib}
+Matplotlib Development Team, ``Matplotlib Documentation,'' 2026. [En linea]. Disponible en: \url{https://matplotlib.org/stable/}
+
+\bibitem{numpy}
+NumPy Developers, ``NumPy Reference,'' 2026. [En linea]. Disponible en: \url{https://numpy.org/doc/}
+
+\bibitem{cairo}
+J. Cairo, \textit{Estructuras de Datos}. Mexico: McGraw-Hill.
+
+\bibitem{aho}
+A. V. Aho, J. E. Hopcroft y J. D. Ullman, \textit{Estructuras de Datos y Algoritmos}. Boston: Addison-Wesley.
+
+\bibitem{notes}
+J. C. Florez Baez, Apuntes de clase y orientaciones del curso Ciencias de la Computacion II, material de catedra no publicado.
+
+\end{thebibliography}
+
+\end{document}
