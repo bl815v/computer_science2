@@ -1,69 +1,220 @@
 <h2>Grafos</h2>
 
-<div class="graph-container">
-  <!-- Tarjeta: Grafo actual -->
-  <div class="card">
-    <h3>Grafo activo</h3>
-    <div class="row">
-      <label>ID del grafo:</label>
-      <input type="text" id="graph-id" value="miGrafo" />
-      <label>Dirigido:</label>
-      <input type="checkbox" id="graph-directed" />
-      <label>Ponderado:</label>
-      <input type="checkbox" id="graph-weighted" />
-      <button id="create-graph-btn" class="primary">Crear / Resetear</button>
+<style>
+  .graphs-layout { display: grid; grid-template-columns: 320px 1fr 1fr; gap: 12px; align-items: start; }
+  .panel { background: #ffffff; border-radius:6px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); padding:12px; max-height:70vh; overflow:auto; }
+  .bottom-results { margin-top:12px; background:#fff; border-radius:6px; padding:12px; box-shadow:0 1px 3px rgba(0,0,0,0.08); max-height:22vh; overflow:auto; }
+  .accordion { border-bottom:1px solid #eee; }
+  .accordion .head { display:flex; justify-content:space-between; align-items:center; cursor:pointer; padding:8px 0; }
+  .accordion .body { max-height:0; overflow:hidden; transition:max-height 220ms ease; }
+  .accordion.expanded .body { max-height:600px; }
+</style>
+
+<div class="graphs-layout">
+  <!-- Left panel: menus (accordion) -->
+  <div class="panel" id="left-panel">
+    <div class="accordion" data-key="graph-a">
+      <div class="head"><strong>Graph A</strong><span>▾</span></div>
+      <div class="body">
+        <div class="row">
+          <label>ID:</label>
+          <input type="text" id="graphA-id" value="grafoA" />
+          <label>Dirigido:</label>
+          <input type="checkbox" id="graphA-directed" />
+          <label>Ponderado:</label>
+          <input type="checkbox" id="graphA-weighted" />
+          <button id="create-graphA-btn" class="primary">Crear / Resetear</button>
+        </div>
+        <div class="row">
+          <label>Seleccionar existente:</label>
+          <select id="graphA-selector"><option value="">-- Seleccionar A --</option></select>
+          <button id="load-graphA-btn">Cargar</button>
+        </div>
+        <div class="row"><button id="complete-graphA-btn" class="primary">Completar A</button></div>
+        <hr />
+        <div class="row">
+          <label>Vértice A:</label>
+          <input type="text" id="graphA-vertex-name" placeholder="Ej: A" />
+          <button id="add-vertexA-btn">Agregar</button>
+        </div>
+        <div class="row">
+          <label>Operación arista:</label>
+          <select id="graphA-edge-op"><option value="add">Agregar</option><option value="delete">Eliminar</option></select>
+        </div>
+        <div id="graphA-edge-add-fields" class="row">
+          <input type="text" id="graphA-edge-name" placeholder="nombre" />
+          <input type="text" id="graphA-edge-source" placeholder="origen" />
+          <input type="text" id="graphA-edge-target" placeholder="destino" />
+          <input type="number" id="graphA-edge-weight" value="1" step="1" />
+          <button id="add-edgeA-btn" class="primary">Ejecutar</button>
+        </div>
+        <div id="graphA-edge-delete-fields" class="row" style="display:none">
+          <input type="text" id="graphA-delete-edge-name" placeholder="nombre arista" />
+          <button id="delete-edgeA-btn" class="danger">Eliminar</button>
+        </div>
+      </div>
     </div>
-    <div class="row">
-      <label>Seleccionar grafo existente:</label>
-      <select id="graph-selector">
-        <option value="">-- Cargando... --</option>
-      </select>
-      <button id="load-graph-btn">Cargar</button>
+
+    <div class="accordion" data-key="graph-b">
+      <div class="head"><strong>Graph B</strong><span>▾</span></div>
+      <div class="body">
+        <div class="row">
+          <label>ID:</label>
+          <input type="text" id="graphB-id" value="grafoB" />
+          <label>Dirigido:</label>
+          <input type="checkbox" id="graphB-directed" />
+          <label>Ponderado:</label>
+          <input type="checkbox" id="graphB-weighted" />
+          <button id="create-graphB-btn" class="primary">Crear / Resetear</button>
+        </div>
+        <div class="row">
+          <label>Seleccionar existente:</label>
+          <select id="graphB-selector"><option value="">-- Seleccionar B --</option></select>
+          <button id="load-graphB-btn">Cargar</button>
+        </div>
+        <div class="row"><button id="complete-graphB-btn" class="primary">Completar B</button></div>
+        <hr />
+        <div class="row">
+          <label>Vértice B:</label>
+          <input type="text" id="graphB-vertex-name" placeholder="Ej: B" />
+          <button id="add-vertexB-btn">Agregar</button>
+        </div>
+        <div class="row">
+          <label>Operación arista:</label>
+          <select id="graphB-edge-op"><option value="add">Agregar</option><option value="delete">Eliminar</option></select>
+        </div>
+        <div id="graphB-edge-add-fields" class="row">
+          <input type="text" id="graphB-edge-name" placeholder="nombre" />
+          <input type="text" id="graphB-edge-source" placeholder="origen" />
+          <input type="text" id="graphB-edge-target" placeholder="destino" />
+          <input type="number" id="graphB-edge-weight" value="1" step="1" />
+          <button id="add-edgeB-btn" class="primary">Ejecutar</button>
+        </div>
+        <div id="graphB-edge-delete-fields" class="row" style="display:none">
+          <input type="text" id="graphB-delete-edge-name" placeholder="nombre arista" />
+          <button id="delete-edgeB-btn" class="danger">Eliminar</button>
+        </div>
+      </div>
     </div>
-    <div class="row">
-      <button id="complete-graph-btn" class="primary">Completar grafo (conectar todos)</button>
+
+    <div class="accordion" data-key="operations">
+      <div class="head"><strong>Operaciones</strong><span>▾</span></div>
+      <div class="body">
+        <div class="row">
+          <label>Grafo A:</label>
+          <select id="binary-graph-a"></select>
+          <label>Grafo B:</label>
+          <select id="binary-graph-b"></select>
+        </div>
+        <div class="row">
+          <label>Resultado ID:</label>
+          <input type="text" id="binary-result-id" value="result_graph" />
+          <label>Operación:</label>
+          <select id="binary-op">
+            <option value="union">Unión</option>
+            <option value="intersection">Intersección</option>
+            <option value="ring-sum">Suma simétrica</option>
+            <option value="sum">Suma</option>
+            <option value="cartesian-product">Producto cartesiano</option>
+            <option value="tensor-product">Producto tensor</option>
+            <option value="composition">Composición</option>
+          </select>
+          <button id="binary-op-btn" class="primary">Ejecutar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion" data-key="paths">
+      <div class="head"><strong>Caminos mínimos</strong><span>▾</span></div>
+      <div class="body">
+        <div class="row">
+          <label>Grafo:</label>
+          <select id="path-graph"></select>
+          <label>Origen:</label>
+          <input type="text" id="path-source" />
+          <label>Destino:</label>
+          <input type="text" id="path-target" />
+        </div>
+        <div class="row">
+          <button id="bellman-btn">Bellman</button>
+          <button id="dijkstra-btn" class="primary">Dijkstra</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion" data-key="circuits">
+      <div class="head"><strong>Circuitos</strong><span>▾</span></div>
+      <div class="body">
+        <div class="row">
+          <button id="circuits-btn">Detectar circuitos</button>
+          <button id="fundamental-circuits-btn">Fundamentales</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion" data-key="matrices">
+      <div class="head"><strong>Matrices</strong><span>▾</span></div>
+      <div class="body">
+        <div class="row">
+          <label>Matriz:</label>
+          <select id="matrix-type"><option value="incidence">Incidencia</option><option value="vertex-adjacency">Adyacencia vértices</option><option value="edge-adjacency">Adyacencia aristas</option></select>
+          <button id="matrix-btn">Mostrar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion" data-key="coloring">
+      <div class="head"><strong>Coloreado</strong><span>▾</span></div>
+      <div class="body">
+        <div class="row">
+          <button id="vertex-coloring-btn">Colorear vértices</button>
+          <button id="edge-coloring-btn">Colorear aristas</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion" data-key="independence">
+      <div class="head"><strong>Independencia</strong><span>▾</span></div>
+      <div class="body">
+        <div class="row"><button id="independent-sets-btn">Calcular conjuntos independientes</button></div>
+      </div>
+    </div>
+
+    <div class="accordion" data-key="trees">
+      <div class="head"><strong>Árboles</strong><span>▾</span></div>
+      <div class="body">
+        <div class="row"><button id="mst-btn">MST / Árboles</button></div>
+      </div>
+    </div>
+
+    <div class="accordion" data-key="persistence">
+      <div class="head"><strong>Persistencia</strong><span>▾</span></div>
+      <div class="body">
+        <div class="row">
+          <button id="export-graph-btn">Exportar</button>
+          <button id="import-graph-btn" class="primary">Importar</button>
+          <button id="refresh-graph-btn">Restaurar estado</button>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Tarjeta: Vértices -->
-  <div class="card">
-    <h3>Vértices</h3>
-    <div class="row">
-      <label>Nombre del vértice:</label>
-      <input type="text" id="vertex-name" placeholder="Ej: A, 1, b" />
-      <button id="add-vertex-btn">Agregar vértice</button>
-    </div>
+  <!-- Center: Graph A -->
+  <div class="panel" id="center-panel">
+    <h3>Graph A</h3>
+    <div class="visual-wrapper"><canvas id="graph-canvas-a" width="600" height="400"></canvas></div>
+    <p class="text-muted" style="font-size:12px">Arrastra vértices</p>
   </div>
 
-  <!-- Tarjeta: Aristas -->
-  <div class="card">
-    <h3>Aristas</h3>
-    <div class="row">
-      <label>Operación:</label>
-      <select id="edge-op">
-        <option value="add">Agregar arista</option>
-        <option value="delete">Eliminar arista</option>
-      </select>
-    </div>
-    <div id="edge-add-fields" class="row">
-      <input type="text" id="edge-name" placeholder="nombre (ej: e1, 1)" />
-      <input type="text" id="edge-source" placeholder="origen" />
-      <input type="text" id="edge-target" placeholder="destino" />
-      <input type="number" id="edge-weight" value="1" step="1" />
-      <button id="add-edge-btn" class="primary">Ejecutar</button>
-    </div>
-    <div id="edge-delete-fields" class="row" style="display: none;">
-      <input type="text" id="delete-edge-name" placeholder="nombre de la arista" />
-      <button id="delete-edge-btn" class="danger">Eliminar</button>
-    </div>
+  <!-- Right: Graph B -->
+  <div class="panel" id="right-panel">
+    <h3>Graph B</h3>
+    <div class="visual-wrapper"><canvas id="graph-canvas-b" width="600" height="400"></canvas></div>
+    <p class="text-muted" style="font-size:12px">Arrastra vértices</p>
   </div>
+</div>
 
-  <!-- Visualización del grafo -->
-  <div class="card">
-    <h3>Visualización</h3>
-    <div class="visual-wrapper">
-      <canvas id="graph-canvas" width="800" height="500"></canvas>
-    </div>
-    <p class="text-muted" style="font-size: 12px; margin-top: 8px;">💡 Los vértices se pueden arrastrar con el mouse.</p>
-  </div>
+<!-- Bottom results -->
+<div class="bottom-results" id="bottom-results">
+  <div id="graph-results" class="graph-results"></div>
 </div>
