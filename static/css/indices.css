@@ -1,158 +1,290 @@
+/* ===============================================
+   Índices - Estilos específicos
+   Basado en el sistema Fluent UI / Microsoft
+   =============================================== */
+
+/* Contenedor principal de las columnas */
 .indices-container {
   max-width: 1200px;
   margin: 0 auto;
 }
 
-.indices-visualization {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-  margin-top: 1.5rem;
-  overflow-x: auto;
-}
-
-.level {
-  background: var(--ms-bg-secondary);
-  border-radius: var(--radius-md);
-  padding: 1rem;
-  border-left: 4px solid var(--ms-blue);
-}
-
-.level h4 {
-  margin: 0 0 0.75rem 0;
-  color: var(--ms-blue);
-}
-
-.blocks-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  justify-content: flex-start;
-}
-
-.block-card {
-  background: white;
-  border: 1px solid var(--ms-border);
-  border-radius: var(--radius-sm);
-  min-width: 100px;
-  text-align: center;
-  box-shadow: var(--shadow-sm);
-  transition: all 0.2s ease;
-}
-
-.block-card.data-block {
-  border-top: 4px solid var(--ms-blue);
-}
-
-.block-card.index-block {
-  border-top: 4px solid var(--ms-success);
-}
-
-.block-card.multilevel {
-  border-top: 4px solid var(--ms-warning);
-}
-
-.block-card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-md);
-}
-
-.block-header {
-  background: #f3f2f1;
-  padding: 0.25rem;
-  font-weight: 600;
-  font-size: 0.85rem;
-  border-bottom: 1px solid var(--ms-border);
-}
-
-.block-content {
-  padding: 0.5rem;
-  font-size: 0.9rem;
-}
-
-.arrow-connector {
-  display: flex;
-  justify-content: center;
-  margin: 0.5rem 0;
-  color: var(--ms-muted);
-  font-size: 1.2rem;
-}
-
+/* Estadísticas resumidas (reutiliza estilo de internas) */
 .stats-summary {
   background: var(--ms-blue-light);
-  padding: 0.75rem;
+  padding: 0.75rem 1rem;
   border-radius: var(--radius-md);
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
   display: flex;
   gap: 1.5rem;
   flex-wrap: wrap;
   justify-content: space-around;
+  font-size: 0.9rem;
 }
 
 .stat-item {
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .stat-value {
   color: var(--ms-blue);
-  font-size: 1.2rem;
+  font-weight: 600;
 }
 
+/* Contenedor flexible para las estructuras */
+.structures-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 3rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+  position: relative;
+  min-height: 400px;
+}
+
+/* Cada columna (una estructura completa) */
+.structure-column {
+  background: var(--ms-panel);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: 0.5rem;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+  transition: all var(--transition-base);
+}
+
+.structure-column:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* Título de la estructura (sobre la columna) */
+.structure-title {
+  font-weight: 600;
+  font-size: 1rem;
+  background: var(--ms-blue-light);
+  width: 100%;
+  text-align: center;
+  padding: 0.5rem;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  margin-bottom: 0.5rem;
+  color: var(--ms-blue);
+}
+
+/* Tamaño en bytes (debajo del título) */
+.structure-size {
+  font-size: 0.75rem;
+  color: var(--ms-muted);
+  margin-bottom: 0.75rem;
+  font-family: var(--font-family-mono);
+  background: var(--ms-bg-secondary);
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-full);
+}
+
+/* Lista vertical de celdas */
+.cell-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  align-items: center;
+}
+
+/* Celdas individuales (mismo estilo que en búsquedas internas) */
+.structure-column .cell {
+  width: 160px;
+  min-width: 160px;
+  margin: 0;
+  border-left: 4px solid var(--ms-blue);
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+  text-align: center;
+  background: var(--ms-panel);
+  box-shadow: var(--shadow-sm);
+  cursor: default;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+
+/* Celda de índice (borde verde) */
+.structure-column .cell.index-cell {
+  border-left-color: var(--ms-success);
+}
+
+/* Celda de datos (borde azul, por defecto) */
+.structure-column .cell.data-cell {
+  border-left-color: var(--ms-blue);
+}
+
+/* Hover sutil (excepto en puntos suspensivos) */
+.structure-column .cell:hover:not(.dots) {
+  transform: translateX(5px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Puntos suspensivos (igual que en secuencial/binaria) */
+.structure-column .cell.dots {
+  border-left-color: var(--ms-border);
+  background: transparent;
+  color: var(--ms-muted-light);
+  font-style: normal;
+  font-weight: normal;
+  text-align: center;
+  cursor: default;
+  box-shadow: none;
+  font-size: 1.2rem;
+  letter-spacing: 2px;
+}
+
+.structure-column .cell.dots::before {
+  content: none; /* Elimina el índice numérico */
+}
+
+.structure-column .cell.dots:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Texto interno de la celda */
+.structure-column .cell div:first-child {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.structure-column .cell div:last-child {
+  font-size: 0.7rem;
+  color: var(--ms-muted);
+}
+
+/* Canvas para flechas horizontales (entre columnas) */
+.arrows-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Loading y errores */
 .loading-overlay {
   text-align: center;
   padding: 2rem;
+  color: var(--ms-muted);
   font-style: italic;
 }
 
-.multilevel-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin: 1rem 0;
-}
-.level-card {
-  background: var(--ms-panel);
-  border-radius: var(--radius-md);
-  padding: 0.75rem 1.5rem;
+.error-message {
   text-align: center;
-  box-shadow: var(--shadow-sm);
-  border-top: 3px solid var(--ms-blue);
+  padding: 2rem;
+  color: var(--ms-error);
+  background: var(--ms-error-light);
+  border-radius: var(--radius-md);
 }
-.level-title {
-  font-weight: 600;
-  color: var(--ms-blue);
+
+/* Responsive: en móviles se apilan las columnas y se ocultan flechas */
+@media (max-width: 768px) {
+  .structures-container {
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+  }
+  .arrows-canvas {
+    display: none;
+  }
+  .stats-summary {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    text-align: center;
+  }
+  .structure-column .cell {
+    width: 140px;
+    min-width: 140px;
+  }
 }
-.arrow {
-  font-size: 1.5rem;
-  color: var(--ms-muted);
+
+/* Ajustes extra para pantallas muy pequeñas */
+@media (max-width: 480px) {
+  .structure-column .cell {
+    width: 120px;
+    min-width: 120px;
+    font-size: 0.8rem;
+  }
+  .structure-title {
+    font-size: 0.9rem;
+  }
+  .structure-size {
+    font-size: 0.7rem;
+  }
 }
-.blocks-representation {
-  margin-top: 1.5rem;
-  display: flex;
-  gap: 2rem;
-  flex-wrap: wrap;
+
+/* Rangos en las esquinas de las celdas */
+.structure-column .cell {
+  position: relative;
+  overflow: visible;
 }
-.block-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 0.5rem;
+
+.range-start, .range-end {
+  position: absolute;
+  font-size: 9px;
+  font-weight: normal;
+  background: rgba(255,255,240,0.9);
+  padding: 1px 3px;
+  border-radius: 3px;
+  white-space: nowrap;
+  pointer-events: none;
+  font-family: monospace;
+  z-index: 5;
+  box-shadow: 0 0 2px rgba(0,0,0,0.1);
 }
-.mini-block {
-  width: 30px;
-  height: 30px;
-  background: var(--ms-blue-light);
-  border: 1px solid var(--ms-blue);
-  border-radius: 2px;
+
+/* Índice: esquinas derechas */
+.top-right {
+  top: 2px;
+  right: 4px;
 }
-.mini-block.index {
-  background: var(--ms-success-light);
-  border-color: var(--ms-success);
+.bottom-right {
+  bottom: 2px;
+  right: 4px;
 }
-.more {
-  font-size: 0.8rem;
-  color: var(--ms-muted);
-  margin-left: 4px;
+
+/* Datos: esquinas izquierdas */
+.top-left {
+  top: 2px;
+  left: 4px;
+}
+.bottom-left {
+  bottom: 2px;
+  left: 4px;
+}
+
+/* Ajuste para que no se solapen con el texto principal */
+.structure-column .cell div:first-child {
+  margin-top: 6px;
+}
+.structure-column .cell div:nth-child(2) {
+  margin-bottom: 6px;
+}
+
+/* Centrado de estadísticas y contenedor principal */
+.stats-summary {
+  justify-content: center;
+  text-align: center;
+}
+
+.structures-container {
+  justify-content: center;
+}
+
+/* Ajuste para que las columnas no se desborden */
+.structure-column {
+  margin: 0 auto;
 }
