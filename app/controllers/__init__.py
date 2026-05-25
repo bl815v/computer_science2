@@ -26,6 +26,7 @@ from app.controllers.search.external.binary_external import router as binary_ext
 from app.controllers.search.external.dynamic_hash_router import router as dynamic_hash_router
 from app.controllers.search.external.external_hash_router import router as hash_external_router
 from app.controllers.search.external.linear_external import router as linear_external_router
+from app.controllers.graphs.graph_controller import router as graph_router
 from app.controllers.search.hash.router import router as hash_router
 from app.controllers.search.index.router import router as index_router
 from app.controllers.search.linear_search import router as linear_search_router

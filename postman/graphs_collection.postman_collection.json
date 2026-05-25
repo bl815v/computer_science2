@@ -1,0 +1,1497 @@
+{
+  "info": {
+    "_postman_id": "1b9f7a6e-13f1-4f77-a5b9-2a3f9f812001",
+    "name": "ComputerScience2 Graphs API",
+    "description": "End-to-end tests for /graphs endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8000"
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - Create Graphs",
+      "item": [
+        {
+          "name": "Create graph1",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"graph_id\": \"graph1\",\n  \"directed\": true,\n  \"weighted\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "create"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create graph2",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"graph_id\": \"graph2\",\n  \"directed\": true,\n  \"weighted\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "create"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create tree1",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"graph_id\": \"tree1\",\n  \"directed\": false,\n  \"weighted\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "create"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create tree2",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"graph_id\": \"tree2\",\n  \"directed\": false,\n  \"weighted\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "create"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 - graph1 CRUD",
+      "item": [
+        {
+          "name": "Add vertex 1",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"1\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/graph1/vertex",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "graph1",
+                "vertex"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add vertex 2",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"2\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/graph1/vertex",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "graph1",
+                "vertex"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add vertex 3",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"3\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/graph1/vertex",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "graph1",
+                "vertex"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add vertex 4",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"4\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/graph1/vertex",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "graph1",
+                "vertex"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add edge e1",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"e1\",\n  \"source\": \"1\",\n  \"target\": \"2\",\n  \"directed\": true,\n  \"weight\": 4\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/graph1/edge",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "graph1",
+                "edge"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add edge e2",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"e2\",\n  \"source\": \"1\",\n  \"target\": \"3\",\n  \"directed\": true,\n  \"weight\": 14\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/graph1/edge",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "graph1",
+                "edge"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add edge e3",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"e3\",\n  \"source\": \"2\",\n  \"target\": \"4\",\n  \"directed\": true,\n  \"weight\": 3\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/graph1/edge",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "graph1",
+                "edge"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add edge e4",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"e4\",\n  \"source\": \"3\",\n  \"target\": \"4\",\n  \"directed\": true,\n  \"weight\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/graph1/edge",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "graph1",
+                "edge"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete edge e4",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/graphs/graph1/edge/e4",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "graph1",
+                "edge",
+                "e4"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - graph2 CRUD",
+      "item": [
+        {
+          "name": "Add vertex 1",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"1\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/graph2/vertex",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "graph2",
+                "vertex"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add vertex 2",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"2\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/graph2/vertex",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "graph2",
+                "vertex"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add vertex 3",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"3\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/graph2/vertex",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "graph2",
+                "vertex"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add vertex 5",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"5\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/graph2/vertex",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "graph2",
+                "vertex"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add edge f1",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"f1\",\n  \"source\": \"1\",\n  \"target\": \"2\",\n  \"directed\": true,\n  \"weight\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/graph2/edge",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "graph2",
+                "edge"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add edge f2",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"f2\",\n  \"source\": \"2\",\n  \"target\": \"3\",\n  \"directed\": true,\n  \"weight\": 6\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/graph2/edge",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "graph2",
+                "edge"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add edge f3",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"f3\",\n  \"source\": \"3\",\n  \"target\": \"5\",\n  \"directed\": true,\n  \"weight\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/graph2/edge",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "graph2",
+                "edge"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Binary and Unary Operations",
+      "item": [
+        {
+          "name": "Union",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"graph_a_id\": \"graph1\",\n  \"graph_b_id\": \"graph2\",\n  \"result_id\": \"result_union\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/union",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "union"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Intersection",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"graph_a_id\": \"graph1\",\n  \"graph_b_id\": \"graph2\",\n  \"result_id\": \"result_intersection\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/intersection",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "intersection"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Ring Sum",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"graph_a_id\": \"graph1\",\n  \"graph_b_id\": \"graph2\",\n  \"result_id\": \"result_ring_sum\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/ring-sum",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "ring-sum"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sum",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"graph_a_id\": \"graph1\",\n  \"graph_b_id\": \"graph2\",\n  \"result_id\": \"result_sum\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/sum",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "sum"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Complement graph1",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"graph_id\": \"graph1\",\n  \"result_id\": \"result_complement\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/complement",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "complement"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cartesian Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"graph_a_id\": \"graph1\",\n  \"graph_b_id\": \"graph2\",\n  \"result_id\": \"result_cartesian\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/cartesian-product",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "cartesian-product"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Tensor Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"graph_a_id\": \"graph1\",\n  \"graph_b_id\": \"graph2\",\n  \"result_id\": \"result_tensor\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/tensor-product",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "tensor-product"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Composition",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"graph_a_id\": \"graph1\",\n  \"graph_b_id\": \"graph2\",\n  \"result_id\": \"result_composition\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/composition",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "composition"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Paths and Order",
+      "item": [
+        {
+          "name": "Ordinal graph2",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/graphs/graph2/ordinal",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "graph2",
+                "ordinal"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Bellman graph2 1 to 5",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source\": \"1\",\n  \"target\": \"5\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/graph2/bellman",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "graph2",
+                "bellman"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Dijkstra graph2 1 to 5",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source\": \"1\",\n  \"target\": \"5\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/graph2/dijkstra",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "graph2",
+                "dijkstra"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Circuits, Matrices, Coloring, Independent Sets",
+      "item": [
+        {
+          "name": "Circuits graph2",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/graphs/graph2/circuits",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "graph2",
+                "circuits"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Fundamental circuits graph2",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/graphs/graph2/fundamental-circuits",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "graph2",
+                "fundamental-circuits"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Incidence matrix graph2",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/graphs/graph2/matrices/incidence",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "graph2",
+                "matrices",
+                "incidence"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Vertex adjacency graph2",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/graphs/graph2/matrices/vertex-adjacency",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "graph2",
+                "matrices",
+                "vertex-adjacency"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Edge adjacency graph2",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/graphs/graph2/matrices/edge-adjacency",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "graph2",
+                "matrices",
+                "edge-adjacency"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Vertex coloring graph2",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/graphs/graph2/vertex-coloring",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "graph2",
+                "vertex-coloring"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Edge coloring graph2",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/graphs/graph2/edge-coloring",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "graph2",
+                "edge-coloring"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Independent sets graph2",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/graphs/graph2/independent-sets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "graph2",
+                "independent-sets"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Trees and MST",
+      "item": [
+        {
+          "name": "tree1 add A",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"A\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/tree1/vertex",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "tree1",
+                "vertex"
+              ]
+            }
+          }
+        },
+        {
+          "name": "tree1 add B",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"B\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/tree1/vertex",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "tree1",
+                "vertex"
+              ]
+            }
+          }
+        },
+        {
+          "name": "tree1 add C",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"C\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/tree1/vertex",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "tree1",
+                "vertex"
+              ]
+            }
+          }
+        },
+        {
+          "name": "tree1 add D",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"D\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/tree1/vertex",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "tree1",
+                "vertex"
+              ]
+            }
+          }
+        },
+        {
+          "name": "tree1 edge t1",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"t1\",\n  \"source\": \"A\",\n  \"target\": \"B\",\n  \"directed\": false,\n  \"weight\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/tree1/edge",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "tree1",
+                "edge"
+              ]
+            }
+          }
+        },
+        {
+          "name": "tree1 edge t2",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"t2\",\n  \"source\": \"B\",\n  \"target\": \"C\",\n  \"directed\": false,\n  \"weight\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/tree1/edge",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "tree1",
+                "edge"
+              ]
+            }
+          }
+        },
+        {
+          "name": "tree1 edge t3",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"t3\",\n  \"source\": \"C\",\n  \"target\": \"D\",\n  \"directed\": false,\n  \"weight\": 3\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/tree1/edge",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "tree1",
+                "edge"
+              ]
+            }
+          }
+        },
+        {
+          "name": "tree2 add A",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"A\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/tree2/vertex",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "tree2",
+                "vertex"
+              ]
+            }
+          }
+        },
+        {
+          "name": "tree2 add B",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"B\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/tree2/vertex",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "tree2",
+                "vertex"
+              ]
+            }
+          }
+        },
+        {
+          "name": "tree2 add C",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"C\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/tree2/vertex",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "tree2",
+                "vertex"
+              ]
+            }
+          }
+        },
+        {
+          "name": "tree2 add D",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"D\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/tree2/vertex",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "tree2",
+                "vertex"
+              ]
+            }
+          }
+        },
+        {
+          "name": "tree2 edge u1",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"u1\",\n  \"source\": \"A\",\n  \"target\": \"B\",\n  \"directed\": false,\n  \"weight\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/tree2/edge",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "tree2",
+                "edge"
+              ]
+            }
+          }
+        },
+        {
+          "name": "tree2 edge u2",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"u2\",\n  \"source\": \"B\",\n  \"target\": \"D\",\n  \"directed\": false,\n  \"weight\": 4\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/tree2/edge",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "tree2",
+                "edge"
+              ]
+            }
+          }
+        },
+        {
+          "name": "tree2 edge u3",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"u3\",\n  \"source\": \"A\",\n  \"target\": \"C\",\n  \"directed\": false,\n  \"weight\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/tree2/edge",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "tree2",
+                "edge"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Center tree1",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/graphs/tree1/center",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "tree1",
+                "center"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MST tree1",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/graphs/tree1/mst",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "tree1",
+                "mst"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Tree distance tree1-tree2",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"graph_a_id\": \"tree1\",\n  \"graph_b_id\": \"tree2\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/tree-distance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "tree-distance"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Persistence",
+      "item": [
+        {
+          "name": "State",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/graphs/state",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "state"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Export",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/graphs/export",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "export"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Import (empty snapshot example)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"snapshot\": {\n    \"type\": \"graph\",\n    \"version\": 1,\n    \"config\": { \"count\": 0 },\n    \"state\": { \"graphs\": [] }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/graphs/import",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "graphs",
+                "import"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
