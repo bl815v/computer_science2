@@ -1,13 +1,21 @@
-"""
-Binary external search implementation.
+"""Binary external search implementation.
 
-This module defines the `BinaryExternalSearch` class, which performs
-efficient searches over a block-based external search structure.
+This module defines the ``BinaryExternalSearch`` class, which
+implements a two-level binary search strategy over a block-based
+external storage structure.
 
-The structure divides the dataset into ordered blocks of approximately
-√n elements. Each block stores values in ascending order, and the
-maximum value of each block forms a non-decreasing sequence across
-the structure.
+The structure divides the dataset into ordered blocks containing
+approximately √n elements. Both the blocks and the values stored
+inside each block remain sorted in ascending order.
+
+The search algorithm operates in two phases:
+
+    1. Binary search across the blocks to identify the candidate block.
+    2. Binary search inside the selected block to locate the key.
+
+This organization significantly reduces the search space and
+approximates classical indexed external search methods used in
+file systems and database storage engines.
 
 Author: Juan Esteban Bedoya <jebedoyal@udistrital.edu.co>
 
@@ -29,99 +37,113 @@ along with ComputerScience2. If not, see <https://www.gnu.org/licenses/>.
 
 from typing import Dict, List
 
-from app.services.search.external.base_external import BaseExternalSearch
+from app.services.search.external.base_external import (
+	BaseExternalSearch,
+)
 
 
 class BinaryExternalSearch(BaseExternalSearch):
-	"""
-	Binary search implementation for block-based external structures.
+	"""Binary search implementation for external block structures.
 
-	This class performs a two-level binary search over an ordered
-	external structure composed of fixed-size blocks.
+	This class extends ``BaseExternalSearch`` by implementing
+	an efficient two-level binary search strategy.
 
-	The search strategy works as follows:
+	The structure assumes that:
 
-	1. **Block-level search**
-		A binary search is applied over the blocks to locate the first
-		block whose maximum value is greater than or equal to the target.
+	    - Blocks are globally ordered.
+	    - Values inside each block are internally ordered.
+	    - Empty positions appear only at the end of blocks.
 
-	2. **Block internal search**
-		Once the candidate block is identified, a binary search is
-		executed inside the block to determine the exact position
-		of the key.
-
-	Because both the blocks and their contents are sorted, the search
-	space is reduced significantly at each step.
+	The search process first identifies the candidate block
+	using binary search and then performs another binary search
+	inside that block to locate the requested key.
 
 	Inherited Attributes:
-	blocks (List[List[Optional[str]]]):
-		Block-based storage structure containing ordered keys.
+		blocks (List[List[Optional[str]]]):
+			Block-based storage structure containing ordered keys.
 
-	block_size (int):
-		Maximum number of elements stored in each block.
+		block_size (int):
+			Maximum number of elements stored per block.
+
 	"""
 
+	snapshot_type = 'binary_external_search'
+
 	def search(self, value: str) -> List[Dict[str, int]]:
-		"""
-		Search for a key using a two-level binary search strategy.
+		"""Search for a key using binary search over blocks.
 
-		The algorithm performs:
+		The algorithm executes the following stages:
 
-			1. Validation of the structure and key format.
-			2. Binary search across the blocks to locate the candidate block.
-			3. Binary search inside the selected block.
-			4. Return the exact position if the key exists.
+		    1. Validate the structure state and input value.
+		    2. Locate the candidate block using binary search.
+		    3. Perform binary search inside the selected block.
+		    4. Return positional information if the key exists.
 
-		Empty positions (`None`) appear only at the end of each block and
-		are treated as greater than any valid key during comparisons.
+		Empty positions (``None``) are treated as greater than
+		valid keys during comparisons and are expected to appear
+		only at the end of blocks.
 
 		Args:
 			value (str):
-				Numeric key to search for. The value must contain the
-				exact number of digits defined for the structure.
+				Numeric key to search for.
+
+				The value must contain the exact number of
+				digits configured for the structure.
 
 		Returns:
 			List[Dict[str, int]]:
-				A list containing a dictionary that describes the position
-				where the key was found. Since duplicates are not allowed,
-				the list contains at most one element.
+				List containing positional information for
+				the located key.
 
-				Each dictionary contains:
+				Since duplicate keys are not allowed,
+				the returned list contains at most one element.
 
-					- ``global_position`` (int):
-						1-based index in the entire structure.
+				Each dictionary includes:
 
-					- ``block_index`` (int):
-						1-based index of the block containing the key.
+					- ``global_position``:
+					  1-based global position in the structure.
 
-					- ``block_position`` (int):
-						1-based position of the key inside the block.
+					- ``block_index``:
+					  1-based block number containing the key.
 
-				Returns an empty list if the key does not exist in the
-				structure or if the structure is not initialized.
+					- ``block_position``:
+					  1-based position inside the block.
+
+				Returns an empty list if the key does not exist
+				or if the structure is not initialized.
 
 		"""
 		if not self.initialized:
 			return []
+
 		if len(value) != self.digits or not value.isdigit():
 			return []
 
 		low, high = 0, len(self.blocks)
+
 		while low < high:
 			mid = (low + high) // 2
+
 			block = self.blocks[mid]
 
 			max_val = None
-			for i in range(len(block) - 1, -1, -1):
+
+			for i in range(
+				len(block) - 1,
+				-1,
+				-1,
+			):
 				if block[i] is not None:
 					max_val = block[i]
 					break
 
 			if max_val is None:
 				high = mid
+
 			else:
 				if value <= max_val:
 					high = mid
+
 				else:
 					low = mid + 1
 
@@ -131,14 +153,18 @@ class BinaryExternalSearch(BaseExternalSearch):
 		candidate_block = self.blocks[low]
 
 		global_offset = 0
+
 		for i in range(low):
 			global_offset += len(self.blocks[i])
 
 		left, right = 0, len(candidate_block)
+
 		while left < right:
 			mid = (left + right) // 2
+
 			if candidate_block[mid] is None or candidate_block[mid] >= value:
 				right = mid
+
 			else:
 				left = mid + 1
 
@@ -148,6 +174,7 @@ class BinaryExternalSearch(BaseExternalSearch):
 			and candidate_block[left] == value
 		):
 			global_pos = global_offset + left + 1
+
 			return [
 				{
 					'global_position': global_pos,

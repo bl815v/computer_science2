@@ -37,6 +37,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
+from app.controllers.search.snapshot import SnapshotRequest
 from app.services.search.tree.huffman_tree import HuffmanSearchService
 
 router = APIRouter(prefix='/huffman', tags=['Huffman Tree'])
@@ -234,3 +235,66 @@ async def search_plot(letter: str):
 	service.generate_search_plot(letter, filename)
 
 	return FileResponse(filename, media_type='image/png')
+
+
+@router.post('/export')
+async def export_huffman():
+	"""
+	Export the current Huffman tree snapshot.
+
+	This endpoint serializes the current Huffman tree state
+	into a portable snapshot representation that can later
+	be restored through the import endpoint.
+
+	The exported snapshot includes:
+
+	    - Original input text.
+	    - Character frequencies.
+	    - Generated Huffman codes.
+	    - Internal tree structure.
+	    - Service configuration and metadata.
+
+	Returns:
+	    dict:
+	        Serialized snapshot containing the current
+	        Huffman tree state and configuration.
+
+	"""
+	return service.save_state()
+
+
+@router.post('/import')
+async def import_huffman(request: SnapshotRequest):
+	"""
+	Restore the Huffman tree from a snapshot.
+
+	This endpoint reconstructs the Huffman tree using
+	a previously exported snapshot and restores all
+	internal structures, generated codes, and metadata.
+
+	After restoration, the Huffman service becomes fully
+	operational and supports all search, visualization,
+	and inspection endpoints.
+
+	Args:
+	    request (SnapshotRequest):
+	        Request containing the serialized Huffman
+	        snapshot data.
+
+	Returns:
+	    dict:
+	        Serialized representation of the restored
+	        Huffman tree state.
+
+	Raises:
+	    HTTPException:
+	        If the provided snapshot is invalid,
+	        incomplete, or incompatible with the
+	        Huffman service structure.
+
+	"""
+	try:
+		service.load_state(request.snapshot)
+		return service.save_state()
+	except ValueError as exc:
+		raise HTTPException(status_code=400, detail=str(exc))

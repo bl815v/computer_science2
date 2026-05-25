@@ -41,6 +41,8 @@ class SimpleResidueTree(BaseTree):
 	binary representations diverge at a deeper level.
 	"""
 
+	snapshot_type = 'simple_residue_tree'
+
 	def __init__(self, encoding: str = 'ABC'):
 		"""
 		Initialize simple residue tree configuration.

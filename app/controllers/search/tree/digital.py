@@ -26,6 +26,7 @@ along with ComputerScience2. If not, see <https://www.gnu.org/licenses/>.
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 
+from app.controllers.search.snapshot import SnapshotRequest
 from app.services.search.tree.digital_tree import DigitalTree
 
 from .common import (
@@ -42,9 +43,33 @@ router = APIRouter(prefix='/digital', tags=['Digital Tree'])
 @router.post('/create')
 async def digital_create(request: DigitalCreateRequest):
 	"""
-	Create and initialize digital tree structure.
+	Create and initialize the digital tree structure.
 
-	Return structure configuration after initialization.
+	This endpoint allocates the internal storage required
+	for the digital search tree and configures the number
+	of digits used for key encoding.
+
+	The structure must be initialized before insert,
+	search, delete, or visualization operations can be used.
+
+	Args:
+		request (DigitalCreateRequest):
+			Request containing the tree size and digit
+			configuration.
+
+	Returns:
+		dict:
+			Dictionary containing:
+
+			- Confirmation message.
+			- Configured structure size.
+			- Digit configuration.
+
+	Raises:
+		HTTPException:
+			If the structure cannot be created due to
+			internal initialization errors.
+
 	"""
 	try:
 		digital_service.create(size=request.size, digits=request.digits)
@@ -60,10 +85,30 @@ async def digital_create(request: DigitalCreateRequest):
 @router.post('/insert')
 async def digital_insert(request: TreeInsertRequest):
 	"""
-	Insert a letter into digital tree.
+	Insert a letter into the digital tree.
 
-	Validate structure state and input before insertion.
-	Return insertion position.
+	This endpoint validates the input character,
+	checks whether the structure has been initialized,
+	and inserts the letter into the corresponding
+	position in the digital search tree.
+
+	Args:
+		request (TreeInsertRequest):
+			Request containing the letter to insert.
+
+	Returns:
+		dict:
+			Dictionary containing:
+
+			- Confirmation message.
+			- Position where the letter was inserted.
+
+	Raises:
+		HTTPException:
+			If the structure is not initialized,
+			the input is invalid,
+			or the insertion operation fails.
+
 	"""
 	if not digital_service.initialized:
 		raise HTTPException(status_code=400, detail='Estructura no inicializada')
@@ -83,9 +128,27 @@ async def digital_insert(request: TreeInsertRequest):
 @router.get('/search/{letter}')
 async def digital_search(letter: str):
 	"""
-	Search for a letter in digital tree.
+	Search for a letter in the digital tree.
 
-	Return its position if found, otherwise an empty result.
+	This endpoint locates the specified character
+	within the digital search tree and returns
+	its associated storage positions.
+
+	If the letter does not exist, an empty result
+	is returned.
+
+	Args:
+		letter (str):
+			Character to search for.
+
+	Returns:
+		dict:
+			Dictionary containing:
+
+			- Search result message.
+			- Searched value.
+			- List of matching positions.
+
 	"""
 	if not digital_service.initialized:
 		return {'position': [], 'value': letter, 'message': 'Estructura no inicializada'}
@@ -107,9 +170,26 @@ async def digital_search(letter: str):
 @router.delete('/delete/{letter}')
 async def digital_delete(letter: str):
 	"""
-	Remove a letter from digital tree.
+	Delete a letter from the digital tree.
 
-	Return deleted positions if successful.
+	This endpoint removes the specified character
+	from the digital search tree and returns the
+	positions affected by the deletion.
+
+	If the character is not present, an empty
+	result is returned.
+
+	Args:
+		letter (str):
+			Character to remove.
+
+	Returns:
+		dict:
+			Dictionary containing:
+
+			- Confirmation or error message.
+			- List of deleted positions.
+
 	"""
 	if not digital_service.initialized:
 		return {'message': 'Estructura no inicializada', 'position': []}
@@ -125,7 +205,30 @@ async def digital_delete(letter: str):
 
 @router.get('/plot')
 async def digital_plot(background_tasks: BackgroundTasks):
-	"""Generate visualization image of digital tree."""
+	"""
+	Generate a visualization of the digital tree.
+
+	This endpoint creates an image representation
+	of the current digital search tree structure.
+
+	The generated image is returned as a temporary
+	file response and automatically cleaned up
+	after delivery.
+
+	Args:
+		background_tasks (BackgroundTasks):
+			FastAPI background task manager used
+			to schedule temporary file cleanup.
+
+	Returns:
+		FileResponse:
+			Image containing the rendered digital tree.
+
+	Raises:
+		HTTPException:
+			If the tree is empty or has not been initialized.
+
+	"""
 	if digital_service.root is None:
 		raise HTTPException(status_code=400, detail='Árbol vacío')
 	return await send_image(background_tasks, digital_service.plot)
@@ -133,7 +236,32 @@ async def digital_plot(background_tasks: BackgroundTasks):
 
 @router.get('/search-plot/{letter}')
 async def digital_search_plot(letter: str, background_tasks: BackgroundTasks):
-	"""Generate visualization highlighting searched letter."""
+	"""
+	Generate a visualization highlighting a searched letter.
+
+	This endpoint creates an image representation
+	of the digital search tree and highlights the
+	node associated with the searched character.
+
+	Args:
+		letter (str):
+			Character to highlight in the visualization.
+
+		background_tasks (BackgroundTasks):
+			FastAPI background task manager used
+			to schedule temporary file cleanup.
+
+	Returns:
+		FileResponse:
+			Image containing the highlighted tree visualization.
+
+	Raises:
+		HTTPException:
+			If the tree is empty,
+			the character is invalid,
+			or the letter does not exist in the structure.
+
+	"""
 	if digital_service.root is None:
 		raise HTTPException(status_code=400, detail='Árbol vacío')
 	letter = validate_letter(letter)
@@ -141,3 +269,55 @@ async def digital_search_plot(letter: str, background_tasks: BackgroundTasks):
 	if not positions:
 		raise HTTPException(status_code=404, detail='Letra no encontrada')
 	return await send_image(background_tasks, digital_service.search_plot, letter)
+
+
+@router.post('/export')
+async def digital_export():
+	"""
+	Export the current digital tree snapshot.
+
+	This endpoint serializes the current state
+	of the digital tree into a snapshot that can
+	later be restored using the import endpoint.
+
+	The exported snapshot includes configuration,
+	structure state, and stored data.
+
+	Returns:
+		dict:
+			Serialized snapshot representing the
+			current digital tree state.
+
+	"""
+	return digital_service.save_state()
+
+
+@router.post('/import')
+async def digital_import(request: SnapshotRequest):
+	"""
+	Restore the digital tree from a snapshot.
+
+	This endpoint reconstructs the digital tree
+	using a previously exported snapshot and
+	restores its internal state and configuration.
+
+	Args:
+		request (SnapshotRequest):
+			Request containing the serialized snapshot.
+
+	Returns:
+		dict:
+			Serialized representation of the restored
+			digital tree state.
+
+	Raises:
+		HTTPException:
+			If the snapshot is invalid or incompatible
+			with the digital tree structure.
+
+	"""
+	try:
+		digital_service.load_state(request.snapshot)
+		return digital_service.save_state()
+	except ValueError as exc:
+		raise HTTPException(status_code=400, detail=str(exc))

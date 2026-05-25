@@ -46,6 +46,7 @@ along with ComputerScience2. If not, see <https://www.gnu.org/licenses/>.
 
 import heapq
 from collections import Counter
+from copy import deepcopy
 from typing import Dict, List, Optional
 
 import matplotlib.pyplot as plt
@@ -53,6 +54,13 @@ import networkx as nx
 import numpy as np
 
 from app.services.search.base_search import BaseSearchService
+from app.services.search.persistence import (
+	SnapshotError,
+	build_snapshot,
+	deserialize_binary_node,
+	serialize_binary_node,
+	validate_snapshot,
+)
 from app.services.search.tree.basic_tree import BaseTree, SimpleNode
 
 
@@ -768,6 +776,8 @@ class HuffmanSearchService(BaseSearchService):
 
 	"""
 
+	snapshot_type = 'huffman_tree'
+
 	def __init__(self):
 		"""
 		Initialize an empty Huffman search service.
@@ -780,6 +790,178 @@ class HuffmanSearchService(BaseSearchService):
 		self.size = 0
 		self.digits = 1
 		self.data = {}
+
+	def _snapshot_config(self) -> Dict[str, object]:
+		"""
+		Return the Huffman configuration used in exported snapshots.
+
+		The configuration block stores the structural metadata
+		required to validate and restore the Huffman service.
+
+		Stored fields include:
+
+			- size:
+				Number of unique characters stored in the tree.
+
+			- digits:
+				Binary digit length inherited from the tree structure.
+
+			- initialized:
+				Indicate whether the service currently contains
+				a generated Huffman tree.
+
+			- encoding:
+				Encoding strategy used by the underlying tree.
+
+		Returns:
+			Dict[str, object]:
+				Dictionary containing the snapshot configuration.
+
+		"""
+		return {
+			'size': self.size,
+			'digits': self.digits,
+			'initialized': self.initialized,
+			'encoding': self.tree.encoding if self.tree is not None else 'ABC',
+		}
+
+	def _snapshot_state(self) -> Dict[str, object]:
+		"""
+		Return the Huffman runtime state used in exported snapshots.
+
+		The state block contains all information necessary to
+		reconstruct and validate the Huffman tree, including:
+
+			- Original normalized text.
+			- Character frequency table.
+			- Generated Huffman codes.
+			- Fully encoded binary text.
+			- Serialized binary tree structure.
+			- Internal data array.
+			- Recorded construction steps.
+
+		If the service has not been initialized, an empty
+		default state is returned.
+
+		Returns:
+			Dict[str, object]:
+				Dictionary containing the serialized Huffman state.
+
+		"""
+		if self.tree is None:
+			return {
+				'original_text': '',
+				'frequencies': {},
+				'codes': {},
+				'encoded_text': '',
+				'tree': None,
+				'data': [],
+				'steps': [],
+			}
+
+		encoded_text = ''.join(self.tree.letter_to_code[ch] for ch in self.tree.text)
+		steps = []
+		for step in self.tree.steps:
+			items = []
+			for node in step:
+				items.append(
+					{
+						'letter': node.letter,
+						'binary': getattr(node, 'binary', None),
+						'index': getattr(node, 'index', None),
+						'freq': getattr(node, 'freq', None),
+						'name': getattr(node, 'name', None),
+						'level': getattr(node, 'level', None),
+					}
+				)
+			steps.append(items)
+
+		return {
+			'original_text': self.tree.text,
+			'frequencies': dict(self.tree.freq_dict),
+			'codes': dict(self.tree.letter_to_code),
+			'encoded_text': encoded_text,
+			'tree': serialize_binary_node(self.tree.root, extra_fields=['freq', 'name', 'level']),
+			'data': deepcopy(self.tree.data),
+			'steps': steps,
+		}
+
+	def save_state(self) -> Dict[str, object]:
+		"""
+		Export the current Huffman service as a versioned snapshot.
+
+		The snapshot combines:
+
+			- Snapshot type identifier.
+			- Configuration metadata.
+			- Complete runtime state.
+
+		The resulting structure can later be restored using
+		`load_state()`.
+
+		Returns:
+			Dict[str, object]:
+				Versioned snapshot representation of the service.
+
+		"""
+		return build_snapshot(self.snapshot_type, self._snapshot_config(), self._snapshot_state())
+
+	def load_state(self, snapshot: Dict[str, object]) -> None:
+		"""
+		Restore the Huffman service from a snapshot.
+
+		The method validates the snapshot structure, reconstructs
+		the Huffman tree from the original text, and verifies that
+		the generated frequencies, binary codes, encoded text,
+		and serialized tree match the stored snapshot state.
+
+		The validation ensures snapshot integrity and prevents
+		corrupted or incompatible Huffman structures from being loaded.
+
+		Args:
+			snapshot (Dict[str, object]):
+				Versioned snapshot containing Huffman configuration
+				and runtime state.
+
+		Raises:
+			SnapshotError:
+				If the snapshot is invalid, corrupted, incomplete,
+				or inconsistent with the reconstructed Huffman tree.
+
+		"""
+		payload = validate_snapshot(snapshot, self.snapshot_type)
+		config = payload['config']
+		state = payload['state']
+
+		text = state.get('original_text')
+		if not isinstance(text, str):
+			raise SnapshotError('Huffman snapshot requires the original text')
+
+		encoding = config.get('encoding', 'ABC')
+		if not isinstance(encoding, str) or not encoding:
+			raise SnapshotError('Huffman snapshot requires a valid encoding')
+
+		tree = HuffmanTree(text, encoding=encoding)
+		if state.get('tree') is not None:
+			expected_tree = serialize_binary_node(tree.root, extra_fields=['freq', 'name', 'level'])
+			if expected_tree != state.get('tree'):
+				raise SnapshotError('Huffman tree structure does not match the snapshot')
+
+		frequencies = state.get('frequencies', {})
+		codes = state.get('codes', {})
+		encoded_text = state.get('encoded_text', '')
+		if dict(tree.freq_dict) != frequencies:
+			raise SnapshotError('Huffman frequencies do not match the snapshot')
+		if dict(tree.letter_to_code) != codes:
+			raise SnapshotError('Huffman codes do not match the snapshot')
+		if encoded_text != ''.join(tree.letter_to_code[ch] for ch in tree.text):
+			raise SnapshotError('Huffman encoded text does not match the snapshot')
+
+		self.tree = tree
+		self.initialized = True
+		self.size = tree.size
+		self.digits = tree.digits
+		self.data = deepcopy(tree.data)
 
 	def create(self, text: str) -> Dict:
 		"""

@@ -42,6 +42,8 @@ class DigitalTree(BaseTree):
 	navigating left for '0' and right for '1'.
 	"""
 
+	snapshot_type = 'digital_tree'
+
 	def __init__(self, encoding: str = 'ABC'):
 		"""
 		Initialize digital tree configuration.

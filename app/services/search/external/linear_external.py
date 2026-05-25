@@ -66,6 +66,8 @@ class LinearExternalSearch(BaseExternalSearch):
 			Maximum number of elements per block.
 	"""
 
+	snapshot_type = 'linear_external_search'
+
 	def search(self, value: str) -> List[Dict[str, int]]:
 		"""
 		Search for a key using block-based linear search.

@@ -32,6 +32,7 @@ import networkx as nx
 import numpy as np
 
 from app.services.search.base_search import BaseSearchService
+from app.services.search.persistence import SnapshotError
 from app.services.search.tree.basic_tree import BaseTree, MultiNode
 
 
@@ -43,6 +44,8 @@ class MultipleResidueTree(BaseTree):
 	traverse a multi-way structure with 2^m children per node.
 	Resolve prefix collisions by splitting leaves into internal nodes.
 	"""
+
+	snapshot_type = 'multiple_residue_tree'
 
 	def __init__(self, m: int, encoding: str = 'ABC'):
 		"""
@@ -57,6 +60,77 @@ class MultipleResidueTree(BaseTree):
 		super().__init__(encoding)
 		self.m = m
 		self.root: Optional[MultiNode] = None
+
+	def _snapshot_config(self):
+		"""
+		Return the tree configuration used in exported snapshots.
+
+		Extend the base tree snapshot configuration by including
+		the branching factor `m`, which defines the number of
+		bits processed per tree level and indirectly determines
+		the number of children per node (`2^m`).
+
+		Returns:
+			dict:
+				Dictionary containing the complete tree
+				configuration required to restore the
+				multiple residue tree structure.
+
+				Returned fields include:
+
+					- size:
+					  Allocated storage size.
+
+					- digits:
+					  Binary encoding length.
+
+					- initialized:
+					  Initialization state.
+
+					- encoding:
+					  Letter encoding strategy.
+
+					- m:
+					  Chunk size used for tree traversal.
+
+		"""
+		config = super()._snapshot_config()
+		config['m'] = self.m
+		return config
+
+	def _restore_snapshot(self, config, state):
+		"""
+		Restore the multiple residue tree from a snapshot.
+
+		Validate the stored branching factor and restore the
+		base tree structure, including encoded data and
+		reconstructed node hierarchy.
+
+		The method ensures that:
+
+			- The branching factor `m` exists.
+			- `m` is a positive integer.
+			- The tree structure is rebuilt consistently.
+
+		Args:
+			config:
+				Snapshot configuration dictionary.
+
+			state:
+				Snapshot runtime state dictionary.
+
+		Raises:
+			SnapshotError:
+				If the snapshot does not contain a valid
+				positive value for `m`.
+
+		"""
+		m = config.get('m', self.m)
+		if not isinstance(m, int) or m <= 0:
+			raise SnapshotError('Multiple residue tree snapshot requires a positive m value')
+
+		self.m = m
+		super()._restore_snapshot(config, state)
 
 	def create(self, size: int = None, digits: int = None) -> None:
 		"""
@@ -243,7 +317,6 @@ class MultipleResidueTree(BaseTree):
 					edge = format(i, 'b').zfill(self.m)
 				self._build_graph(child, graph, node_id, edge, depth + 1, highlight_index)
 
-
 	def _calculate_width(self, node: Optional[MultiNode]) -> int:
 		"""
 		Calculate the width of a subtree for visualization.
@@ -265,7 +338,6 @@ class MultipleResidueTree(BaseTree):
 		for child in node.children:
 			total += self._calculate_width(child)
 		return total
-
 
 	def _compute_positions_interval(
 		self, node: Optional[MultiNode], left: float, right: float, y: float
@@ -289,7 +361,9 @@ class MultipleResidueTree(BaseTree):
 		node_id = id(node)
 		x = (left + right) / 2
 		self._node_positions[node_id] = (x, y)
-		children_with_idx = [(i, child) for i, child in enumerate(node.children) if child is not None]
+		children_with_idx = [
+			(i, child) for i, child in enumerate(node.children) if child is not None
+		]
 		if not children_with_idx:
 			return
 		child_widths = [self._calculate_width(child) for _, child in children_with_idx]
@@ -316,7 +390,6 @@ class MultipleResidueTree(BaseTree):
 			else:
 				self._compute_positions_interval(child, current_left, child_right, next_y)
 			current_left = child_right
-
 
 	def _compute_positions(
 		self,

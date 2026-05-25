@@ -28,6 +28,7 @@ from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 
+from app.controllers.search.snapshot import SnapshotRequest
 from app.services.search.tree.multiple_residue_tree import MultipleResidueTree
 
 from .common import (
@@ -43,10 +44,48 @@ router = APIRouter(prefix='/multiple-residue', tags=['Multiple Residue Tree'])
 
 @router.post('/create')
 async def multiple_create(request: MultipleResidueCreateRequest):
-	"""
-	Create and initialize multiple residue tree structure.
+	"""Create and initialize the multiple residue tree structure.
 
-	Instantiate tree with provided chunk size m if needed.
+	This endpoint creates a new ``MultipleResidueTree`` instance
+	using the provided residue chunk size ``m`` and initializes
+	the internal storage structure.
+
+	If the service instance already exists, the existing object
+	is reused and only the structure configuration is updated.
+
+	Args:
+		request (MultipleResidueCreateRequest):
+			Request containing:
+
+			    - m:
+			        Residue chunk size used by the structure.
+
+			    - size:
+			        Total structure size.
+
+			    - digits:
+			        Number of digits allowed for addresses.
+
+	Returns:
+		dict:
+			Dictionary containing:
+
+			    - message:
+			        Confirmation message.
+
+			    - m:
+			        Residue chunk size currently configured.
+
+			    - size:
+			        Configured structure size.
+
+			    - digits:
+			        Configured number of digits.
+
+	Raises:
+		HTTPException:
+			If an unexpected error occurs during initialization.
+
 	"""
 	global multiple_service
 	try:
@@ -65,7 +104,35 @@ async def multiple_create(request: MultipleResidueCreateRequest):
 
 @router.post('/insert')
 async def multiple_insert(request: TreeInsertRequest):
-	"""Insert a letter into multiple residue tree."""
+	"""Insert a letter into the multiple residue tree.
+
+	The endpoint validates that the structure has been initialized
+	and verifies that the provided value is a valid letter before
+	performing the insertion.
+
+	Args:
+		request (TreeInsertRequest):
+			Request containing the letter to insert.
+
+	Returns:
+		dict:
+			Dictionary containing:
+
+			    - message:
+			        Human-readable insertion result.
+
+			    - position:
+			        Address generated for the inserted value.
+
+	Raises:
+		HTTPException:
+			If the structure has not been initialized.
+
+		HTTPException:
+			If the insertion operation fails due to validation
+			or internal structure constraints.
+
+	"""
 	global multiple_service
 	if multiple_service is None or not multiple_service.initialized:
 		raise HTTPException(status_code=400, detail='Estructura no inicializada')
@@ -84,7 +151,29 @@ async def multiple_insert(request: TreeInsertRequest):
 
 @router.get('/search/{letter}')
 async def multiple_search(letter: str):
-	"""Search for a letter in multiple residue tree."""
+	"""Search for a letter inside the multiple residue tree.
+
+	The endpoint validates the input letter and searches all
+	positions associated with the value inside the structure.
+
+	Args:
+		letter (str):
+			Letter to search inside the tree.
+
+	Returns:
+		dict:
+			Dictionary containing:
+
+			    - position:
+			        List of matching positions or an empty list.
+
+			    - value:
+			        Searched letter.
+
+			    - message:
+			        Human-readable search result.
+
+	"""
 	global multiple_service
 	if multiple_service is None or not multiple_service.initialized:
 		return {'position': [], 'value': letter, 'message': 'Estructura no inicializada'}
@@ -105,7 +194,27 @@ async def multiple_search(letter: str):
 
 @router.delete('/delete/{letter}')
 async def multiple_delete(letter: str):
-	"""Remove a letter from multiple residue tree."""
+	"""Delete a letter from the multiple residue tree.
+
+	The endpoint removes all positions associated with the
+	specified letter from the structure.
+
+	Args:
+		letter (str):
+			Letter to remove from the structure.
+
+	Returns:
+		dict:
+			Dictionary containing:
+
+			    - message:
+			        Human-readable deletion result.
+
+			    - position:
+			        Deleted positions or an empty list
+			        if the letter was not found.
+
+	"""
 	global multiple_service
 	if multiple_service is None or not multiple_service.initialized:
 		return {'message': 'Estructura no inicializada', 'position': []}
@@ -121,7 +230,25 @@ async def multiple_delete(letter: str):
 
 @router.get('/plot')
 async def multiple_plot(background_tasks: BackgroundTasks):
-	"""Generate visualization image of multiple residue tree."""
+	"""Generate a visualization of the multiple residue tree.
+
+	The generated image represents the current internal
+	tree structure and node organization.
+
+	Args:
+		background_tasks (BackgroundTasks):
+			FastAPI background task manager used for temporary
+			file cleanup after the response is sent.
+
+	Returns:
+		FileResponse:
+			Generated visualization image.
+
+	Raises:
+		HTTPException:
+			If the structure is empty or uninitialized.
+
+	"""
 	global multiple_service
 	if multiple_service is None or multiple_service.root is None:
 		raise HTTPException(status_code=400, detail='Árbol vacío')
@@ -130,7 +257,31 @@ async def multiple_plot(background_tasks: BackgroundTasks):
 
 @router.get('/search-plot/{letter}')
 async def multiple_search_plot(letter: str, background_tasks: BackgroundTasks):
-	"""Generate visualization highlighting searched letter in multiple residue tree."""
+	"""Generate a highlighted visualization for a searched letter.
+
+	The generated image highlights the traversal path and
+	position associated with the specified letter.
+
+	Args:
+		letter (str):
+			Letter to highlight in the visualization.
+
+		background_tasks (BackgroundTasks):
+			FastAPI background task manager used for temporary
+			file cleanup after the response is sent.
+
+	Returns:
+		FileResponse:
+			Generated highlighted visualization image.
+
+	Raises:
+		HTTPException:
+			If the structure is empty.
+
+		HTTPException:
+			If the specified letter does not exist.
+
+	"""
 	global multiple_service
 	if multiple_service is None or multiple_service.root is None:
 		raise HTTPException(status_code=400, detail='Árbol vacío')
@@ -139,3 +290,71 @@ async def multiple_search_plot(letter: str, background_tasks: BackgroundTasks):
 	if not positions:
 		raise HTTPException(status_code=404, detail='Letra no encontrada')
 	return await send_image(background_tasks, multiple_service.search_plot, letter)
+
+
+@router.post('/export')
+async def multiple_export():
+	"""Export the current multiple residue tree snapshot.
+
+	The exported snapshot contains the complete structure
+	configuration and internal state required to restore
+	the tree later.
+
+	Returns:
+		dict:
+			Serialized snapshot representing the current
+			multiple residue tree state.
+
+	Raises:
+		HTTPException:
+			If the structure has not been initialized.
+
+	"""
+	global multiple_service
+	if multiple_service is None:
+		raise HTTPException(status_code=400, detail='Estructura no inicializada')
+	return multiple_service.save_state()
+
+
+@router.post('/import')
+async def multiple_import(request: SnapshotRequest):
+	"""Restore the multiple residue tree from a snapshot.
+
+	This endpoint recreates the internal structure using
+	the configuration stored inside the snapshot and then
+	loads the serialized tree state.
+
+	If the service instance does not exist, a new
+	``MultipleResidueTree`` is created automatically
+	using the snapshot configuration.
+
+	Args:
+		request (SnapshotRequest):
+			Request containing the serialized snapshot data.
+
+	Returns:
+		dict:
+			Serialized snapshot representing the restored state.
+
+	Raises:
+		HTTPException:
+			If the snapshot does not contain a valid ``m`` value.
+
+		HTTPException:
+			If the snapshot data is invalid or incompatible.
+
+	"""
+	global multiple_service
+	if multiple_service is None:
+		config = request.snapshot.get('config', {})
+		m = config.get('m')
+		encoding = config.get('encoding', 'ABC')
+		if not isinstance(m, int) or m <= 0:
+			raise HTTPException(status_code=400, detail='Snapshot requires a valid m value')
+		multiple_service = MultipleResidueTree(m=m, encoding=encoding)
+
+	try:
+		multiple_service.load_state(request.snapshot)
+		return multiple_service.save_state()
+	except ValueError as exc:
+		raise HTTPException(status_code=400, detail=str(exc))

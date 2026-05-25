@@ -263,6 +263,80 @@ class BaseIndexService(BaseSearchService, ABC):
 		self.record_length = 0
 		self.index_record_length = 0
 
+	snapshot_type = 'index'
+
+	def _snapshot_config(self) -> dict:
+		"""
+		Build the configuration block for exported snapshots.
+
+		The configuration stores all structural parameters
+		required to reconstruct the index service state.
+
+		Returns:
+		    dict:
+		        Dictionary containing:
+
+		            - r:
+		                Total number of records.
+
+		            - block_size:
+		                Disk block size in bytes.
+
+		            - record_length:
+		                Length of each data record.
+
+		            - index_record_length:
+		                Length of each index record.
+
+		            - initialized:
+		                Whether the service has been configured.
+
+		"""
+		return {
+			'r': int(self.r),
+			'block_size': int(self.block_size),
+			'record_length': int(self.record_length),
+			'index_record_length': int(self.index_record_length),
+			'initialized': bool(self.initialized),
+		}
+
+	def _snapshot_state(self) -> dict:
+		"""
+		Return the runtime state block for exported snapshots.
+
+		Index services are calculation-based and do not maintain
+		additional mutable runtime state beyond their configuration.
+
+		Returns:
+		    dict:
+		        Empty dictionary.
+
+		"""
+		return {}
+
+	def _restore_snapshot(self, config: dict, state: dict) -> None:
+		"""
+		Restore the service configuration from a snapshot.
+
+		The method reconstructs all configuration parameters
+		using the exported snapshot configuration block.
+
+		Args:
+		    config (dict):
+		        Snapshot configuration data.
+
+		    state (dict):
+		        Snapshot runtime state data. This parameter is
+		        unused because index services do not maintain
+		        additional runtime state.
+
+		"""
+		self.r = int(config.get('r', 0))
+		self.block_size = int(config.get('block_size', 0))
+		self.record_length = int(config.get('record_length', 0))
+		self.index_record_length = int(config.get('index_record_length', 0))
+		self.initialized = bool(config.get('initialized', False))
+
 	def build_multilevel_levels(
 		self,
 		first_level_blocks: int,

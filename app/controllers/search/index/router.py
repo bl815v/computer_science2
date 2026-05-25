@@ -53,12 +53,15 @@ You should have received a copy of the GNU General Public License
 along with ComputerScience2. If not, see <https://www.gnu.org/licenses/>.
 """
 
-from fastapi import APIRouter
+from typing import Optional
+
+from fastapi import APIRouter, HTTPException
 
 from app.controllers.search.index.schemas import (
 	IndexRequest,
 	IndexResponse,
 )
+from app.controllers.search.snapshot import SnapshotRequest
 from app.services.search.index.multilevel_index import (
 	MultilevelPrimaryIndexService,
 	MultilevelSecondaryIndexService,
@@ -74,6 +77,14 @@ router = APIRouter(
 	prefix='/search/index',
 	tags=['Search - Index'],
 )
+
+# Keep last configuration per endpoint so export can be called without body
+_last_configs: dict = {
+	'primary': None,
+	'secondary': None,
+	'multilevel_primary': None,
+	'multilevel_secondary': None,
+}
 
 
 @router.post(
@@ -119,9 +130,101 @@ def calculate_primary_index(
 		index_record_length=request.index_record_length,
 	)
 
+	_last_configs['primary'] = request.model_dump()
+
 	result = service.calculate()
 
 	return IndexResponse.model_validate(result)
+
+
+@router.post('/primary/export', response_model=dict)
+def export_primary_index(request: Optional[IndexRequest] = None) -> dict:
+	"""
+	Export the current primary index configuration as a snapshot.
+
+	This endpoint serializes the current state of a primary index
+	service into a portable snapshot representation that can later
+	be restored using the corresponding import endpoint.
+
+	The export process supports two modes:
+
+	    - Direct export using a request body.
+	    - Export using the last stored configuration associated
+	      with the endpoint.
+
+	If a request body is provided, its values replace the previously
+	stored configuration before generating the snapshot.
+
+	Args:
+		request (Optional[IndexRequest], optional):
+			Optional configuration used to initialize the
+			primary index service before exporting.
+
+	Returns:
+		dict:
+			Serialized snapshot containing the current
+			service configuration and state.
+
+	Raises:
+		HTTPException:
+			If no configuration is available for export.
+
+	"""
+	service = PrimaryIndexService()
+
+	cfg = None
+	if request is not None:
+		cfg = request.model_dump()
+		_last_configs['primary'] = cfg
+	else:
+		cfg = _last_configs.get('primary')
+
+	if not cfg:
+		raise HTTPException(status_code=400, detail='No configuration available for export')
+
+	service.configure(
+		r=cfg['r'],
+		block_size=cfg['block_size'],
+		record_length=cfg['record_length'],
+		index_record_length=cfg['index_record_length'],
+	)
+
+	return service.save_state()
+
+
+@router.post('/primary/import', response_model=IndexResponse)
+def import_primary_index(request: SnapshotRequest) -> IndexResponse:
+	"""
+	Restore and recalculate a primary index from a snapshot.
+
+	This endpoint loads a previously exported snapshot into
+	a new primary index service instance and recalculates
+	all derived statistics.
+
+	The imported snapshot must contain a valid configuration
+	compatible with the primary index service.
+
+	Args:
+		request (SnapshotRequest):
+			Request containing the serialized snapshot.
+
+	Returns:
+		IndexResponse:
+			Validated response containing the recalculated
+			primary index statistics.
+
+	Raises:
+		HTTPException:
+			If the snapshot is invalid or cannot be restored.
+
+	"""
+	service = PrimaryIndexService()
+	try:
+		service.load_state(request.snapshot)
+		result = service.calculate()
+		return IndexResponse.model_validate(result)
+	except ValueError as exc:
+		raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.post(
@@ -170,9 +273,92 @@ def calculate_secondary_index(
 		index_record_length=request.index_record_length,
 	)
 
+	_last_configs['secondary'] = request.model_dump()
+
 	result = service.calculate()
 
 	return IndexResponse.model_validate(result)
+
+
+@router.post('/secondary/export', response_model=dict)
+def export_secondary_index(request: Optional[IndexRequest] = None) -> dict:
+	"""
+	Export the current secondary index configuration as a snapshot.
+
+	This endpoint serializes the state of a secondary index
+	service so it can later be restored through the import API.
+
+	The endpoint accepts an optional configuration request.
+	If provided, the configuration becomes the current stored
+	state before export.
+
+	Args:
+		request (Optional[IndexRequest], optional):
+			Optional configuration used to initialize the
+			secondary index service.
+
+	Returns:
+		dict:
+			Serialized snapshot representing the current
+			secondary index configuration and state.
+
+	Raises:
+		HTTPException:
+			If no configuration is available for export.
+
+	"""
+	service = SecondaryIndexService()
+
+	cfg = None
+	if request is not None:
+		cfg = request.model_dump()
+		_last_configs['secondary'] = cfg
+	else:
+		cfg = _last_configs.get('secondary')
+
+	if not cfg:
+		raise HTTPException(status_code=400, detail='No configuration available for export')
+
+	service.configure(
+		r=cfg['r'],
+		block_size=cfg['block_size'],
+		record_length=cfg['record_length'],
+		index_record_length=cfg['index_record_length'],
+	)
+
+	return service.save_state()
+
+
+@router.post('/secondary/import', response_model=IndexResponse)
+def import_secondary_index(request: SnapshotRequest) -> IndexResponse:
+	"""
+	Restore and recalculate a secondary index from a snapshot.
+
+	This endpoint reconstructs a secondary index service
+	from a serialized snapshot and recalculates all index
+	statistics associated with the structure.
+
+	Args:
+		request (SnapshotRequest):
+			Request containing the serialized snapshot data.
+
+	Returns:
+		IndexResponse:
+			Validated response containing the recalculated
+			secondary index statistics.
+
+	Raises:
+		HTTPException:
+			If the snapshot is invalid or incompatible.
+
+	"""
+	service = SecondaryIndexService()
+	try:
+		service.load_state(request.snapshot)
+		result = service.calculate()
+		return IndexResponse.model_validate(result)
+	except ValueError as exc:
+		raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.post(
@@ -222,9 +408,95 @@ def calculate_multilevel_primary_index(
 		index_record_length=request.index_record_length,
 	)
 
+	_last_configs['multilevel_primary'] = request.model_dump()
+
 	result = service.calculate()
 
 	return IndexResponse.model_validate(result)
+
+
+@router.post('/multilevel-primary/export', response_model=dict)
+def export_multilevel_primary_index(request: Optional[IndexRequest] = None) -> dict:
+	"""
+	Export the current multilevel primary index configuration.
+
+	This endpoint generates a serialized snapshot of a
+	multilevel primary index service, including the
+	configuration required to reconstruct the hierarchy.
+
+	If a request body is provided, the configuration is
+	stored as the latest active configuration before export.
+
+	Args:
+		request (Optional[IndexRequest], optional):
+			Optional configuration used to initialize the
+			multilevel primary index service.
+
+	Returns:
+		dict:
+			Serialized snapshot containing the multilevel
+			primary index state and configuration.
+
+	Raises:
+		HTTPException:
+			If no configuration is available for export.
+
+	"""
+	service = MultilevelPrimaryIndexService()
+
+	cfg = None
+	if request is not None:
+		cfg = request.model_dump()
+		_last_configs['multilevel_primary'] = cfg
+	else:
+		cfg = _last_configs.get('multilevel_primary')
+
+	if not cfg:
+		raise HTTPException(status_code=400, detail='No configuration available for export')
+
+	service.configure(
+		r=cfg['r'],
+		block_size=cfg['block_size'],
+		record_length=cfg['record_length'],
+		index_record_length=cfg['index_record_length'],
+	)
+
+	return service.save_state()
+
+
+@router.post('/multilevel-primary/import', response_model=IndexResponse)
+def import_multilevel_primary_index(request: SnapshotRequest) -> IndexResponse:
+	"""
+	Restore a multilevel primary index from a snapshot.
+
+	This endpoint reconstructs a multilevel primary index
+	service using a serialized snapshot and recalculates
+	the associated hierarchy statistics.
+
+	The restored response includes all multilevel access
+	and block calculations.
+
+	Args:
+		request (SnapshotRequest):
+			Request containing the serialized snapshot.
+
+	Returns:
+		IndexResponse:
+			Validated response containing the recalculated
+			multilevel primary index statistics.
+
+	Raises:
+		HTTPException:
+			If the snapshot cannot be restored correctly.
+
+	"""
+	service = MultilevelPrimaryIndexService()
+	try:
+		service.load_state(request.snapshot)
+		result = service.calculate()
+		return IndexResponse.model_validate(result)
+	except ValueError as exc:
+		raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.post(
@@ -273,6 +545,91 @@ def calculate_multilevel_secondary_index(
 		index_record_length=request.index_record_length,
 	)
 
+	_last_configs['multilevel_secondary'] = request.model_dump()
+
 	result = service.calculate()
 
 	return IndexResponse.model_validate(result)
+
+
+@router.post('/multilevel-secondary/export', response_model=dict)
+def export_multilevel_secondary_index(request: Optional[IndexRequest] = None) -> dict:
+	"""
+	Export the current multilevel secondary index configuration.
+
+	This endpoint serializes the state of a multilevel
+	secondary index service into a reusable snapshot format.
+
+	If a configuration request is provided, it replaces
+	the previous stored configuration before export.
+
+	Args:
+		request (Optional[IndexRequest], optional):
+			Optional configuration used to initialize the
+			multilevel secondary index service.
+
+	Returns:
+		dict:
+			Serialized snapshot containing the current
+			multilevel secondary index configuration.
+
+	Raises:
+		HTTPException:
+			If no configuration is available for export.
+
+	"""
+	service = MultilevelSecondaryIndexService()
+
+	cfg = None
+	if request is not None:
+		cfg = request.model_dump()
+		_last_configs['multilevel_secondary'] = cfg
+	else:
+		cfg = _last_configs.get('multilevel_secondary')
+
+	if not cfg:
+		raise HTTPException(status_code=400, detail='No configuration available for export')
+
+	service.configure(
+		r=cfg['r'],
+		block_size=cfg['block_size'],
+		record_length=cfg['record_length'],
+		index_record_length=cfg['index_record_length'],
+	)
+
+	return service.save_state()
+
+
+@router.post('/multilevel-secondary/import', response_model=IndexResponse)
+def import_multilevel_secondary_index(request: SnapshotRequest) -> IndexResponse:
+	"""
+	Restore a multilevel secondary index from a snapshot.
+
+	This endpoint loads a serialized snapshot into a new
+	multilevel secondary index service instance and
+	recalculates all hierarchy-related statistics.
+
+	The resulting response includes block distribution,
+	index levels, and estimated disk accesses.
+
+	Args:
+		request (SnapshotRequest):
+			Request containing the serialized snapshot.
+
+	Returns:
+		IndexResponse:
+			Validated response containing the recalculated
+			multilevel secondary index statistics.
+
+	Raises:
+		HTTPException:
+			If the snapshot data is invalid or incomplete.
+
+	"""
+	service = MultilevelSecondaryIndexService()
+	try:
+		service.load_state(request.snapshot)
+		result = service.calculate()
+		return IndexResponse.model_validate(result)
+	except ValueError as exc:
+		raise HTTPException(status_code=400, detail=str(exc))

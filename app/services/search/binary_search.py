@@ -35,6 +35,8 @@ class BinarySearchService(BaseSearchService):
 	order and grouped before None entries.
 	"""
 
+	snapshot_type = 'binary_search'
+
 	def search(self, value: str) -> List[int]:
 		"""Search for a key using the binary search algorithm.
 

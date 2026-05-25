@@ -35,12 +35,20 @@ You should have received a copy of the GNU General Public License
 along with ComputerScience2. If not, see <https://www.gnu.org/licenses/>.
 """
 
-from typing import List, Optional
+from copy import deepcopy
+from typing import Any, List, Optional
 
 from app.services.search.base_search import BaseSearchService
 from app.services.search.hash.abstract_hash import HashMixin
 from app.services.search.hash.collision_simple import CollisionResolver
 from app.services.search.hash.hash_function import HashFunction
+from app.services.search.persistence import (
+	SnapshotError,
+	collision_resolver_from_snapshot,
+	collision_resolver_to_snapshot,
+	hash_function_from_snapshot,
+	hash_function_to_snapshot,
+)
 
 
 class CollisionWithoutStrategyError(Exception):
@@ -87,6 +95,8 @@ class HashTable(BaseSearchService, HashMixin):
 	        Provides hash computation and probing utilities.
 	"""
 
+	snapshot_type = 'hash_table'
+
 	def __init__(self, hash_func: HashFunction, resolver: Optional[CollisionResolver] = None):
 		"""Initialize the hash table.
 
@@ -101,6 +111,115 @@ class HashTable(BaseSearchService, HashMixin):
 		"""
 		BaseSearchService.__init__(self)
 		HashMixin.__init__(self, hash_func, resolver)
+
+	def _snapshot_config(self) -> dict[str, Any]:
+		"""
+		Return the configuration used for snapshot persistence.
+
+		The exported configuration contains all metadata required
+		to reconstruct the hash table, including:
+
+			- Table size.
+			- Key digit length.
+			- Initialization state.
+			- Collision handling mode.
+			- Hash function definition.
+			- Collision resolver configuration.
+
+		Returns:
+			dict[str, Any]:
+				Dictionary containing the serialized hash
+				table configuration.
+
+		"""
+		return {
+			'size': self.size,
+			'digits': self.digits,
+			'initialized': self.initialized,
+			'mode': self.mode,
+			'hash_function': hash_function_to_snapshot(self.hash_func),
+			'resolver': collision_resolver_to_snapshot(self.resolver),
+		}
+
+	def _snapshot_state(self) -> dict[str, Any]:
+		"""
+		Return the runtime state used for snapshot persistence.
+
+		The exported state contains the current table data,
+		including deleted markers used in open addressing mode.
+
+		Deleted entries are serialized using a dedicated marker
+		to allow accurate reconstruction during restoration.
+
+		Returns:
+			dict[str, Any]:
+				Dictionary containing the serialized table state.
+
+		"""
+		data = []
+		for item in self.data:
+			if item is self._DELETED:
+				data.append({'__deleted__': True})
+			else:
+				data.append(deepcopy(item))
+
+		return {
+			'data': data,
+		}
+
+	def _restore_snapshot(self, config: dict[str, Any], state: dict[str, Any]) -> None:
+		"""
+		Restore the hash table from a serialized snapshot.
+
+		The method reconstructs the hash function, collision
+		resolution strategy, internal mode, and stored table
+		data. Snapshot integrity is validated before restoring
+		the structure.
+
+		Args:
+			config (dict[str, Any]):
+				Configuration section extracted from the snapshot.
+
+			state (dict[str, Any]):
+				Runtime state section extracted from the snapshot.
+
+		Raises:
+			SnapshotError:
+				If the snapshot is invalid, corrupted, or
+				contains inconsistent configuration data.
+
+		"""
+		mode = config.get('mode', 'none')
+		if mode not in ('none', 'open', 'chaining'):
+			raise SnapshotError('Invalid hash table mode in snapshot')
+		if mode in ('open', 'none') and config.get('resolver') is None and mode == 'open':
+			raise SnapshotError('Open addressing snapshots require a collision resolver')
+
+		hash_func = hash_function_from_snapshot(config.get('hash_function'))
+		resolver = collision_resolver_from_snapshot(config.get('resolver'), hash_func)
+
+		self.hash_func = hash_func
+		self.resolver = resolver
+		self.mode = mode
+		self._DELETED = object()
+
+		self.create(int(config.get('size', 0)), int(config.get('digits', 0)))
+
+		data = state.get('data', [])
+		if not isinstance(data, list) or len(data) != self.size:
+			raise SnapshotError('Hash table snapshot data is corrupt')
+
+		if self.mode == 'chaining':
+			if not all(isinstance(bucket, list) for bucket in data):
+				raise SnapshotError('Chaining snapshots must contain bucket lists')
+			self.data = deepcopy(data)
+			return
+
+		for index, item in enumerate(data):
+			if item == {'__deleted__': True}:
+				self.data[index] = self._DELETED
+			else:
+				self.data[index] = deepcopy(item)
 
 	def create(self, size: int, digits: int) -> None:
 		"""Initialize the hash table structure.

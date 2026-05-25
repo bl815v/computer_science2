@@ -1,25 +1,29 @@
-"""
-Base implementation for external search structures organized in blocks.
+"""Base implementation for external search structures organized in blocks.
 
-This module defines an abstract base class for external search methods
-that organize data into fixed-size blocks. The structure maintains:
+This module defines an abstract base class used to implement
+external search structures that organize data into fixed-size blocks.
+
+The structure maintains:
 
     - Global ordering across all blocks.
     - Internal ordering within each block.
+    - Compact storage without gaps between valid keys.
 
-The block size is calculated as the floor of the square root of the
-total number of elements. This layout approximates classical external
-search methods used in file indexing and block-based storage systems.
+The block size is automatically calculated as the integer square
+root of the total structure capacity. This organization approximates
+classical external storage models used in indexed files and
+block-oriented search systems.
 
-The class provides generic implementations for:
+The class provides reusable implementations for:
 
-    - Structure creation
-    - Value insertion
-    - Value deletion
-    - Global sorting and compaction
+    - Structure initialization.
+    - Snapshot export and restoration.
+    - Ordered insertion.
+    - Deletion and compaction.
+    - Global sorting across blocks.
 
-Subclasses must implement the specific search strategy by overriding
-the `search` method.
+Concrete subclasses are responsible for implementing the
+specific search strategy by overriding the abstract ``search`` method.
 
 Author: Juan Esteban Bedoya <jebedoyal@udistrital.edu.co>
 
@@ -41,82 +45,174 @@ along with ComputerScience2. If not, see <https://www.gnu.org/licenses/>.
 
 import math
 from abc import abstractmethod
-from typing import Dict, List, Optional
+from copy import deepcopy
+from typing import Any, Dict, List, Optional
 
 from app.services.search.base_search import BaseSearchService
+from app.services.search.persistence import SnapshotError
 
 
 class BaseExternalSearch(BaseSearchService):
-	"""
-	Abstract base class for block-based external search structures.
+	"""Abstract base class for block-based external search structures.
 
-	Data is stored in several fixed-size blocks. The block size is
-	calculated as the floor of the square root of the total number
-	of elements. Blocks maintain global ordering across the structure
-	and internal ordering within each block.
+	This class defines the common behavior shared by all external
+	search structures implemented in the project.
 
-	This class provides common functionality for managing the
-	block structure, while subclasses must implement their
-	specific search algorithm.
+	Data is stored inside fixed-size blocks. The block size is
+	computed as the integer square root of the total structure
+	capacity. Both global ordering and internal block ordering
+	are preserved after insertions and deletions.
+
+	Subclasses inherit generic structure management behavior
+	and only need to implement their own search strategy.
 
 	Attributes:
 		blocks (List[List[Optional[str]]]):
-			List of blocks storing keys. Each block contains values
-			or None in empty positions.
+			Collection of storage blocks. Each block contains
+			numeric keys or ``None`` values representing empty
+			positions.
 
 		block_size (int):
-			Fixed size of each block (the last block may be smaller).
+			Maximum number of elements stored per block.
 
 	"""
 
-	def __init__(self) -> None:
-		"""
-		Initialize an empty external search structure.
+	snapshot_type = 'base_external'
 
-		Creates an empty list of blocks and sets the block size to zero.
-		The structure must be initialized using `create()` before use.
+	def __init__(self) -> None:
+		"""Initialize an empty external search structure.
+
+		Create the internal block container and initialize
+		the block size to zero. The structure remains unusable
+		until ``create`` is called.
+
 		"""
 		super().__init__()
+
 		self.blocks: List[List[Optional[str]]] = []
 		self.block_size: int = 0
 
 	def create(self, size: int, digits: int) -> None:
-		"""
-		Initialize the structure with a fixed capacity and key length.
+		"""Create and initialize the block-based structure.
 
-		The block size is computed as the integer square root of the
-		total size. The storage is then divided into blocks of that size.
-		The final block may contain fewer elements.
+		The method computes the block size using the integer
+		square root of the requested capacity and divides
+		the structure into multiple blocks.
+
+		The final block may contain fewer positions than the
+		others when the total size is not perfectly divisible.
 
 		Args:
 			size (int):
-				Maximum number of elements the structure can store.
+				Maximum number of elements supported by
+				the structure.
 
 			digits (int):
 				Required number of digits for each key.
 
 		Raises:
 			ValueError:
-				If `size` or `digits` are not positive integers.
+				If ``size`` or ``digits`` are invalid.
 
 		"""
 		super().create(size, digits)
 
 		self.block_size = math.isqrt(size)
+
 		num_blocks = (size + self.block_size - 1) // self.block_size
+
 		self.blocks = []
+
 		for i in range(num_blocks):
 			start = i * self.block_size
 			end = min(start + self.block_size, size)
-			self.blocks.append([None] * (end - start))
+
+			self.blocks.append(
+				[None] * (end - start),
+			)
+
+	def _snapshot_config(self) -> Dict[str, Any]:
+		"""Generate snapshot configuration metadata.
+
+		Extend the base snapshot configuration by including
+		the computed block size.
+
+		Returns:
+			Dict[str, Any]:
+				Configuration section used during snapshot export.
+
+		"""
+		config = super()._snapshot_config()
+
+		config['block_size'] = self.block_size
+
+		return config
+
+	def _snapshot_state(self) -> Dict[str, Any]:
+		"""Generate snapshot state information.
+
+		Create a deep copy of the current block layout so the
+		exported snapshot remains independent from future
+		modifications.
+
+		Returns:
+			Dict[str, Any]:
+				State section used during snapshot export.
+
+		"""
+		return {
+			'blocks': deepcopy(self.blocks),
+		}
+
+	def _restore_snapshot(
+		self,
+		config: Dict[str, Any],
+		state: Dict[str, Any],
+	) -> None:
+		"""Restore the structure state from a snapshot.
+
+		The method recreates the structure using the stored
+		configuration and restores the block layout.
+
+		Args:
+			config (Dict[str, Any]):
+				Snapshot configuration metadata.
+
+			state (Dict[str, Any]):
+				Snapshot state information.
+
+		Raises:
+			SnapshotError:
+				If the snapshot data is invalid or inconsistent
+				with the computed block layout.
+
+		"""
+		size = int(config.get('size', 0))
+		digits = int(config.get('digits', 0))
+		block_size = int(config.get('block_size', 0))
+
+		self.create(size=size, digits=digits)
+
+		if block_size != self.block_size:
+			raise SnapshotError(
+				'Snapshot block size does not match the computed layout',
+			)
+
+		blocks = state.get('blocks', [])
+
+		if not isinstance(blocks, list):
+			raise SnapshotError(
+				'External snapshot blocks must be a list',
+			)
+
+		self.blocks = deepcopy(blocks)
 
 	def insert(self, value: str) -> int:
-		"""
-		Insert a new key into the structure.
+		"""Insert a new key into the structure.
 
-		The value is first placed in the first available empty position
-		in global order. After insertion, the structure is sorted to
-		maintain the ordered sequence across all blocks.
+		The method inserts the key into the first available
+		position and then globally sorts the structure to
+		preserve ordering across all blocks.
 
 		Args:
 			value (str):
@@ -124,45 +220,56 @@ class BaseExternalSearch(BaseSearchService):
 
 		Returns:
 			int:
-				1-based global position where the value was initially inserted.
+				1-based global position where the value was
+				initially inserted before sorting.
 
 		Raises:
 			ValueError:
-				If the structure is not initialized, the value is invalid,
-				the value already exists, or the structure is full.
+				If the structure is not initialized, the
+				value is invalid, already exists, or the
+				structure is full.
 
 		"""
 		self._validate_structure()
 		self._validate_value(value)
 
 		if self.search(value):
-			raise ValueError(f'La clave {value} ya existe en la estructura')
+			raise ValueError(
+				f'La clave {value} ya existe en la estructura',
+			)
 
 		first_empty = None
+
 		for i, block in enumerate(self.blocks):
 			for j, v in enumerate(block):
 				if v is None:
 					first_empty = (i, j)
 					break
+
 			if first_empty:
 				break
 
 		if first_empty is None:
-			raise ValueError('No hay espacio disponible en la estructura')
+			raise ValueError(
+				'No hay espacio disponible en la estructura',
+			)
 
 		i, j = first_empty
+
 		self.blocks[i][j] = value
+
 		global_pos = sum(len(b) for b in self.blocks[:i]) + j + 1
 
 		self.sort()
+
 		return global_pos
 
 	def delete(self, value: str) -> List[int]:
-		"""
-		Remove all occurrences of a key from the structure.
+		"""Delete all occurrences of a key from the structure.
 
-		The method identifies all matching values, removes them from
-		their positions, and then reorders the structure.
+		The method searches the entire structure, removes all
+		matching values, and then compacts the remaining data
+		by reordering the structure.
 
 		Args:
 			value (str):
@@ -170,8 +277,10 @@ class BaseExternalSearch(BaseSearchService):
 
 		Returns:
 			List[int]:
-				List of global positions (1-based) where the key was found
-				and removed. Returns an empty list if the key does not exist.
+				List of 1-based global positions where the
+				key was found and deleted.
+
+				Returns an empty list if the key does not exist.
 
 		Raises:
 			ValueError:
@@ -179,75 +288,99 @@ class BaseExternalSearch(BaseSearchService):
 
 		"""
 		self._validate_structure()
+
 		positions_info = self.search(value)
 
 		if not positions_info:
 			return []
 
 		global_positions = []
+
 		for info in positions_info:
 			global_pos = info['global_position']
+
 			global_positions.append(global_pos)
+
 			idx = global_pos - 1
 			acum = 0
+
 			for block in self.blocks:
 				if idx < acum + len(block):
 					internal = idx - acum
 					block[internal] = None
 					break
+
 				acum += len(block)
 
 		self.sort()
+
 		return global_positions
 
 	def sort(self) -> None:
-		"""
-		Sort the structure and compact all non-null values.
+		"""Sort and compact all stored keys.
 
-		The method collects all non-null values, sorts them in ascending
-		order, and redistributes them sequentially across the blocks.
-		Empty positions are placed at the end of the structure.
+		The method extracts all non-null values, sorts them
+		in ascending order, and redistributes them sequentially
+		across all blocks.
+
+		Empty positions are grouped at the end of the structure.
+
+		Raises:
+			ValueError:
+				If the structure is not initialized.
+
 		"""
 		self._validate_structure()
 
 		values = []
+
 		for block in self.blocks:
 			for v in block:
 				if v is not None:
 					values.append(v)
+
 		values.sort()
 
 		idx = 0
+
 		for block in self.blocks:
 			for j in range(len(block)):
 				if idx < len(values):
 					block[j] = values[idx]
 					idx += 1
+
 				else:
 					block[j] = None
 
 	@abstractmethod
 	def search(self, value: str) -> List[Dict[str, int]]:
-		"""
-		Search for a key using a subclass-specific strategy.
+		"""Search for a key using a specialized strategy.
 
-		Each subclass implements its own search algorithm, such as
-		sequential, indexed, or binary search across blocks.
+		Subclasses must implement their own search algorithm,
+		such as sequential search, indexed search, or binary
+		search across blocks.
 
 		Args:
 			value (str):
-				Numeric key to search for.
+				Numeric key to search.
 
 		Returns:
 			List[Dict[str, int]]:
-				List of dictionaries describing the positions where
-				the key was found. Each dictionary contains:
+				List describing all positions where the key
+				was found.
 
-					- 'global_position': 1-based position in the entire structure
-					- 'block_index': index of the block (1-based)
-					- 'block_position': 1-based position within the block
+				Each dictionary contains:
 
-				Returns an empty list if the key is not found.
+					- ``global_position``:
+					  1-based global position.
+
+					- ``block_index``:
+					  1-based block index.
+
+					- ``block_position``:
+					  1-based position inside the block.
+
+				Returns an empty list if the key does not exist.
 
 		"""
 		pass

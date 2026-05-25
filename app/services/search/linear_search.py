@@ -34,6 +34,8 @@ class LinearSearchService(BaseSearchService):
 	the base service and collect all positions where the key matches.
 	"""
 
+	snapshot_type = 'linear_search'
+
 	def search(self, value: str) -> List[int]:
 		"""Search for a key using the linear search algorithm.
 

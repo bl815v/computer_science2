@@ -40,12 +40,18 @@ You should have received a copy of the GNU General Public License
 along with ComputerScience2. If not, see <https://www.gnu.org/licenses/>.
 """
 
-from typing import Dict, List, Optional, Tuple
+from copy import deepcopy
+from typing import Any, Dict, List, Optional, Tuple
 
 from app.services.search.external.base_external import BaseExternalSearch
 from app.services.search.hash.abstract_hash import HashMixin
 from app.services.search.hash.collision_simple import CollisionResolver
 from app.services.search.hash.hash_function import HashFunction
+from app.services.search.persistence import (
+	SnapshotError,
+	hash_function_from_snapshot,
+	hash_function_to_snapshot,
+)
 
 
 class HashExternalSearch(BaseExternalSearch):
@@ -83,6 +89,8 @@ class HashExternalSearch(BaseExternalSearch):
 	        block-local and global positions.
 
 	"""
+
+	snapshot_type = 'hash_external_search'
 
 	def __init__(self, hash_func: HashFunction):
 		"""
@@ -124,31 +132,126 @@ class HashExternalSearch(BaseExternalSearch):
 			self.block_offsets.append(acc)
 			acc += len(block)
 
+	def _snapshot_config(self) -> Dict[str, Any]:
+		"""
+		Return the configuration used for snapshot persistence.
+
+		The exported configuration extends the base external
+		structure configuration by including the serialized
+		hash function definition.
+
+		This information allows the structure to reconstruct
+		the same hashing strategy when restoring a snapshot.
+
+		Returns:
+			Dict[str, Any]:
+				Dictionary containing:
+
+					- Base structure configuration.
+					- Serialized hash function metadata.
+
+		"""
+		config = super()._snapshot_config()
+		config['hash_function'] = hash_function_to_snapshot(self.hash_func)
+		return config
+
+	def _snapshot_state(self) -> Dict[str, Any]:
+		"""
+		Return the runtime state used for snapshot persistence.
+
+		The exported state contains the complete storage layout
+		of the structure, including:
+
+			- Primary block storage.
+			- Overflow collision lists.
+			- Block offset mapping.
+
+		Deep copies are used to avoid mutating the internal
+		structure after export.
+
+		Returns:
+			Dict[str, Any]:
+				Dictionary containing the current hash-based
+				external structure state.
+
+		"""
+		return {
+			'blocks': deepcopy(self.blocks),
+			'overflow': deepcopy(self.overflow),
+			'block_offsets': deepcopy(self.block_offsets),
+		}
+
+	def _restore_snapshot(self, config: Dict[str, Any], state: Dict[str, Any]) -> None:
+		"""
+		Restore the structure from an exported snapshot.
+
+		The method reconstructs the hash function, recreates
+		the block layout, validates the snapshot consistency,
+		and restores all stored values and overflow lists.
+
+		Args:
+			config (Dict[str, Any]):
+				Configuration section extracted from the snapshot.
+
+			state (Dict[str, Any]):
+				Runtime state section extracted from the snapshot.
+
+		Raises:
+			SnapshotError:
+				If the snapshot structure is invalid, corrupted,
+				or incompatible with the computed block layout.
+
+		"""
+		hash_func = hash_function_from_snapshot(config.get('hash_function'))
+		self.hash_func = hash_func
+
+		size = int(config.get('size', 0))
+		digits = int(config.get('digits', 0))
+		self.create(size=size, digits=digits)
+
+		blocks = state.get('blocks', [])
+		overflow = state.get('overflow', [])
+		block_offsets = state.get('block_offsets', [])
+		if (
+			not isinstance(blocks, list)
+			or not isinstance(overflow, list)
+			or not isinstance(block_offsets, list)
+		):
+			raise SnapshotError('External hash snapshot is corrupt')
+		if len(blocks) != len(self.blocks) or len(overflow) != len(self.blocks):
+			raise SnapshotError('External hash snapshot block counts do not match')
+
+		self.blocks = deepcopy(blocks)
+		self.overflow = deepcopy(overflow)
+		self.block_offsets = deepcopy(block_offsets)
+
+		if len(self.block_offsets) != len(self.blocks):
+			raise SnapshotError('External hash snapshot offsets do not match the block layout')
+
 	def _locate(self, value: str) -> tuple[int, int, int]:
 		"""
-		Locate the block and ideal position for a key.
+		Determine the target block and ideal hashed position.
 
-		The hash function determines the ideal global position
-		for the key. This method then identifies which block
-		contains that position.
+		The method applies the configured hash function to
+		compute the ideal global position for the key and
+		then identifies which block contains that position.
 
 		Args:
 			value (str):
-				Numeric key to locate.
+				Numeric key to locate inside the structure.
 
 		Returns:
-			Tuple[int, int, int]:
-				A tuple containing:
+			tuple[int, int, int]:
+				Tuple containing:
 
-					block_idx:
-						Index of the block containing the position.
+					- block_idx:
+						Zero-based block index.
 
-					offset:
+					- offset:
 						Starting global offset of the block.
 
-					ideal_pos:
-						Ideal global position computed by the hash
-						function (0-based).
+					- ideal_pos:
+						Zero-based global hashed position.
 
 		"""
 		ideal_pos = self.hash_func.hash(value, self.digits, self.size) % self.size

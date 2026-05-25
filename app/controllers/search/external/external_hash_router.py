@@ -56,6 +56,7 @@ from app.controllers.search.external.base_external import (
 	handle_external_create,
 	handle_external_insert,
 )
+from app.controllers.search.snapshot import SnapshotRequest
 from app.services.search.external.hash_external import (
 	BaseConversionHash,
 	HashExternalSearch,
@@ -67,7 +68,7 @@ from app.services.search.hash.hash_function import (
 	SquareHash,
 	TruncationHash,
 )
-from app.services.search.hash.hash_table import HashTable
+from app.services.search.persistence import hash_function_from_snapshot
 
 router = APIRouter(prefix='/hash-external', tags=['Hash External'])
 service: Optional[HashExternalSearch] = None
@@ -253,6 +254,91 @@ async def get_state():
 	}
 
 
+@router.post('/export')
+async def export_state():
+	"""Export the current external hash structure state.
+
+	This endpoint generates a complete snapshot of the current
+	external hash structure, including its configuration and
+	internal data.
+
+	The exported snapshot can later be restored using the
+	``/import`` endpoint.
+
+	The snapshot contains:
+
+	    - Structure type and version
+	    - Hash function configuration
+	    - General structure metadata
+	    - Main block contents
+	    - Overflow area contents
+	    - Internal offsets and state information
+
+	Returns:
+	    dict:
+	        Serializable snapshot representing the complete
+	        current state of the external hash structure.
+
+	Raises:
+	    HTTPException:
+	        If the structure has not been initialized.
+
+	"""
+	if service is None:
+		raise HTTPException(status_code=400, detail='Defina primero la función hash con /set-hash')
+
+	return service.save_state()
+
+
+@router.post('/import')
+async def import_state(request: SnapshotRequest):
+	"""Restore the external hash structure from a snapshot.
+
+	This endpoint recreates the external hash structure using
+	a previously exported snapshot.
+
+	If no service instance currently exists, the endpoint
+	automatically reconstructs the corresponding hash function
+	from the snapshot configuration and initializes a new
+	``HashExternalSearch`` instance.
+
+	The imported snapshot restores:
+
+	    - Hash function configuration
+	    - Structure metadata
+	    - Main blocks
+	    - Overflow blocks
+	    - Internal offsets and stored keys
+
+	Args:
+	    request (SnapshotRequest):
+	        Request containing the serialized snapshot to restore.
+
+	Returns:
+	    dict:
+	        Snapshot of the restored structure after the import
+	        process completes successfully.
+
+	Raises:
+	    HTTPException:
+	        If the snapshot is invalid or cannot be restored.
+
+	"""
+	global service
+
+	if service is None:
+		hash_func = hash_function_from_snapshot(
+			request.snapshot.get('config', {}).get('hash_function')
+		)
+		service = HashExternalSearch(hash_func)
+
+	try:
+		service.load_state(request.snapshot)
+		return service.save_state()
+	except ValueError as exc:
+		raise HTTPException(status_code=400, detail=str(exc))
+
+
 @router.post('/insert')
 def insert_value(request: InsertRequest):
 	"""Insert a new key into the external hash structure.
@@ -296,7 +382,6 @@ def search_value(value: str):
 		formatted = []
 
 		for r in results:
-
 			if r['global_position'] > service.size:
 				formatted.append(
 					{

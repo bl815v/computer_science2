@@ -26,7 +26,10 @@ along with ComputerScience2. If not, see <https://www.gnu.org/licenses/>.
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from copy import deepcopy
+from typing import Any, Dict, List, Optional
+
+from app.services.search.persistence import build_snapshot, validate_snapshot
 
 
 class BaseSearchService(ABC):
@@ -46,6 +49,8 @@ class BaseSearchService(ABC):
 			initialized using the create method.
 
 	"""
+
+	snapshot_type = 'base_search'
 
 	def __init__(self) -> None:
 		"""Initialize an empty, unconfigured search structure."""
@@ -190,6 +195,127 @@ class BaseSearchService(ABC):
 		self.size = 0
 		self.digits = 0
 		self.initialized = False
+
+	def save_state(self) -> Dict[str, Any]:
+		"""
+		Generate a versioned snapshot of the current service state.
+
+		This method builds a complete serialized representation of
+		the structure using the global snapshot system. It combines:
+
+			- Configuration metadata (size, digits, initialization state).
+			- Internal data state (deep copy of stored values).
+
+		The resulting snapshot is safe to persist and later restore
+		using `load_state`.
+
+		Returns:
+			Dict[str, Any]:
+				A JSON-serializable snapshot containing:
+					- type: Snapshot type identifier.
+					- config: Structural configuration.
+					- state: Internal data representation.
+					- versioning metadata (handled by build_snapshot).
+
+		"""
+		return build_snapshot(
+			self.snapshot_type,
+			self._snapshot_config(),
+			self._snapshot_state(),
+		)
+
+	def load_state(self, snapshot: Dict[str, Any]) -> None:
+		"""
+		Restore the service from a previously exported snapshot.
+
+		This method validates that the provided snapshot matches
+		the expected structure type and delegates reconstruction
+		of internal state to `_restore_snapshot`.
+
+		The restoration process ensures:
+
+			- Snapshot type compatibility is verified.
+			- Configuration is applied before state reconstruction.
+			- Internal structure is fully rebuilt in a consistent way.
+
+		Args:
+			snapshot (Dict[str, Any]):
+				Previously generated snapshot created by `save_state`.
+
+		Raises:
+			SnapshotError:
+				If the snapshot is invalid or does not match
+				the expected structure type.
+
+		"""
+		payload = validate_snapshot(snapshot, self.snapshot_type)
+		self._restore_snapshot(payload['config'], payload['state'])
+
+	def _snapshot_config(self) -> Dict[str, Any]:
+		"""
+		Return the configuration block used in exported snapshots.
+
+		This includes the structural parameters required to
+		reconstruct the service state independently of runtime data.
+
+		Returns:
+			Dict[str, Any]:
+				Configuration dictionary containing:
+					- size: Maximum capacity of the structure.
+					- digits: Required key length.
+					- initialized: Whether the structure was active.
+
+		"""
+		return {
+			'size': self.size,
+			'digits': self.digits,
+			'initialized': self.initialized,
+		}
+
+	def _snapshot_state(self) -> Dict[str, Any]:
+		"""
+		Return the internal state used in exported snapshots.
+
+		This method captures a deep copy of the stored data to ensure
+		immutability of the snapshot and avoid shared references.
+
+		Returns:
+			Dict[str, Any]:
+				State dictionary containing:
+					- data: Copy of the internal storage array.
+
+		"""
+		return {
+			'data': deepcopy(self.data),
+		}
+
+	def _restore_snapshot(self, config: Dict[str, Any], state: Dict[str, Any]) -> None:
+		"""
+		Restore the base service state from a snapshot.
+
+		This method reconstructs the internal structure using
+		the provided configuration and state blocks. It is
+		intended to be extended by subclasses to restore
+		additional attributes.
+
+		The restoration process:
+
+			1. Rebuilds structural parameters (size, digits).
+			2. Restores initialization flag.
+			3. Restores stored data.
+
+		Args:
+			config (Dict[str, Any]):
+				Configuration block from snapshot.
+
+			state (Dict[str, Any]):
+				State block containing stored data.
+
+		"""
+		self.size = int(config.get('size', 0))
+		self.digits = int(config.get('digits', 0))
+		self.initialized = bool(config.get('initialized', False))
+		self.data = deepcopy(state.get('data', []))
 
 	@abstractmethod
 	def search(self, value: str) -> List[int]:

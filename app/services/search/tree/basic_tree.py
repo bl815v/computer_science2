@@ -24,6 +24,7 @@ along with ComputerScience2. If not, see <https://www.gnu.org/licenses/>.
 """
 
 from abc import abstractmethod
+from copy import deepcopy
 from typing import List, Optional
 
 import matplotlib.pyplot as plt
@@ -31,6 +32,7 @@ import networkx as nx
 import numpy as np
 
 from app.services.search.base_search import BaseSearchService
+from app.services.search.persistence import SnapshotError
 
 
 class DigitalNode:
@@ -137,6 +139,8 @@ class BaseTree(BaseSearchService):
 	Delegate structural behavior to concrete subclasses.
 	"""
 
+	snapshot_type = 'base_tree'
+
 	def __init__(self, encoding: str = 'ABC'):
 		"""
 		Initialize tree configuration.
@@ -169,6 +173,114 @@ class BaseTree(BaseSearchService):
 				digits = 8
 		super().create(size, digits)
 		self.root = None
+
+	def _snapshot_config(self):
+		"""
+		Build the common configuration block for tree snapshots.
+
+		The configuration section stores the structural metadata
+		required to reconstruct the tree correctly during snapshot
+		import operations.
+
+		The exported configuration includes:
+
+		    - size:
+		        Maximum storage capacity of the structure.
+
+		    - digits:
+		        Number of binary digits used for encoding.
+
+		    - initialized:
+		        Indicates whether the structure has been created.
+
+		    - encoding:
+		        Encoding strategy used by the tree.
+
+		Returns:
+		    dict:
+		        Dictionary containing the serialized tree
+		        configuration.
+
+		"""
+		config = super()._snapshot_config()
+		config['encoding'] = self.encoding
+		return config
+
+	def _snapshot_state(self):
+		"""
+		Build the runtime state block for tree snapshots.
+
+		The state section stores the mutable runtime information
+		of the tree structure. For tree implementations, this
+		primarily consists of the underlying binary storage array.
+
+		A deep copy is used to avoid accidental mutations of the
+		internal structure after exporting the snapshot.
+
+		Returns:
+		    dict:
+		        Dictionary containing:
+
+		            - data:
+		                Serialized copy of the internal storage array.
+
+		"""
+		return {
+			'data': deepcopy(self.data),
+		}
+
+	def _restore_snapshot(self, config, state):
+		"""
+		Restore the complete tree structure from a snapshot.
+
+		The method reconstructs the tree configuration, restores
+		the serialized storage array, and rebuilds the internal
+		node hierarchy from the restored data.
+
+		Restoration process:
+
+		    1. Recover structural configuration values.
+		    2. Validate encoding consistency.
+		    3. Recreate the base structure.
+		    4. Restore serialized storage data.
+		    5. Rebuild all tree nodes and relationships.
+
+		Args:
+		    config (dict):
+		        Snapshot configuration block containing
+		        structural metadata.
+
+		    state (dict):
+		        Snapshot runtime state containing the
+		        serialized tree data.
+
+		Raises:
+		    SnapshotError:
+		        If the encoding is invalid, the stored
+		        data is malformed, or the snapshot size
+		        does not match the configured structure.
+
+		"""
+		size = int(config.get('size', 0))
+		digits = int(config.get('digits', 0))
+		encoding = config.get('encoding', self.encoding)
+
+		if not isinstance(encoding, str) or not encoding:
+			raise SnapshotError('Tree encoding must be a non-empty string')
+
+		self.encoding = encoding.upper()
+		self.create(size=size, digits=digits)
+
+		data = deepcopy(state.get('data', []))
+		if not isinstance(data, list):
+			raise SnapshotError('Tree snapshot data must be a list')
+		if len(data) != self.size:
+			raise SnapshotError('Tree snapshot data length does not match the configured size')
+
+		self.data = data
+		self.root = None
+		self._node_positions = {}
+		self._rebuild_tree()
 
 	def _normalize_letter(self, letter: str) -> str:
 		letter = letter.upper()
@@ -209,7 +321,22 @@ class BaseTree(BaseSearchService):
 			raise ValueError(f'Codificación desconocida: {self.encoding}')
 
 	def _rebuild_tree(self):
-		"""Rebuild the tree structure from the current data array."""
+		"""
+		Reconstruct the tree node hierarchy from stored data.
+
+		The method iterates through the internal storage array
+		and reinserts every non-null binary value into the
+		structural tree representation.
+
+		This reconstruction process is mainly used after loading
+		a snapshot, where only the serialized storage array is
+		persisted and the runtime node references must be rebuilt.
+
+		Each stored binary value is converted back to its
+		corresponding letter representation before delegating
+		node insertion to the subclass implementation.
+
+		"""
 		self.root = None
 		for i, val in enumerate(self.data):
 			if val is not None:
