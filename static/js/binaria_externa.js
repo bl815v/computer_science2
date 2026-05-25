@@ -111,22 +111,16 @@
     });
   }
 
-  // --- Animación de búsqueda externa binaria (dos niveles) ---
-  // Retorna la posición encontrada { block, cell } o null si no se encuentra.
-  // Opciones:
-  //   autoClear (bool): si true, limpia los resaltados tras 2 segundos.
-  //   resultClass (string): clase a aplicar a la celda encontrada (por defecto 'found').
+  // --- Animación de búsqueda externa binaria ---
   async function binaryExternalSearchAnimation(targetValue, options = { autoClear: true, resultClass: 'found' }) {
     const container = document.getElementById("visualization");
     if (!container) return null;
 
-    // Limpiar clases previas
     const allCells = container.querySelectorAll(".cell");
     const allBlocks = container.querySelectorAll(".block");
     allCells.forEach(c => c.classList.remove("active", "found", "discarded", "highlight-delete"));
     allBlocks.forEach(b => b.classList.remove("block-active", "block-discarded", "block-candidate"));
 
-    // Obtener los máximos de cada bloque (último valor no nulo)
     const blockMaxValues = [];
     for (let b = 0; b < currentState.blocks.length; b++) {
       const block = currentState.blocks[b];
@@ -140,24 +134,18 @@
       blockMaxValues.push(maxVal);
     }
 
-    // 1. Búsqueda binaria sobre los bloques
     let leftBlock = 0;
     let rightBlock = currentState.blocks.length - 1;
 
     while (leftBlock < rightBlock) {
       let midBlock = Math.floor((leftBlock + rightBlock) / 2);
-
-      // Resaltar el bloque actual
       const blockElement = container.querySelector(`.block[data-block="${midBlock + 1}"]`);
-      if (blockElement) {
-        blockElement.classList.add("block-active");
-      }
+      if (blockElement) blockElement.classList.add("block-active");
       await sleep(600);
 
       const maxVal = blockMaxValues[midBlock];
 
       if (maxVal === null) {
-        // Bloque vacío: todos a la derecha también vacíos
         for (let i = midBlock; i <= rightBlock; i++) {
           const bElem = container.querySelector(`.block[data-block="${i + 1}"]`);
           if (bElem) bElem.classList.add("block-discarded");
@@ -165,14 +153,12 @@
         rightBlock = midBlock - 1;
       } else {
         if (targetValue <= maxVal) {
-          // Descartar bloques a la derecha
           for (let i = midBlock + 1; i <= rightBlock; i++) {
             const bElem = container.querySelector(`.block[data-block="${i + 1}"]`);
             if (bElem) bElem.classList.add("block-discarded");
           }
           rightBlock = midBlock;
         } else {
-          // Descartar este bloque y los de la izquierda
           for (let i = leftBlock; i <= midBlock; i++) {
             const bElem = container.querySelector(`.block[data-block="${i + 1}"]`);
             if (bElem) bElem.classList.add("block-discarded");
@@ -181,41 +167,26 @@
         }
       }
 
-      // Quitar resaltado del bloque actual
-      if (blockElement) {
-        blockElement.classList.remove("block-active");
-      }
+      if (blockElement) blockElement.classList.remove("block-active");
       await sleep(400);
     }
 
-    // Después del bucle, leftBlock es el índice candidato
     if (leftBlock < 0 || leftBlock >= currentState.blocks.length) {
-      if (options.autoClear) {
-        // Limpiar todo (por si acaso)
-        allBlocks.forEach(b => b.classList.remove("block-discarded", "block-candidate"));
-      }
+      if (options.autoClear) allBlocks.forEach(b => b.classList.remove("block-discarded", "block-candidate"));
       notifyError(`Clave ${targetValue} no encontrada.`);
       return null;
     }
     const candidateBlock = leftBlock;
-
-    // Verificar si el bloque candidato podría contener el valor
     const maxValCandidate = blockMaxValues[candidateBlock];
     if (maxValCandidate === null || targetValue > maxValCandidate) {
-      if (options.autoClear) {
-        allBlocks.forEach(b => b.classList.remove("block-discarded", "block-candidate"));
-      }
+      if (options.autoClear) allBlocks.forEach(b => b.classList.remove("block-discarded", "block-candidate"));
       notifyError(`Clave ${targetValue} no encontrada.`);
       return null;
     }
 
-    // Resaltar el bloque candidato
     const candidateBlockElem = container.querySelector(`.block[data-block="${candidateBlock + 1}"]`);
-    if (candidateBlockElem) {
-      candidateBlockElem.classList.add("block-candidate");
-    }
+    if (candidateBlockElem) candidateBlockElem.classList.add("block-candidate");
 
-    // 2. Búsqueda binaria dentro del bloque candidato
     const blockData = currentState.blocks[candidateBlock];
     const blockCells = container.querySelectorAll(`.block[data-block="${candidateBlock + 1}"] .cell`);
 
@@ -227,7 +198,6 @@
     while (leftCell <= rightCell) {
       let midCell = Math.floor((leftCell + rightCell) / 2);
       let cell = blockCells[midCell];
-
       cell.classList.add("active");
       await sleep(600);
 
@@ -235,7 +205,7 @@
 
       if (cellValue !== null && cellValue !== undefined && cellValue !== "" && cellValue === targetValue) {
         cell.classList.remove("active");
-        cell.classList.add(options.resultClass); // Usar la clase especificada
+        cell.classList.add(options.resultClass);
         found = true;
         foundPos = { block: candidateBlock + 1, cell: midCell + 1 };
         break;
@@ -243,24 +213,14 @@
 
       cell.classList.remove("active");
 
-      // Lógica corregida para celdas vacías: las vacías son mayores que cualquier valor
       if (cellValue === null || cellValue === "") {
-        // Celda vacía → descartar derecha (los valores están a la izquierda)
-        for (let i = midCell; i <= rightCell; i++) {
-          blockCells[i].classList.add("discarded");
-        }
+        for (let i = midCell; i <= rightCell; i++) blockCells[i].classList.add("discarded");
         rightCell = midCell - 1;
       } else if (cellValue < targetValue) {
-        // Descartar izquierda
-        for (let i = leftCell; i <= midCell; i++) {
-          blockCells[i].classList.add("discarded");
-        }
+        for (let i = leftCell; i <= midCell; i++) blockCells[i].classList.add("discarded");
         leftCell = midCell + 1;
       } else {
-        // cellValue > targetValue
-        for (let i = midCell; i <= rightCell; i++) {
-          blockCells[i].classList.add("discarded");
-        }
+        for (let i = midCell; i <= rightCell; i++) blockCells[i].classList.add("discarded");
         rightCell = midCell - 1;
       }
       await sleep(400);
@@ -274,7 +234,6 @@
       }
       return foundPos;
     } else {
-      // No encontrado: limpiar todo y notificar
       allCells.forEach(c => c.classList.remove("active", "found", "discarded", "highlight-delete"));
       allBlocks.forEach(b => b.classList.remove("block-active", "block-discarded", "block-candidate"));
       notifyError(`Clave ${targetValue} no encontrada.`);
@@ -373,7 +332,6 @@
       });
     }
 
-    // ---- INSERTAR ----
     insertBtn.addEventListener("click", async () => {
       const rawValue = valueInput.value.trim();
       if (!rawValue) { notifyError("Ingresa una clave."); clearInput(); return; }
@@ -430,7 +388,6 @@
       }
     });
 
-    // ---- BUSCAR CON ANIMACIÓN (autoClear true, resultado en verde) ----
     searchBtn.addEventListener("click", async () => {
       const rawValue = valueInput.value.trim();
       if (!rawValue) { notifyError("Ingresa una clave."); clearInput(); return; }
@@ -439,44 +396,30 @@
 
       const foundPos = await binaryExternalSearchAnimation(value, { autoClear: true, resultClass: 'found' });
       if (foundPos) {
-        // La animación ya muestra el mensaje de encontrado? No, la animación no muestra éxito, solo retorna la posición.
-        // Añadimos el mensaje aquí.
         notifySuccess(`Clave ${value} encontrada en bloque ${foundPos.block}, posición ${foundPos.cell}`);
-      } else {
-        // La animación ya mostró error
       }
       clearInput();
     });
 
-    // ---- ELIMINAR CON ANIMACIÓN PREVIA (resultado en rojo) ----
     deleteBtn.addEventListener("click", async () => {
       const rawValue = valueInput.value.trim();
       if (!rawValue) { notifyError("Ingresa una clave."); clearInput(); return; }
       const value = toDigits(rawValue, currentState.digits);
       if (!validateKey(value)) return;
 
-      // Primero realizar la animación de búsqueda sin autoClear y con resultado en rojo
       const foundPos = await binaryExternalSearchAnimation(value, { autoClear: false, resultClass: 'highlight-delete' });
-
       if (!foundPos) {
-        // La animación ya mostró mensaje de no encontrado
         clearInput();
         return;
       }
 
-      // Mensaje de encontrado (opcional, pero podemos mostrarlo brevemente antes de eliminar)
-      // notifySuccess(`Clave ${value} encontrada, eliminando...`); // quizás no es necesario
-
-      // Pequeña pausa para que el usuario vea la celda resaltada en rojo
       await sleep(500);
 
       try {
-        // Realizar la eliminación
         const res = await fetch(`${API_BASE}/delete/${encodeURIComponent(value)}`, { method: "DELETE" });
         const data = await res.json();
         console.log("Respuesta delete:", data);
 
-        // Extraer posiciones de la respuesta (para posible resaltado adicional)
         let positions = [];
         if (Array.isArray(data)) {
           positions = data;
@@ -487,11 +430,10 @@
         }
 
         if (res.ok && positions.length > 0) {
-          await loadState(); // Recargar estado (se borran los resaltados)
+          await loadState();
           window.markStructureDirty?.();
           notifySuccess(`Clave ${value} eliminada.`);
         } else {
-          // Si no hay positions pero el status es ok, puede que se haya eliminado igual
           if (res.ok) {
             await loadState();
             window.markStructureDirty?.();
@@ -508,6 +450,13 @@
       clearInput();
     });
   }
+
+  // ---------- FUNCIÓN REFRESH PARA CORREGIR CARGA ----------
+  window.refreshStructure = async () => {
+    await loadState();
+    const actionsSection = document.getElementById("actions-section");
+    if (actionsSection) actionsSection.style.display = currentState.size > 0 ? "block" : "none";
+  };
 
   window.initSimulator = initSimulator;
 })();

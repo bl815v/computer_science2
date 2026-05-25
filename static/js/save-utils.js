@@ -110,132 +110,8 @@
   }
 
   /**
-   * Show save dialog (File System Access API with fallback).
-   * @param {string} defaultFilename - Suggested filename
-   * @returns {Promise<string>} Final filename to save
-   */
-  async function showSaveDialog(defaultFilename = 'estructura.json') {
-    // Check if File System Access API is supported
-    if ('showSaveFilePicker' in window) {
-      try {
-        const handle = await window.showSaveFilePicker({
-          suggestedName: defaultFilename,
-          types: [
-            {
-              description: 'JSON Files',
-              accept: { 'application/json': ['.json'] },
-            },
-          ],
-        });
-        return handle.name;
-      } catch (error) {
-        if (error.name !== 'AbortError') {
-          console.error('File System API error:', error);
-        }
-        // Fall through to modal dialog
-      }
-    }
-
-    // Fallback: modal dialog for filename input
-    return new Promise((resolve, reject) => {
-      const overlay = document.createElement('div');
-      overlay.className = 'modal-overlay';
-      overlay.style.zIndex = '10000';
-
-      const box = document.createElement('div');
-      box.className = 'modal-box info';
-      box.style.minWidth = '400px';
-
-      const title = document.createElement('h3');
-      title.textContent = 'Guardar estructura';
-      title.style.margin = '0 0 16px 0';
-      title.style.fontSize = '18px';
-      title.style.fontWeight = '600';
-
-      const label = document.createElement('label');
-      label.textContent = 'Nombre del archivo:';
-      label.style.display = 'block';
-      label.style.marginBottom = '8px';
-      label.style.fontSize = '14px';
-
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.value = defaultFilename.replace('.json', '');
-      input.style.width = '100%';
-      input.style.padding = '8px';
-      input.style.marginBottom = '16px';
-      input.style.border = '1px solid #d0d0d0';
-      input.style.borderRadius = '2px';
-      input.style.fontSize = '14px';
-      input.style.boxSizing = 'border-box';
-      input.focus();
-
-      const hint = document.createElement('small');
-      hint.textContent = 'Se agregará automáticamente la extensión .json';
-      hint.style.color = '#666';
-      hint.style.display = 'block';
-      hint.style.marginBottom = '24px';
-
-      const btnGroup = document.createElement('div');
-      btnGroup.style.display = 'flex';
-      btnGroup.style.gap = '8px';
-      btnGroup.style.justifyContent = 'flex-end';
-
-      const btnSave = document.createElement('button');
-      btnSave.textContent = 'Guardar';
-      btnSave.className = 'modal-btn';
-      btnSave.style.background = 'var(--ms-blue)';
-      btnSave.style.color = 'white';
-      btnSave.style.border = 'none';
-      btnSave.style.cursor = 'pointer';
-
-      const btnCancel = document.createElement('button');
-      btnCancel.textContent = 'Cancelar';
-      btnCancel.className = 'modal-btn';
-      btnCancel.style.background = 'white';
-      btnCancel.style.color = 'var(--ms-error)';
-      btnCancel.style.border = '1px solid var(--ms-error)';
-      btnCancel.style.cursor = 'pointer';
-
-      btnSave.addEventListener('click', () => {
-        const name = input.value.trim();
-        if (!name) {
-          input.style.borderColor = 'var(--ms-error)';
-          return;
-        }
-        overlay.remove();
-        resolve(name.endsWith('.json') ? name : `${name}.json`);
-      });
-
-      btnCancel.addEventListener('click', () => {
-        overlay.remove();
-        reject(new Error('Save cancelled'));
-      });
-
-      input.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') btnSave.click();
-        if (e.key === 'Escape') btnCancel.click();
-      });
-
-      overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) btnCancel.click();
-      });
-
-      btnGroup.appendChild(btnCancel);
-      btnGroup.appendChild(btnSave);
-
-      box.appendChild(title);
-      box.appendChild(label);
-      box.appendChild(input);
-      box.appendChild(hint);
-      box.appendChild(btnGroup);
-      overlay.appendChild(box);
-      document.body.appendChild(overlay);
-    });
-  }
-
-  /**
-   * Save structure with dialog (guardar como).
+   * Save structure using File System Access API if available,
+   * otherwise use simple download.
    * @param {string} endpoint - API endpoint for export
    * @param {string} suggestedFilename - Suggested filename
    * @param {object} config - Optional configuration
@@ -243,18 +119,62 @@
    */
   async function saveStructureAs(endpoint, suggestedFilename, config = null) {
     try {
-      const filename = await showSaveDialog(suggestedFilename);
       const data = await exportStructure(endpoint, config);
-      downloadJSON(data, filename);
       
+      // Validate that data is not empty
+      if (!data || Object.keys(data).length === 0) {
+        throw new Error('La estructura está vacía. Por favor, crea o carga una estructura antes de guardar.');
+      }
+
+      const jsonString = JSON.stringify(data, null, 2);
+      
+      // Double-check JSON is not empty
+      if (!jsonString || jsonString.length < 3) {
+        throw new Error('No se pudo serializar la estructura correctamente.');
+      }
+
+      console.debug('Saving:', jsonString.length, 'bytes');
+
+      // Try File System Access API first
+      if ('showSaveFilePicker' in window) {
+        try {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: suggestedFilename,
+            types: [
+              {
+                description: 'JSON Files',
+                accept: { 'application/json': ['.json'] },
+              },
+            ],
+          });
+
+          // Write file using File System Access API
+          const writable = await handle.createWritable();
+          await writable.write(jsonString);
+          await writable.close();
+
+          if (window.notifySuccess) {
+            window.notifySuccess(`Estructura guardada como ${handle.name}`);
+          }
+          return;
+        } catch (error) {
+          if (error.name === 'AbortError') {
+            // User cancelled - don't show error
+            return;
+          }
+          console.error('File System API error:', error);
+          // Fall through to simple download
+        }
+      }
+
+      // Fallback: simple download (native browser behavior)
+      downloadJSON(data, suggestedFilename);
       if (window.notifySuccess) {
-        window.notifySuccess(`Estructura guardada como ${filename}`);
+        window.notifySuccess(`Estructura guardada como ${suggestedFilename}`);
       }
     } catch (error) {
-      if (error.message !== 'Save cancelled') {
-        if (window.notifyError) {
-          window.notifyError(error.message || 'Error al guardar');
-        }
+      if (window.notifyError) {
+        window.notifyError(error.message || 'Error al guardar');
       }
       throw error;
     }
@@ -293,7 +213,6 @@
     downloadJSON,
     saveStructure,
     saveStructureAs,
-    showSaveDialog,
     loadJSONFile,
     loadStructure,
   };

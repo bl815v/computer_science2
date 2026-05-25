@@ -3,7 +3,7 @@
 
   const API_BASE = "http://127.0.0.1:8000/binary-search";
   let isAlertActive = false;
-  let currentState = { size: 0, digits: 0, data: [] }; // Estado local
+  let currentState = { size: 0, digits: 0, data: [] };
 
   function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -41,7 +41,7 @@
 
     const data = currentState.data;
     const totalSize = data.length;
-    const OCCUPIED_THRESHOLD = 1; // Salto para puntos suspensivos
+    const OCCUPIED_THRESHOLD = 1;
 
     const occupied = [];
     for (let i = 0; i < totalSize; i++) {
@@ -57,7 +57,7 @@
       if (val == null || val === "") cell.classList.add("empty");
       cell.dataset.index = String(index + 1);
       cell.dataset.pos = index + 1;
-      cell.textContent = (val == null || val === "") ? "" : val; // ya viene formateado con dígitos
+      cell.textContent = (val == null || val === "") ? "" : val;
       grid.appendChild(cell);
     };
 
@@ -102,22 +102,18 @@
     }
   }
 
-  // --- Animación de búsqueda binaria adaptada a celdas visibles ---
+  // --- Animación de búsqueda binaria ---
   async function binarySearchAnimation(targetValue, state) {
     const grid = document.getElementById("bin-visualization");
     if (!grid) return false;
-    // Obtener celdas visibles (sin puntos) y ordenar por data-pos
     let cells = Array.from(grid.querySelectorAll(".cell:not(.dots)"));
     cells.sort((a, b) => parseInt(a.dataset.pos) - parseInt(b.dataset.pos));
-
-    // Obtener los índices reales de esas celdas
-    const indices = cells.map(cell => parseInt(cell.dataset.pos) - 1); // 0-based
+    const indices = cells.map(cell => parseInt(cell.dataset.pos) - 1);
 
     let found = false;
     let left = 0;
     let right = indices.length - 1;
 
-    // Limpiar clases
     cells.forEach(c => c.classList.remove("active", "found", "discarded"));
 
     while (left <= right) {
@@ -142,13 +138,11 @@
       cell.classList.remove("active");
 
       if (midValue < searchValue) {
-        // Descartar izquierda
         for (let i = left; i <= mid; i++) {
           cells[i].classList.add("discarded");
         }
         left = mid + 1;
       } else {
-        // Descartar derecha
         for (let i = mid; i <= right; i++) {
           cells[i].classList.add("discarded");
         }
@@ -181,7 +175,6 @@
 
     if (!sizeEl || !digitsEl || !createBtn) return;
 
-    // Asegurar botones ocultos al inicio
     if (actionsSection) actionsSection.style.display = "none";
 
     async function reload() {
@@ -230,21 +223,17 @@
     insertBtn.addEventListener("click", async () => {
       if (!currentState.size) return notifyError("Crea la estructura primero.");
       if (!valInput.value) return notifyError("Ingresa un valor.");
-      
       const val = toDigits(valInput.value, currentState.digits);
-
       try {
         const res = await fetch(`${API_BASE}/insert`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ value: val }),
         });
-
         if (!res.ok) {
           const err = await res.json();
           throw new Error(err.detail || "Error en la inserción");
         }
-
         await reload();
         window.markStructureDirty?.();
         notifySuccess(`Valor ${val} insertado.`);
@@ -265,22 +254,17 @@
       deleteBtn.addEventListener("click", async () => {
         if (!currentState.size) return notifyError("Crea la estructura.");
         if (!valInput.value) return notifyError("Ingresa el valor a eliminar.");
-
         const val = toDigits(valInput.value, currentState.digits);
-
         try {
           const found = await binarySearchAnimation(val, currentState);
-
           if (found) {
             const res = await fetch(`${API_BASE}/delete/${encodeURIComponent(val)}`, {
               method: "DELETE",
             });
-
             if (!res.ok) {
               const err = await res.json();
               throw new Error(err.detail || "Error al eliminar");
             }
-
             await reload();
             window.markStructureDirty?.();
             notifySuccess(`Valor ${val} eliminado.`);
@@ -302,6 +286,11 @@
     } catch (error) {
       console.error(error);
     }
+
+    // Exponer función para refrescar la UI después de importar
+    window.refreshStructure = async () => {
+      await reload();
+    };
   }
 
   window.initSimulator = initBinaria;

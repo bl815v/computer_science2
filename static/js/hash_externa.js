@@ -265,7 +265,6 @@
           if (i === data.length - 1) {
             element.classList.remove("active");
             element.classList.add("highlight-delete");
-            // Programar la eliminación de la clase highlight-delete después de 1.5s
             setTimeout(() => {
               element.classList.remove("highlight-delete");
             }, 1500);
@@ -304,12 +303,22 @@
       const blockSizeSpan = document.getElementById("block-size-display");
       if (blockSizeSpan) blockSizeSpan.textContent = currentState.block_size || "-";
       renderGrid();
+
+      const actionsSection = document.getElementById("actions-section");
+      if (actionsSection) {
+        actionsSection.style.display = currentState.size > 0 ? "block" : "none";
+      }
     } catch (err) {
       console.error("Error en loadState:", err);
       currentState = { size: 0, digits: 0, block_size: 0, blocks: [], overflow: [] };
       renderGrid();
     }
   }
+
+  // -------------------- Función global para refrescar la UI (usada después de importar) --------------------
+  window.refreshStructure = async () => {
+    await loadState();
+  };
 
   // Construye el body para set-hash según los parámetros seleccionados
   function buildHashBody() {
@@ -482,7 +491,7 @@
               const posActual = searchData[0].global_position;
               const bc = globalPosToBlockCell(posActual);
               if (bc) {
-                highlightCells([bc], 'highlight-insert', 2000); // 2 segundos para que se note
+                highlightCells([bc], 'highlight-insert', 2000);
                 window.markStructureDirty?.();
                 notifySuccess(`Clave ${value} insertada en bloque ${bc.block}, ${bc.location === 'overflow' ? 'overflow' : 'posición'} ${bc.cell}`);
               } else {
@@ -540,7 +549,6 @@
         return;
       }
 
-      // Pequeña pausa para que el usuario vea el resaltado rojo
       await sleep(800);
 
       try {

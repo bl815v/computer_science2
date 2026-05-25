@@ -267,6 +267,11 @@
     }
   }
 
+  // -------------------- Función global para refrescar la UI (usada después de importar) --------------------
+  window.refreshStructure = async () => {
+    await loadState();
+  };
+
   // -------------------- Inicialización --------------------
   async function initSimulator() {
     const hashTypeSelect = document.getElementById("hash-type");

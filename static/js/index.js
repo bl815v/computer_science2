@@ -102,7 +102,6 @@ function showBusquedaInterna() {
       <button class="ribbon-btn" data-page="hash">Hash</button>
       <button class="ribbon-btn" data-page="arbol">Árboles</button>
       <button class="ribbon-btn" data-page="huffman">Huffman</button>
-      <button class="ribbon-btn" data-page="indices">Índices</button>
     </div>
   `;
 
@@ -146,6 +145,7 @@ function showBusquedaExterna() {
       <button class="ribbon-btn" data-page="binaria_externa">Binaria</button>
       <button class="ribbon-btn" data-page="hash_externa">Hash</button>
       <button class="ribbon-btn" data-page="hash_dinamica">Dinámica</button>
+      <button class="ribbon-btn" data-page="indices">Índices</button>
     </div>
   `;
 
@@ -293,29 +293,7 @@ function printCurrentView() {
   }, 100);
 }
 
-/* ---------------- Init ---------------- */
-
-document.addEventListener("DOMContentLoaded", () => {
-  handleTabClick("busquedas");
-
-  const printBtn = document.getElementById("print-btn");
-  if (printBtn) {
-    printBtn.disabled = false;
-    printBtn.addEventListener("click", printCurrentView);
-  }
-
-  // Setup save/open buttons
-  const saveBtn = document.getElementById("save-btn");
-  const openBtn = document.getElementById("open-btn");
-
-  if (saveBtn) {
-    saveBtn.addEventListener("click", handleSave);
-  }
-
-  if (openBtn) {
-    openBtn.addEventListener("click", handleOpen);
-  }
-});
+/* ---------------- Save / Open ---------------- */
 
 /**
  * Map page names to API endpoints and filenames
@@ -325,14 +303,9 @@ function getSimulatorConfig(pageName) {
     secuencial: { endpoint: '/linear-search/export', filename: 'busqueda_secuencial.json' },
     binaria: { endpoint: '/binary-search/export', filename: 'busqueda_binaria.json' },
     hash: { endpoint: '/hash/export', filename: 'tabla_hash.json' },
-    arbol: { endpoint: null, filename: null }, // Has submenu (simple, multiple, digital)
-    'simple-residue': { endpoint: '/simple-residue/export', filename: 'arbol_simple.json' },
-    'multiple-residue': { endpoint: '/multiple-residue/export', filename: 'arbol_multiple.json' },
-    digital: { endpoint: '/digital/export', filename: 'arbol_digital.json' },
+    arbol: { endpoint: null, filename: null }, // handled separately
     huffman: { endpoint: '/huffman/export', filename: 'arbol_huffman.json' },
-    indices: { endpoint: null, filename: null }, // Has multiple index types
-    'primary-index': { endpoint: '/search/index/primary/export', filename: 'indice_primario.json' },
-    'secondary-index': { endpoint: '/search/index/secondary/export', filename: 'indice_secundario.json' },
+    indices: { endpoint: null, filename: null }, // has multiple index types
     lineal_externa: { endpoint: '/external/linear/export', filename: 'busqueda_lineal_externa.json' },
     binaria_externa: { endpoint: '/external/binary/export', filename: 'busqueda_binaria_externa.json' },
     hash_externa: { endpoint: '/hash-external/export', filename: 'hash_externo.json' },
@@ -345,18 +318,15 @@ function getSimulatorConfig(pageName) {
  * Detect current simulator page
  */
 function getCurrentSimulatorPage() {
-  // Primary: use tracked current simulator
   if (appState.currentSimulator) {
     return appState.currentSimulator;
   }
 
-  // Fallback 1: find active ribbon button
   const activeBtn = document.querySelector('.ribbon-btn.active');
   if (activeBtn && activeBtn.dataset.page) {
     return activeBtn.dataset.page;
   }
 
-  // Fallback 2: detect from loaded scripts
   for (let url of appState.loadedScripts) {
     const match = url.match(/\/js\/(\w+)\.js/);
     if (match) {
@@ -379,6 +349,23 @@ async function handleSave() {
   if (!page) {
     if (window.notifyInfo) {
       window.notifyInfo('Por favor, selecciona un simulador primero.');
+    }
+    return;
+  }
+
+  // Caso especial para árboles
+  if (page === 'arbol') {
+    if (typeof window.exportTree === 'function') {
+      try {
+        await window.exportTree();
+        window.resetStructureDirty?.();
+      } catch (err) {
+        console.error('Export error:', err);
+      }
+    } else {
+      if (window.notifyError) {
+        window.notifyError('El simulador de árboles no soporta guardado todavía.');
+      }
     }
     return;
   }
@@ -420,6 +407,30 @@ async function handleOpen() {
     return;
   }
 
+  // Caso especial para árboles
+  if (page === 'arbol') {
+    if (typeof window.importTree === 'function') {
+      try {
+        await window.importTree();
+        // Refrescar visualización después de importar
+        if (typeof window.refreshStructure === 'function') {
+          await window.refreshStructure();
+        }
+        window.resetStructureDirty?.();
+      } catch (err) {
+        console.error('Import error:', err);
+        if (window.notifyError) {
+          window.notifyError('Error al cargar el árbol: ' + (err.message || 'Error desconocido'));
+        }
+      }
+    } else {
+      if (window.notifyError) {
+        window.notifyError('El simulador de árboles no soporta cargar archivos todavía.');
+      }
+    }
+    return;
+  }
+
   const config = getSimulatorConfig(page);
   
   if (!config || !config.endpoint) {
@@ -441,10 +452,14 @@ async function handleOpen() {
     const importEndpoint = config.endpoint.replace('/export', '/import');
     const state = await window.saveUtils.loadStructure(importEndpoint);
     
-    // Give backend a moment to update state, then reload simulator
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Give backend sufficient time to update state before reinitializing
+    await new Promise(resolve => setTimeout(resolve, 300));
     
-    if (typeof window.initSimulator === 'function') {
+    // Refresh the current simulator's UI (if available)
+    if (typeof window.refreshStructure === 'function') {
+      await window.refreshStructure();
+    } else if (typeof window.initSimulator === 'function') {
+      // Fallback: reinitialize completely
       window.initSimulator();
     }
     
@@ -457,3 +472,29 @@ async function handleOpen() {
     }
   }
 }
+
+/* ---------------- Init ---------------- */
+
+document.addEventListener("DOMContentLoaded", () => {
+  handleTabClick("busquedas");
+
+  const printBtn = document.getElementById("print-btn");
+  if (printBtn) {
+    printBtn.disabled = false;
+    printBtn.addEventListener("click", printCurrentView);
+  }
+
+  // Setup save/open buttons
+  const saveBtn = document.getElementById("save-btn");
+  const openBtn = document.getElementById("open-btn");
+
+  if (saveBtn) {
+    saveBtn.disabled = false;
+    saveBtn.addEventListener("click", handleSave);
+  }
+
+  if (openBtn) {
+    openBtn.disabled = false;
+    openBtn.addEventListener("click", handleOpen);
+  }
+});

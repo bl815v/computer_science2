@@ -39,9 +39,8 @@
 
     const data = currentState.data;
     const totalSize = data.length;
-    const OCCUPIED_THRESHOLD = 1; // Si hay más de 2 vacíos entre ocupados, ponemos "..."
+    const OCCUPIED_THRESHOLD = 1;
 
-    // Encontrar índices ocupados (que tienen un valor real, no vacío ni DELETED)
     const occupied = [];
     for (let i = 0; i < totalSize; i++) {
       const val = data[i];
@@ -49,19 +48,17 @@
       if (isOccupied) occupied.push(i);
     }
 
-    // Función auxiliar para crear una celda en un índice dado
     const appendCell = (index) => {
       const val = data[index];
       const cell = document.createElement("div");
       cell.className = "cell";
       if (val == null || val === "") cell.classList.add("empty");
       cell.dataset.index = String(index + 1);
-      cell.dataset.pos = index + 1; // Para búsquedas y animaciones
+      cell.dataset.pos = index + 1;
       cell.textContent = (val == null || val === "") ? "" : toDigits(val, currentState.digits);
       grid.appendChild(cell);
     };
 
-    // Si no hay ocupados, mostrar un pequeño conjunto de celdas vacías (primeras 5)
     if (occupied.length === 0) {
       const end = Math.min(1, totalSize) - 1;
       for (let i = 0; i <= end; i++) {
@@ -73,13 +70,11 @@
     const firstOcc = occupied[0];
     const lastOcc = occupied[occupied.length - 1];
 
-    // Contexto inicial: desde max(0, firstOcc-2) hasta firstOcc-1
     const start = Math.max(0, firstOcc - 2);
     for (let i = start; i < firstOcc; i++) {
       appendCell(i);
     }
 
-    // Mostrar ocupados y los espacios entre ellos
     for (let idx = 0; idx < occupied.length; idx++) {
       const i = occupied[idx];
       appendCell(i);
@@ -87,13 +82,11 @@
       if (idx < occupied.length - 1) {
         const next = occupied[idx + 1];
         if (next - i > OCCUPIED_THRESHOLD) {
-          // Salto grande: poner "..."
           const dots = document.createElement("div");
           dots.className = "cell dots";
           dots.textContent = "...";
           grid.appendChild(dots);
         } else if (next - i > 1) {
-          // Mostrar las celdas intermedias vacías (para mantener continuidad)
           for (let j = i + 1; j < next; j++) {
             appendCell(j);
           }
@@ -101,7 +94,6 @@
       }
     }
 
-    // Contexto final: desde lastOcc+1 hasta min(totalSize-1, lastOcc+2)
     const end = Math.min(totalSize - 1, lastOcc + 2);
     for (let i = lastOcc + 1; i <= end; i++) {
       appendCell(i);
@@ -113,16 +105,13 @@
     const grid = document.getElementById("visualization");
     if (!grid) return { found: false, position: -1 };
 
-    // Seleccionar todas las celdas que no sean puntos suspensivos
     const cells = Array.from(grid.querySelectorAll(".cell:not(.dots)"));
-    // Ordenar por data-pos (número real de la celda)
     cells.sort((a, b) => parseInt(a.dataset.pos) - parseInt(b.dataset.pos));
 
     let foundAny = false;
     let foundIndex = -1;
     const targetNum = Number(targetValue);
 
-    // Limpiar clases previas
     cells.forEach(c => c.classList.remove("active", "found", "not-found", "visited"));
 
     for (let i = 0; i < cells.length; i++) {
@@ -133,7 +122,6 @@
       const cellContent = cell.textContent.trim();
       const cellNum = cellContent ? Number(cellContent) : NaN;
 
-      // Si la celda tiene un valor numérico y es mayor que el buscado, detener
       if (!isNaN(cellNum) && cellNum > targetNum) {
         break;
       }
@@ -141,7 +129,7 @@
       if (cellContent !== "" && cellContent === targetValue) {
         cell.classList.add("found");
         foundAny = true;
-        foundIndex = parseInt(cell.dataset.pos); // posición real (1-based)
+        foundIndex = parseInt(cell.dataset.pos);
         break;
       } else {
         cell.classList.add("visited");
@@ -165,7 +153,7 @@
     return { found: foundAny, position: foundIndex };
   }
 
-  // --- ANIMACIÓN PARA INSERCIÓN (sin parada temprana por orden) ---
+  // --- ANIMACIÓN PARA INSERCIÓN ---
   async function insertAnimation(targetValue, state, stepMs = 450) {
     const grid = document.getElementById("visualization");
     if (!grid) return { found: false, position: -1 };
@@ -234,9 +222,7 @@
 
     if (!sizeEl || !digitsEl || !createBtn) return;
 
-    // Asegurar que los botones de acción estén ocultos al inicio
     if (actions) actions.style.display = "none";
-    // El contenedor de visualización se deja vacío (sin celdas)
 
     async function reload() {
       currentState = await fetchState();
@@ -281,23 +267,19 @@
         try {
           if (!currentState.size) throw new Error("Primero crea la estructura.");
           if (!valueEl.value) throw new Error("Ingresa una clave.");
-        
           insertBtn.disabled = true;
           const value = toDigits(valueEl.value, currentState.digits);
-        
           const res = await fetch(`${API_BASE}/insert`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ value }),
           });
-        
           if (!res.ok) {
             const errorData = await res.json();
             throw new Error(errorData.detail || "No se pudo insertar");
           }
-        
           await reload();
-          window.markStructureDirty?.();   // <--- AÑADIR (ya estaba pero bien ubicado)
+          window.markStructureDirty?.();
           const result = await insertAnimation(value, currentState, 300);
           notifySuccess(`Clave ${value} insertada correctamente en la dirección ${result.position}.`);
           valueEl.value = "";
@@ -313,10 +295,8 @@
       searchBtn.addEventListener("click", async () => {
         if (!currentState.size) return notifyError("Estructura no inicializada.");
         if (!valueEl.value) return notifyError("Ingresa una clave.");
-        
         const value = toDigits(valueEl.value, currentState.digits);
         const result = await scanAnimation(value, currentState, 350);
-
         if (result.found) {
           notifySuccess(`Clave ${value} encontrada en la dirección ${result.position}.`);
         } else {
@@ -329,20 +309,14 @@
       deleteBtn.addEventListener("click", async () => {
         if (!currentState.size) return;
         if (!valueEl.value) return;
-        
         const value = toDigits(valueEl.value, currentState.digits);
-        
         try {
           const result = await scanAnimation(value, currentState, 300);
           if (!result.found) {
             notifyError("No se encontró el valor para eliminar.");
             return;
           }
-
-          const res = await fetch(`${API_BASE}/delete/${encodeURIComponent(value)}`, { 
-            method: "DELETE" 
-          });
-          
+          const res = await fetch(`${API_BASE}/delete/${encodeURIComponent(value)}`, { method: "DELETE" });
           if (res.ok) {
             await reload();
             window.markStructureDirty?.();
@@ -360,6 +334,11 @@
     // Cargar estado inicial (vacío)
     currentState = await fetchState();
     renderGrid();
+
+    // Exponer función para refrescar la UI después de importar
+    window.refreshStructure = async () => {
+      await reload();
+    };
   }
 
   window.initSimulator = initSecuencial;

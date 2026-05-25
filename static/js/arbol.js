@@ -2,7 +2,6 @@
 (() => {
   "use strict";
 
-  // Tipos de árbol y sus bases de URL (los endpoints siguen en inglés)
   const TREE_TYPES = {
     digital: 'digital',
     simple: 'simple-residue',
@@ -12,7 +11,6 @@
   let currentType = TREE_TYPES.digital;
   let baseURL = `http://127.0.0.1:8000/${currentType}`;
 
-  // Elementos del DOM
   const btnDigital = document.getElementById('btn-digital');
   const btnSimple = document.getElementById('btn-simple');
   const btnMultiple = document.getElementById('btn-multiple');
@@ -29,12 +27,10 @@
   const imageSizeValue = document.getElementById('image-size-value');
   const actionsSection = document.getElementById('actions-section');
 
-  // Valores fijos para la creación
   const FIXED_SIZE = 1000;
   const FIXED_DIGITS = 5;
   const FIXED_M = 2;
 
-  // --- Utilidades ---
   function updateBaseURL() {
     baseURL = `http://127.0.0.1:8000/${currentType}`;
   }
@@ -56,12 +52,10 @@
     updateBaseURL();
     setActiveTypeButton(type);
     toggleMField();
-    // Ocultar operaciones hasta que se cree la nueva estructura
     if (actionsSection) actionsSection.style.display = 'none';
     treeImage.src = '';
   }
 
-  // Validación de letra (solo una del alfabeto español)
   function isValidLetter(letter) {
     return /^[A-Z]$/i.test(letter);
   }
@@ -70,39 +64,25 @@
     return letter.toUpperCase();
   }
 
-  // --- Validación en tiempo real (mejorada, sin molestias) ---
   function enforceSingleLetter(input) {
     const raw = input.value;
-    // Expresión regular para una sola letra válida (mayúscula o minúscula)
     const singleValidLetterRegex = /^[A-Z]$/i;
-
-    // Si está vacío, no hacemos nada
     if (raw === '') return;
-
-    // Si es una sola letra válida, normalizamos a mayúscula sin notificación
     if (singleValidLetterRegex.test(raw)) {
       input.value = raw.toUpperCase();
       return;
     }
-
-    // Si no es válido (número, símbolo, múltiples caracteres), limpiamos y mostramos error
-    // Extraemos solo letras válidas y tomamos la primera si existe
     const cleaned = raw.toUpperCase().replace(/[^A-Z]/g, '');
     const newValue = cleaned.length > 0 ? cleaned.charAt(0) : '';
     input.value = newValue;
-
-    // Mostramos notificación solo si el usuario había ingresado algo no vacío
     window.notifyError?.('Solo se permite una letra del alfabeto americano (A-Z)');
   }
 
-  // Control deslizante para el tamaño de la imagen
   function setupImageSizeSlider() {
     if (!imageSizeSlider || !imageSizeValue || !treeImage) return;
-
     const initialSize = imageSizeSlider.value;
     treeImage.style.width = initialSize + 'px';
     imageSizeValue.textContent = initialSize + 'px';
-
     imageSizeSlider.addEventListener('input', function() {
       const size = this.value + 'px';
       treeImage.style.width = size;
@@ -110,20 +90,17 @@
     });
   }
 
-  // Cargar imagen con timestamp para evitar caché
   function loadImage(url) {
     const separator = url.includes('?') ? '&' : '?';
     treeImage.src = `${url}${separator}t=${Date.now()}`;
   }
 
-  // Notificaciones
   function notify(message, type = 'info') {
     if (type === 'success') window.notifySuccess?.(message);
     else if (type === 'error') window.notifyError?.(message);
     else window.notifyInfo?.(message);
   }
 
-  // --- API Calls ---
   async function createStructure() {
     const body = {
       size: FIXED_SIZE,
@@ -145,7 +122,6 @@
       }
       notify('Estructura creada correctamente', 'success');
       window.markStructureDirty?.();
-      // Mostrar las operaciones y el slider
       if (actionsSection) actionsSection.style.display = 'block';
       loadImage(`${baseURL}/plot`);
     } catch (err) {
@@ -237,31 +213,106 @@
     loadImage(`${baseURL}/plot`);
   }
 
-  // --- Inicialización ---
+  // ----- Funciones de guardado/carga con detección de tipo -----
+  function getCurrentTreeType() {
+    if (btnDigital.classList.contains('active')) return 'digital';
+    if (btnSimple.classList.contains('active')) return 'simple-residue';
+    if (btnMultiple.classList.contains('active')) return 'multiple-residue';
+    return 'digital';
+  }
+
+  window.exportTree = async () => {
+    const type = getCurrentTreeType();
+    const endpoint = `/${type}/export`;
+    try {
+      const response = await fetch(`http://127.0.0.1:8000${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!response.ok) throw new Error('Error al exportar');
+      const snapshot = await response.json();
+      // Añadir el tipo manualmente
+      snapshot._type = type;
+      // Guardar usando descarga directa (muestra el diálogo del navegador)
+      const filename = `arbol_${type}.json`;
+      const jsonString = JSON.stringify(snapshot, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      window.notifySuccess?.(`Árbol guardado como ${filename}`);
+    } catch (err) {
+      console.error(err);
+      window.notifyError?.('Error al guardar el árbol');
+    }
+  };
+
+  window.importTree = async () => {
+    try {
+      const snapshot = await window.saveUtils.loadJSONFile();
+      if (!snapshot) throw new Error('No se pudo leer el archivo');
+      let type = snapshot._type;
+      if (!type) {
+        // Fallback: intentar inferir por datos del snapshot (opcional)
+        if (snapshot.digital) type = 'digital';
+        else if (snapshot.simpleResidue) type = 'simple-residue';
+        else throw new Error('Archivo inválido: no se detectó el tipo de árbol');
+      }
+      if (!['digital', 'simple-residue', 'multiple-residue'].includes(type)) {
+        throw new Error(`Tipo desconocido: ${type}`);
+      }
+      // Cambiar UI al tipo correspondiente
+      if (type === 'digital') changeType(TREE_TYPES.digital);
+      else if (type === 'simple-residue') changeType(TREE_TYPES.simple);
+      else if (type === 'multiple-residue') changeType(TREE_TYPES.multiple);
+      
+      const importEndpoint = `/${type}/import`;
+      const response = await fetch(`http://127.0.0.1:8000${importEndpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ snapshot })
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.detail || 'Error al cargar el árbol');
+      }
+      await window.refreshStructure();
+      window.notifySuccess?.('Árbol cargado correctamente');
+    } catch (err) {
+      window.notifyError?.(err.message || 'Error al cargar el árbol');
+    }
+  };
+
+  window.refreshStructure = async () => {
+    loadImage(`${baseURL}/plot`);
+    if (actionsSection) actionsSection.style.display = 'block';
+  };
+
+  // Inicialización
   function initSimulator() {
-    // Eventos de cambio de tipo
     btnDigital.addEventListener('click', () => changeType(TREE_TYPES.digital));
     btnSimple.addEventListener('click', () => changeType(TREE_TYPES.simple));
     btnMultiple.addEventListener('click', () => changeType(TREE_TYPES.multiple));
 
-    // Validación en tiempo real en el campo de letra
     if (letterInput) {
       letterInput.addEventListener('input', function() {
         enforceSingleLetter(this);
       });
     }
 
-    // Configurar slider de tamaño
     setupImageSizeSlider();
 
-    // Botones de acción
     createBtn.addEventListener('click', createStructure);
     insertBtn.addEventListener('click', insertLetter);
     searchBtn.addEventListener('click', () => searchLetter(true));
     deleteBtn.addEventListener('click', deleteLetter);
     viewTreeBtn.addEventListener('click', viewTree);
 
-    // Estado inicial: operaciones ocultas
     if (actionsSection) actionsSection.style.display = 'none';
     setActiveTypeButton(currentType);
     toggleMField();

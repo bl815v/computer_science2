@@ -9,7 +9,6 @@
   const createBtn = document.getElementById('create-tree-btn');
   const resultsSection = document.getElementById('results-section');
   
-  // Nuevos elementos para la tabla principal
   const mainTableBody = document.getElementById('huffman-table-body');
   const mainTableFoot = document.getElementById('huffman-table-foot');
   
@@ -32,14 +31,11 @@
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  // Configurar slider de tamaño de imagen
   function setupImageSizeSlider() {
     if (!imageSizeSlider || !imageSizeValue || !treeImage) return;
-
     const initialSize = imageSizeSlider.value;
     treeImage.style.width = initialSize + 'px';
     imageSizeValue.textContent = initialSize + 'px';
-
     imageSizeSlider.addEventListener('input', function() {
       const size = this.value + 'px';
       treeImage.style.width = size;
@@ -47,13 +43,11 @@
     });
   }
 
-  // Cargar imagen con timestamp para evitar caché
   function loadImage(url) {
     const separator = url.includes('?') ? '&' : '?';
     treeImage.src = `${url}${separator}t=${Date.now()}`;
   }
 
-  // Mostrar notificaciones
   function notifySuccess(msg) {
     if (window.notifySuccess) window.notifySuccess(msg);
     else alert(msg);
@@ -64,23 +58,14 @@
     else alert(msg);
   }
 
-  function notifyInfo(msg) {
-    if (window.notifyInfo) window.notifyInfo(msg);
-    else alert(msg);
-  }
-
-  // --- Renderizar tabla principal con datos de /table ---
   function renderMainTable(data) {
     if (!mainTableBody || !mainTableFoot) return;
     mainTableBody.innerHTML = '';
     mainTableFoot.innerHTML = '';
-
     if (!data || !data.table || data.table.length === 0) {
       mainTableBody.innerHTML = '<tr><td colspan="5">No hay datos</td></tr>';
       return;
     }
-
-    // Filas
     data.table.forEach(row => {
       const tr = document.createElement('tr');
       tr.setAttribute('data-char', row.char);
@@ -93,8 +78,6 @@
       `;
       mainTableBody.appendChild(tr);
     });
-
-    // Pie con totales
     const totalRow = document.createElement('tr');
     totalRow.innerHTML = `
       <td colspan="4" style="text-align: right;"><strong>Promedio</strong></td>
@@ -103,14 +86,12 @@
     mainTableFoot.appendChild(totalRow);
   }
 
-  // --- Renderizar pasos en formato tabla vertical ---
   function renderStepsTable(stepsArray) {
     if (!stepsContent) return;
     if (!stepsArray || stepsArray.length === 0) {
       stepsContent.innerHTML = '<p>No hay pasos disponibles.</p>';
       return;
     }
-
     let html = '';
     stepsArray.forEach((step, idx) => {
       const stepNum = idx + 1;
@@ -136,7 +117,6 @@
     stepsContent.innerHTML = html;
   }
 
-  // --- Funciones para resaltado en búsqueda ---
   function clearHighlight() {
     const rows = mainTableBody.querySelectorAll('tr');
     rows.forEach(row => row.classList.remove('highlight'));
@@ -153,57 +133,51 @@
     }
   }
 
-  // --- Crear árbol ---
+  async function refreshData() {
+    // Recargar tabla y pasos si existe una estructura
+    try {
+      const tableRes = await fetch(`${API_BASE}/table`);
+      if (tableRes.ok) {
+        const tableData = await tableRes.json();
+        if (tableData.table && tableData.table.length > 0) {
+          renderMainTable(tableData);
+          resultsSection.style.display = 'block';
+        } else {
+          resultsSection.style.display = 'none';
+        }
+      }
+      const stepsRes = await fetch(`${API_BASE}/steps`);
+      if (stepsRes.ok) {
+        const stepsData = await stepsRes.json();
+        steps = stepsData.steps || [];
+        renderStepsTable(steps);
+      }
+      loadImage(`${API_BASE}/plot`);
+    } catch (err) {
+      console.error('Error refreshing Huffman data:', err);
+    }
+  }
+
   async function createTree() {
     const text = messageInput.value.trim();
     if (!text) {
       notifyError('Por favor, ingresa un mensaje.');
       return;
     }
-
     createBtn.disabled = true;
     createBtn.textContent = 'Creando...';
-
     try {
-      // 1. Crear árbol
       const createRes = await fetch(`${API_BASE}/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text })
       });
-
       if (!createRes.ok) {
         const errData = await createRes.json().catch(() => ({}));
         throw new Error(errData.detail || 'Error al crear el árbol');
       }
-
-      const createData = await createRes.json();
       currentText = text;
-
-      // 2. Obtener tabla completa (códigos, frecuencias, longitudes)
-      const tableRes = await fetch(`${API_BASE}/table`);
-      if (tableRes.ok) {
-        const tableData = await tableRes.json();
-        renderMainTable(tableData);
-      } else {
-        notifyError('No se pudo obtener la tabla de frecuencias.');
-      }
-
-      // 3. Obtener pasos
-      const stepsRes = await fetch(`${API_BASE}/steps`);
-      if (stepsRes.ok) {
-        const stepsData = await stepsRes.json();
-        steps = stepsData.steps || [];
-        renderStepsTable(steps);
-      } else {
-        steps = [];
-        renderStepsTable(steps);
-      }
-
-      // 4. Mostrar resultados
-      resultsSection.style.display = 'block';
-      loadImage(`${API_BASE}/plot`);
-
+      await refreshData();
       window.markStructureDirty?.();
       notifySuccess('Árbol de Huffman creado correctamente.');
     } catch (error) {
@@ -214,13 +188,9 @@
     }
   }
 
-  // --- Buscar letra ---
   async function handleSearchLetter() {
     const rawLetter = searchLetterInput.value;
-    // No usar trim() aquí para permitir espacios como carácter válido
-    // Solo remover saltos de línea y caracteres de control
     const letter = rawLetter.replace(/[\n\r]/g, '');
-    
     if (letter === '') {
       notifyError('Ingresa una letra para buscar.');
       return;
@@ -229,15 +199,12 @@
       notifyError('Ingresa solo una letra.');
       return;
     }
-
     searchBtn.disabled = true;
     const originalText = searchBtn.textContent;
     searchBtn.textContent = 'Buscando...';
-
     try {
       const response = await fetch(`${API_BASE}/search/${encodeURIComponent(letter)}`);
       const data = await response.json();
-
       if (response.ok) {
         if (data.position && data.position.length > 0) {
           loadImage(`${API_BASE}/search-plot/${encodeURIComponent(letter)}`);
@@ -261,7 +228,6 @@
     }
   }
 
-  // --- Mostrar/ocultar sección de pasos ---
   function toggleSteps() {
     if (stepsSection.style.display === 'none') {
       stepsSection.style.display = 'block';
@@ -272,22 +238,19 @@
     }
   }
 
-  // --- Inicialización ---
   function initSimulator() {
     createBtn.addEventListener('click', createTree);
     searchBtn.addEventListener('click', handleSearchLetter);
     showStepsBtn.addEventListener('click', toggleSteps);
-
     searchLetterInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') handleSearchLetter();
     });
-
     setupImageSizeSlider();
-
     resultsSection.style.display = 'none';
     stepsSection.style.display = 'none';
     treeImage.src = '';
   }
 
   window.initSimulator = initSimulator;
+  window.refreshStructure = refreshData;
 })();

@@ -132,13 +132,11 @@
     const container = document.getElementById("visualization");
     if (!container) return null;
 
-    // Limpiar clases previas
     const allCells = container.querySelectorAll(".cell");
     const allBlocks = container.querySelectorAll(".block");
     allCells.forEach(c => c.classList.remove("active", "found", "visited", "not-found", "highlight-delete", "discarded", "highlight-insert"));
     allBlocks.forEach(b => b.classList.remove("block-active", "block-discarded", "block-candidate"));
 
-    // Obtener el máximo de cada bloque (último valor no nulo)
     const blockMaxValues = [];
     for (let b = 0; b < currentState.blocks.length; b++) {
       const block = currentState.blocks[b];
@@ -155,19 +153,16 @@
     let found = false;
     let foundPos = null;
 
-    // Recorrer bloques secuencialmente
     for (let b = 0; b < currentState.blocks.length; b++) {
       const blockElem = container.querySelector(`.block[data-block="${b + 1}"]`);
       const maxVal = blockMaxValues[b];
 
-      // Resaltar el bloque actual
       if (blockElem) {
         blockElem.classList.add("block-active");
       }
       await sleep(600);
 
       if (maxVal === null) {
-        // Bloque vacío: descartar
         if (blockElem) {
           blockElem.classList.remove("block-active");
           blockElem.classList.add("block-discarded");
@@ -177,7 +172,6 @@
       }
 
       if (targetValue <= maxVal) {
-        // Buscar dentro del bloque
         const blockCells = container.querySelectorAll(`.block[data-block="${b + 1}"] .cell`);
         for (let c = 0; c < blockCells.length; c++) {
           const cell = blockCells[c];
@@ -198,18 +192,16 @@
 
           const cellNum = cellContent ? Number(cellContent) : NaN;
           if (!isNaN(cellNum) && cellNum > targetValue) {
-            break; // Nos pasamos, ya no puede estar
+            break;
           }
         }
 
         if (blockElem) blockElem.classList.remove("block-active");
         if (found) break;
 
-        // No encontrado en este bloque candidato, terminar
         if (blockElem) blockElem.classList.add("block-discarded");
         break;
       } else {
-        // target > maxVal, descartar bloque
         if (blockElem) {
           blockElem.classList.remove("block-active");
           blockElem.classList.add("block-discarded");
@@ -325,7 +317,6 @@
       });
     }
 
-    // ---- INSERTAR CON ANIMACIÓN ----
     insertBtn.addEventListener("click", async () => {
       const rawValue = valueInput.value.trim();
       if (!rawValue) { notifyError("Ingresa una clave."); clearInput(); return; }
@@ -349,15 +340,12 @@
         console.log("Respuesta insert:", res.status, data);
 
         if (res.ok) {
-          await loadState(); // Recargar para tener el estado actualizado
-
-          // Mostrar animación de búsqueda para resaltar dónde quedó la clave insertada
+          await loadState();
           const foundPos = await linearExternalSearchAnimation(value, { autoClear: true, resultClass: 'highlight-insert' });
           if (foundPos) {
             window.markStructureDirty?.();
             notifySuccess(`Clave ${value} insertada en bloque ${foundPos.block}, posición ${foundPos.cell}`);
           } else {
-            // Si no se encuentra (raro), igual notificamos éxito
             window.markStructureDirty?.();
             notifySuccess(`Clave ${value} insertada.`);
           }
@@ -377,7 +365,6 @@
       }
     });
 
-    // ---- BUSCAR CON ANIMACIÓN ----
     searchBtn.addEventListener("click", async () => {
       const rawValue = valueInput.value.trim();
       if (!rawValue) { notifyError("Ingresa una clave."); clearInput(); return; }
@@ -393,7 +380,6 @@
       clearInput();
     });
 
-    // ---- ELIMINAR CON ANIMACIÓN PREVIA ----
     deleteBtn.addEventListener("click", async () => {
       const rawValue = valueInput.value.trim();
       if (!rawValue) { notifyError("Ingresa una clave."); clearInput(); return; }
@@ -445,6 +431,19 @@
       clearInput();
     });
   }
+
+  // Función global para refrescar la UI después de cargar una estructura desde archivo
+  window.refreshStructure = async () => {
+    await loadState();
+    const actionsSection = document.getElementById("actions-section");
+    if (actionsSection) {
+      actionsSection.style.display = currentState.size > 0 ? "block" : "none";
+    }
+    const valueInput = document.getElementById("value-input");
+    if (valueInput && currentState.digits > 0) {
+      valueInput.placeholder = `Máx: ${currentState.digits} dígitos`;
+    }
+  };
 
   window.initSimulator = initSimulator;
 })();

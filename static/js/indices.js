@@ -3,6 +3,7 @@
   "use strict";
 
   const API_BASE = "http://127.0.0.1:8000/search/index";
+  let currentIndexType = "primary";
 
   function getEndpoint(type) {
     switch (type) {
@@ -24,6 +25,7 @@
     const record_length = parseInt(document.getElementById("record-length").value, 10);
     const index_record_length = parseInt(document.getElementById("index-record-length").value, 10);
     const indexType = document.getElementById("index-type").value;
+    currentIndexType = indexType;
 
     if (isNaN(r) || isNaN(block_size) || isNaN(record_length) || isNaN(index_record_length)) {
       window.notifyError?.("Complete todos los campos numéricos");
@@ -51,6 +53,7 @@
       const data = await response.json();
       drawStructures(data, indexType, { r, block_size, record_length, index_record_length });
       window.notifySuccess?.("Estructura calculada correctamente");
+      window.markStructureDirty?.();
     } catch (err) {
       window.notifyError?.(err.message);
       vizDiv.innerHTML = '<div class="error-message">No se pudo generar la visualización</div>';
@@ -64,7 +67,6 @@
     const { bfr, b, bfr_i, b_i, accesses, levels } = data;
     const { r, record_length, index_record_length } = params;
 
-    // Estadísticas centradas
     const statsHtml = `<div class="stats-summary" style="text-align: center; display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap;">
       <div class="stat-item">Datos: ${formatNumber(b)} bloques (${bfr} reg/bloque)</div>
       <div class="stat-item">Índice: ${formatNumber(b_i)} bloques (${bfr_i} entradas/bloque)</div>
@@ -123,7 +125,7 @@
   }
 
   function generateIndexColumn(totalBlocks, entriesPerBlock, bytes, blocksToShow, extra) {
-    const prefix = 'B'; // Cambiado de 'I' a 'B'
+    const prefix = 'B';
     let cellsHtml = '';
     for (let i = 0; i < blocksToShow.length; i++) {
       const blockNum = blocksToShow[i];
@@ -160,7 +162,6 @@
         cellsHtml += `<div class="cell dots">...</div>`;
       }
       if (blockNum === totalDataBlocks) {
-        // Último bloque: usar r y r - registrosPorBloque + 1
         const startRecord = totalRecords - recordsPerBlockFull + 1;
         const endRecord = totalRecords;
         cellsHtml += `<div class="cell data-cell" data-block="${blockNum}">
@@ -278,6 +279,100 @@
     ctx.setLineDash([]);
   }
 
+  // ===================== EXPORTAR / IMPORTAR =====================
+  window.exportIndex = async () => {
+    const type = document.getElementById("index-type").value;
+    let endpoint = '';
+    switch (type) {
+      case 'primary': endpoint = '/search/index/primary/export'; break;
+      case 'secondary': endpoint = '/search/index/secondary/export'; break;
+      case 'multilevel-primary': endpoint = '/search/index/multilevel-primary/export'; break;
+      case 'multilevel-secondary': endpoint = '/search/index/multilevel-secondary/export'; break;
+      default: return;
+    }
+    try {
+      const response = await fetch(`http://127.0.0.1:8000${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!response.ok) throw new Error('Error al exportar');
+      const data = await response.json();
+      data.type = type;   // Guardar el tipo en el JSON
+      const filename = `indice_${type}.json`;
+      window.saveUtils.downloadJSON(data, filename);
+      window.notifySuccess?.(`Índice guardado como ${filename}`);
+    } catch (err) {
+      window.notifyError?.('Error al guardar el índice');
+    }
+  };
+
+  function getImportEndpoint(type) {
+    switch (type) {
+      case 'primary': return '/search/index/primary/import';
+      case 'secondary': return '/search/index/secondary/import';
+      case 'multilevel-primary': return '/search/index/multilevel-primary/import';
+      case 'multilevel-secondary': return '/search/index/multilevel-secondary/import';
+      default: return '/search/index/primary/import';
+    }
+  }
+
+  window.importIndex = async () => {
+    try {
+      const snapshot = await window.saveUtils.loadJSONFile();
+      if (!snapshot || !snapshot.type) {
+        throw new Error('Archivo inválido: no contiene el tipo de índice');
+      }
+      const type = snapshot.type;
+      // Cambiar el select al tipo correspondiente
+      const select = document.getElementById("index-type");
+      if (select) select.value = type;
+      currentIndexType = type;
+
+      const importEndpoint = getImportEndpoint(type);
+      const response = await fetch(`http://127.0.0.1:8000${importEndpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ snapshot })
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.detail || 'Error al cargar el índice');
+      }
+      // Refrescar la visualización
+      await window.refreshStructure();
+      window.notifySuccess?.('Estructura de índices cargada correctamente');
+    } catch (err) {
+      window.notifyError?.(err.message || 'Error al cargar el índice');
+    }
+  };
+
+  window.refreshStructure = async () => {
+    const type = currentIndexType;
+    const endpoint = getEndpoint(type);
+    const r = parseInt(document.getElementById("total-records").value, 10);
+    const block_size = parseInt(document.getElementById("block-size").value, 10);
+    const record_length = parseInt(document.getElementById("record-length").value, 10);
+    const index_record_length = parseInt(document.getElementById("index-record-length").value, 10);
+    if (isNaN(r) || isNaN(block_size) || isNaN(record_length) || isNaN(index_record_length)) {
+      return;
+    }
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ r, block_size, record_length, index_record_length }),
+      });
+      if (!response.ok) throw new Error();
+      const data = await response.json();
+      drawStructures(data, type, { r, block_size, record_length, index_record_length });
+      const resultsDiv = document.getElementById("results-section");
+      if (resultsDiv) resultsDiv.style.display = "block";
+    } catch (err) {
+      console.error("Error al refrescar índices:", err);
+    }
+  };
+
+  // ===================== INICIALIZACIÓN =====================
   window.initSimulator = () => {
     const btn = document.getElementById("calculate-btn");
     if (btn) btn.addEventListener("click", calculate);

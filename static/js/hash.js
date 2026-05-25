@@ -58,7 +58,6 @@
   function valueAlreadyExists(val) {
     for (let i = 0; i < currentState.data.length; i++) {
       const cell = currentState.data[i];
-      // Ignorar celdas vacías o marcadores de eliminado
       if (cell === null || cell === undefined || cell === "DELETED") continue;
       if (Array.isArray(cell)) {
         if (cell.includes(val)) return true;
@@ -181,6 +180,7 @@
       const res = await fetch(`${API_BASE}/state`);
       if (!res.ok) throw new Error("Error al cargar estado");
       currentState = await res.json();
+      currentDigits = currentState.digits || 0;
       renderGrid();
     } catch (err) {
       console.error(err);
@@ -196,26 +196,22 @@
     const collisionMenu = document.getElementById("collision-menu");
     const applyCollisionBtn = document.getElementById("apply-collision");
     const valInp = document.getElementById("value-input");
+    const actionsSection = document.getElementById("actions-section");
 
-    // Elementos de truncamiento
     const hashTypeSelect = document.getElementById("hash-type");
     const truncationOptions = document.getElementById("truncation-options");
     const truncationMethod = document.getElementById("truncation-method");
     const truncationValue = document.getElementById("truncation-value");
-
-    // Elementos de plegamiento
     const foldingOptions = document.getElementById("folding-options");
     const foldingOperation = document.getElementById("folding-operation");
     const foldingGroupSize = document.getElementById("folding-group-size");
 
-    // Verificar que todos los elementos existan
     if (!hashTypeSelect || !truncationOptions || !truncationMethod || !truncationValue || 
         !foldingOptions || !foldingOperation || !foldingGroupSize) {
       console.error("Faltan elementos del DOM para los submenús.");
       return;
     }
 
-    // Mostrar/ocultar opciones según el tipo seleccionado
     hashTypeSelect.addEventListener("change", () => {
       if (hashTypeSelect.value === "truncation") {
         truncationOptions.style.display = "block";
@@ -229,7 +225,6 @@
       }
     });
 
-    // Cambiar el placeholder según el método de truncamiento
     truncationMethod.addEventListener("change", () => {
       if (truncationMethod.value === "positions") {
         truncationValue.placeholder = "Ej: 1,3,5";
@@ -245,7 +240,6 @@
       });
     }
 
-    // --- Inicializar ---
     createBtn.addEventListener("click", async () => {
       const hType = hashTypeSelect.value;
       const size = parseInt(document.getElementById("size").value);
@@ -256,7 +250,6 @@
 
       let setHashBody = { type: hType };
 
-      // Truncamiento
       if (hType === "truncation") {
         const method = truncationMethod.value;
         const value = truncationValue.value.trim();
@@ -286,7 +279,6 @@
         setHashBody.positions = positions;
       }
 
-      // Plegamiento
       if (hType === "folding") {
         const operation = foldingOperation.value;
         const groupSize = parseInt(foldingGroupSize.value, 10);
@@ -321,21 +313,19 @@
         await loadState();
         
         collisionMenu.style.display = "none";
-        document.getElementById("actions-section").style.display = "block";
+        if (actionsSection) actionsSection.style.display = "block";
         window.markStructureDirty?.();
         notifySuccess(`Estructura lista para ${digits} dígitos.`);
         clearInput();
       } catch (err) { notifyError(err.message); }
     });
 
-    // --- Insertar (con verificación local de duplicados) ---
     insertBtn.addEventListener("click", async () => {
       const rawValue = valInp.value.trim();
       if (!rawValue) { notifyError("Ingresa una clave."); clearInput(); return; }
       const value = toDigits(rawValue, currentDigits);
       if (!validateKey(value)) return;
 
-      // Verificar si el valor ya existe localmente
       if (valueAlreadyExists(value)) {
         notifyError(`La clave ${value} ya existe en la tabla.`);
         clearInput();
@@ -408,7 +398,6 @@
       }
     });
 
-    // --- Aplicar Colisión ---
     applyCollisionBtn.addEventListener("click", async () => {
       const cType = document.getElementById("collision-type").value;
       const endpoint = cType === 'chaining' ? `${API_BASE}/set-chaining` : `${API_BASE}/set-collision`;
@@ -432,7 +421,6 @@
       } catch (e) { notifyError("Error al aplicar estrategia."); clearInput(); }
     });
 
-    // --- Buscar ---
     searchBtn.addEventListener("click", async () => {
       const rawValue = valInp.value.trim();
       if (!rawValue) { notifyError("Ingresa una clave."); clearInput(); return; }
@@ -461,7 +449,6 @@
       clearInput();
     });
 
-    // --- Borrar ---
     deleteBtn.addEventListener("click", async () => {
       const rawValue = valInp.value.trim();
       if (!rawValue) { notifyError("Ingresa una clave."); clearInput(); return; }
@@ -469,13 +456,9 @@
       if (!validateKey(value)) return;
 
       try {
-        console.log(`Enviando eliminación para clave: "${value}" (raw: "${rawValue}")`);
         const url = `${API_BASE}/delete/${encodeURIComponent(value)}`;
-        console.log(`URL: ${url}`);
-        
         const res = await fetch(url, { method: "DELETE" });
         const data = await res.json();
-        console.log("Respuesta completa:", data);
 
         if (res.ok) {
           const hasPosition = data.position && Array.isArray(data.position) && data.position.length > 0;
@@ -512,6 +495,19 @@
       clearInput();
     });
   }
+
+  // Función global para refrescar la UI después de cargar una estructura desde archivo
+  window.refreshStructure = async () => {
+    await loadState();
+    const actionsSection = document.getElementById("actions-section");
+    if (actionsSection) {
+      actionsSection.style.display = currentState.size > 0 ? "block" : "none";
+    }
+    const valInp = document.getElementById("value-input");
+    if (valInp && currentDigits > 0) {
+      valInp.placeholder = `Ej: ${"1".padStart(currentDigits, "0")}`;
+    }
+  };
 
   window.initSimulator = initHashing;
 })();
