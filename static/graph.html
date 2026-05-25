@@ -1,0 +1,69 @@
+<h2>Grafos</h2>
+
+<div class="graph-container">
+  <!-- Tarjeta: Grafo actual -->
+  <div class="card">
+    <h3>Grafo activo</h3>
+    <div class="row">
+      <label>ID del grafo:</label>
+      <input type="text" id="graph-id" value="miGrafo" />
+      <label>Dirigido:</label>
+      <input type="checkbox" id="graph-directed" />
+      <label>Ponderado:</label>
+      <input type="checkbox" id="graph-weighted" />
+      <button id="create-graph-btn" class="primary">Crear / Resetear</button>
+    </div>
+    <div class="row">
+      <label>Seleccionar grafo existente:</label>
+      <select id="graph-selector">
+        <option value="">-- Cargando... --</option>
+      </select>
+      <button id="load-graph-btn">Cargar</button>
+    </div>
+    <div class="row">
+      <button id="complete-graph-btn" class="primary">Completar grafo (conectar todos)</button>
+    </div>
+  </div>
+
+  <!-- Tarjeta: Vértices -->
+  <div class="card">
+    <h3>Vértices</h3>
+    <div class="row">
+      <label>Nombre del vértice:</label>
+      <input type="text" id="vertex-name" placeholder="Ej: A, 1, b" />
+      <button id="add-vertex-btn">Agregar vértice</button>
+    </div>
+  </div>
+
+  <!-- Tarjeta: Aristas -->
+  <div class="card">
+    <h3>Aristas</h3>
+    <div class="row">
+      <label>Operación:</label>
+      <select id="edge-op">
+        <option value="add">Agregar arista</option>
+        <option value="delete">Eliminar arista</option>
+      </select>
+    </div>
+    <div id="edge-add-fields" class="row">
+      <input type="text" id="edge-name" placeholder="nombre (ej: e1, 1)" />
+      <input type="text" id="edge-source" placeholder="origen" />
+      <input type="text" id="edge-target" placeholder="destino" />
+      <input type="number" id="edge-weight" value="1" step="1" />
+      <button id="add-edge-btn" class="primary">Ejecutar</button>
+    </div>
+    <div id="edge-delete-fields" class="row" style="display: none;">
+      <input type="text" id="delete-edge-name" placeholder="nombre de la arista" />
+      <button id="delete-edge-btn" class="danger">Eliminar</button>
+    </div>
+  </div>
+
+  <!-- Visualización del grafo -->
+  <div class="card">
+    <h3>Visualización</h3>
+    <div class="visual-wrapper">
+      <canvas id="graph-canvas" width="800" height="500"></canvas>
+    </div>
+    <p class="text-muted" style="font-size: 12px; margin-top: 8px;">💡 Los vértices se pueden arrastrar con el mouse.</p>
+  </div>
+</div>
