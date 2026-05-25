@@ -1,0 +1,460 @@
+\documentclass[10pt,onecolumn]{IEEEtran}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{cite}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{enumitem}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{xcolor}
+\usepackage{xurl}
+\usepackage{ragged2e}
+\usepackage{hyperref}
+\usepackage{bookmark}
+\usepackage{listings}
+\usepackage{csquotes}
+
+\setlength{\emergencystretch}{2em}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.55em}
+\setlist[itemize]{leftmargin=1.4em}
+\setlist[enumerate]{leftmargin=1.6em}
+\raggedbottom
+
+\definecolor{cs2blue}{HTML}{173F5F}
+\definecolor{cs2teal}{HTML}{206A5D}
+\definecolor{cs2gold}{HTML}{C17F00}
+\definecolor{cs2gray}{HTML}{F4F6F8}
+\definecolor{cs2dark}{HTML}{222222}
+\definecolor{cs2codebg}{HTML}{F8FAFC}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=cs2blue,
+  urlcolor=cs2teal,
+  citecolor=cs2gold,
+  pdftitle={Manual de usuario - Ciencias2},
+  pdfauthor={Juan Esteban Bedoya Lautero y Andrés Cerdas Padilla}
+}
+
+\urlstyle{same}
+\interdisplaylinepenalty=2500
+\pagestyle{plain}
+
+\lstdefinestyle{cs2base}{
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{cs2codebg},
+  frame=single,
+  rulecolor=\color{black!15},
+  breaklines=true,
+  breakatwhitespace=true,
+  showstringspaces=false,
+  columns=fullflexible,
+  keepspaces=true,
+  tabsize=2,
+  aboveskip=0.9em,
+  belowskip=0.9em
+}
+\lstdefinestyle{cs2bash}{style=cs2base,language=bash}
+\lstdefinestyle{cs2json}{style=cs2base}
+\lstdefinestyle{cs2tree}{style=cs2base}
+\lstset{style=cs2base}
+
+\newcommand{\manualplaceholder}[2]{%
+  \begin{figure}[H]
+    \centering
+    \fbox{\parbox[c][6.5cm][c]{0.88\linewidth}{\centering\textit{#2}}}
+    \caption{#1}
+    \label{#2}
+  \end{figure}
+}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+\vspace*{1.5cm}
+
+{\scshape\LARGE Universidad Distrital Francisco José de Caldas \par}
+\vspace{0.5cm}
+{\scshape\Large Ciencias de la Computación II \par}
+\vspace{2.1cm}
+
+{\Huge\bfseries Manual de Usuario \par}
+\vspace{0.5cm}
+{\LARGE Proyecto \textit{Ciencias2} \par}
+\vspace{0.8cm}
+{\large Simuladores de estructuras de datos y grafos \par}
+
+\vspace{2cm}
+\begin{flushleft}
+\large
+\textbf{Materia:} Ciencias de la Computación II \\[0.35cm]
+\textbf{Profesor:} Julio Cesar Flórez Báez \\[0.35cm]
+\textbf{Integrantes:}
+\begin{itemize}
+  \item Juan Esteban Bedoya Lautero -- 20231020057
+  \item Andrés Cerdas Padilla -- 20231020053
+\end{itemize}
+\textbf{Tipo de entrega:} Examen Final \\[0.35cm]
+\textbf{Proyecto:} Ciencias2
+\end{flushleft}
+
+\vfill
+{\large Bogotá, Colombia \par}
+{\large \today \par}
+\end{titlepage}
+
+\begin{abstract}
+Este manual de usuario describe el uso del ejecutable del proyecto académico \textit{Ciencias2}, una aplicación orientada a la simulación interactiva de estructuras de datos, búsquedas, tablas hash, arboles, indices de almacenamiento y grafos. El documento presenta la forma de abrir el sistema, navegar por su interfaz, utilizar cada módulo, guardar y restaurar estados, e interpretar los elementos visibles para el usuario final. La redacción se mantiene en un nivel técnico, claro y académico, sin detallar la implementación interna del sistema.
+\end{abstract}
+
+\begin{IEEEkeywords}
+manual de usuario, estructuras de datos, FastAPI, simulador académico, grafos, tablas hash, persistencia JSON.
+\end{IEEEkeywords}
+
+\newpage
+\pagenumbering{roman}
+\tableofcontents
+\newpage
+\pagenumbering{arabic}
+
+\section{Introducción}
+El proyecto \textit{Ciencias2} fue desarrollado como apoyo académico para la asignatura Ciencias de la Computación II. Su propósito es permitir que el estudiante interactúe con simuladores visuales de estructuras de datos y observe, desde una interfaz sencilla, el comportamiento de búsquedas internas, búsquedas externas, arboles, tablas hash, indices de almacenamiento y grafos.
+
+Este documento corresponde al manual de usuario, por lo tanto se concentra exclusivamente en la experiencia de uso. No describe clases, servicios, rutas internas ni decisiones de implementación. En su lugar, explica cómo abrir la aplicación, cómo desplazarse por la interfaz y cómo aprovechar las opciones visibles para cada módulo.
+
+La aplicación se distribuye como un ejecutable para Windows. Al iniciarla, el usuario encuentra una pantalla principal con dos pestañas de navegación: \textbf{Búsquedas} y \textbf{Grafos}. La sección \textit{Búsquedas} aparece seleccionada por defecto, de modo que la exploración inicial del sistema se centra en los simuladores de búsqueda y estructuras asociadas.
+
+\section{Requisitos del sistema}
+El sistema fue diseñado para ejecutarse en un entorno de escritorio Windows. La Tabla~\ref{tab:requisitos} resume los requisitos recomendados para una experiencia estable.
+
+\begin{table}[H]
+\centering
+\caption{Requisitos recomendados para ejecutar Ciencias2}
+\label{tab:requisitos}
+\begin{tabularx}{0.95\linewidth}{>{\raggedright\arraybackslash}p{3.9cm}X}
+\toprule
+\textbf{Elemento} & \textbf{Descripción} \\
+\midrule
+Sistema operativo & Windows 10 o Windows 11 de 64 bits. \\
+Memoria RAM & 4 GB como mínimo; 8 GB o más para trabajar con grafos y estructuras grandes. \\
+Procesador & Procesador de doble núcleo o superior. \\
+Espacio en disco & Al menos 200 MB libres para el ejecutable y sus archivos auxiliares. \\
+Pantalla & Resolución mínima de 1366 \(\times\) 768 para visualizar paneles completos. \\
+Dependencias de uso & No se requiere instalar Python para ejecutar el \texttt{.exe}; sí se necesita permitir la ejecución local del programa. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Instalación y ejecución}
+La aplicación se entrega como ejecutable para Windows. En la mayoría de los casos, el usuario solo debe abrir el archivo \texttt{app\_launcher.exe} o el ejecutable equivalente generado para el proyecto.
+
+\subsection{Primer inicio en Windows}
+En el primer arranque, Windows puede mostrar una advertencia de seguridad indicando que el archivo proviene de un desarrollador no reconocido. En ese caso, el usuario debe realizar el siguiente procedimiento:
+\begin{enumerate}
+  \item Seleccionar \textit{Más información}.
+  \item Confirmar la opción \textit{Ejecutar de todas formas}.
+  \item Esperar a que la ventana de la aplicación termine de cargar.
+\end{enumerate}
+
+Esta advertencia es habitual en ejecutables distribuidos localmente y no implica un error del sistema por sí misma.
+
+\subsection{Inicio normal}
+Una vez abierto el programa, la aplicación muestra el título \textit{Ciencias de la Computación II} en la parte superior, seguido por dos pestañas principales. El usuario no necesita iniciar sesión ni realizar configuración previa. Después de la carga inicial, la interfaz queda lista para interactuar con los simuladores.
+
+\subsection{Forma general de uso}
+El flujo de trabajo recomendado es el siguiente:
+\begin{enumerate}
+  \item Elegir la pestaña principal \textbf{Búsquedas} o \textbf{Grafos}.
+  \item Seleccionar el módulo deseado en la cinta superior o en el panel lateral, según corresponda.
+  \item Ingresar los parámetros solicitados por la pantalla activa.
+  \item Crear o inicializar la estructura antes de insertar datos.
+  \item Ejecutar operaciones como buscar, borrar, calcular, visualizar, exportar o imprimir.
+\end{enumerate}
+
+\section{Interfaz principal}
+La interfaz principal fue pensada para que el usuario distinga con facilidad la navegación global, las opciones contextuales y las acciones persistentes.
+
+\subsection{Elementos visibles}
+En la parte superior de la aplicación se encuentra el título general. Debajo aparece la barra principal de navegación con las pestañas \textbf{Búsquedas} y \textbf{Grafos}. Más abajo se despliega una cinta dinámica que cambia según la pestaña activa y el módulo seleccionado.
+
+En la parte inferior se ubica una cinta global con tres botones permanentes:
+\textbf{Guardar}, \textbf{Abrir} e \textbf{Imprimir}. Estos botones se mantienen visibles para facilitar la gestión del estado actual de la aplicación.
+
+\subsection{Navegación general}
+La aplicación responde al principio de navegación por niveles. Primero se selecciona la familia funcional, luego la categoría o módulo y finalmente la operación específica.
+
+En \textbf{Búsquedas}, la cinta muestra opciones como \textit{Internas} y \textit{Externas}. A su vez, cada una abre un grupo de módulos. En \textbf{Grafos}, la interfaz cambia por completo y presenta paneles dedicados al trabajo con dos grafos principales y un área inferior de resultados.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\linewidth]{figura1.png}
+\caption{Interfaz principal del sistema}
+\label{fig:interfaz-principal}
+\end{figure}
+
+\section{Módulo Búsquedas}
+La sección \textbf{Búsquedas} agrupa los simuladores relacionados con estructuras de búsqueda internas y externas. En esta parte de la aplicación, el usuario encuentra un recorrido guiado por módulos con controles simples y claros.
+
+\subsection{Búsquedas internas}
+Al seleccionar \textit{Internas}, la cinta presenta cinco módulos: \textbf{Secuencial}, \textbf{Binaria}, \textbf{Hash}, \textbf{Árboles} y \textbf{Huffman}. Cada uno mantiene una lógica de uso centrada en tres momentos: configurar, crear e interactuar.
+
+\subsubsection{Módulo Secuencial}
+La pantalla de búsqueda secuencial muestra inicialmente dos campos de entrada: \textbf{Tamaño} y \textbf{Dígitos}, junto con el botón \textbf{Crear estructura}. Antes de cualquier operación, el usuario debe definir estos parámetros y crear la estructura.
+
+Después de crearla, aparecen los controles de trabajo:
+\begin{itemize}
+  \item campo \textbf{Clave};
+  \item botón \textbf{Insertar};
+  \item botón \textbf{Buscar};
+  \item botón \textbf{Borrar}.
+\end{itemize}
+
+El uso correcto consiste en seguir este orden:
+\begin{enumerate}
+  \item Crear la estructura con el tamaño y la cantidad de dígitos deseados.
+  \item Insertar las claves que se desean probar.
+  \item Buscar claves ya registradas o una clave específica.
+  \item Borrar claves cuando se quiera observar el efecto de la eliminación.
+\end{enumerate}
+
+La zona de visualización permite observar el contenido almacenado y su estado actual.
+
+\subsubsection{Módulo Binaria}
+La búsqueda binaria presenta una interfaz equivalente a la de Secuencial. El usuario encuentra los campos \textbf{Tamaño} y \textbf{Dígitos}, el botón \textbf{Crear estructura} y, después de la inicialización, las acciones \textbf{Insertar}, \textbf{Buscar} y \textbf{Borrar}.
+
+La diferencia principal para el usuario no está en la navegación, sino en la forma en que el simulador organiza y presenta la estructura. Por ello, el flujo de uso es el mismo: primero crear, luego insertar, después buscar y finalmente eliminar.
+
+\subsubsection{Módulo Hash}
+El módulo de tabla hash incluye controles de configuración previos a la creación de la estructura. El usuario puede escoger una función hash entre:
+\begin{itemize}
+  \item \textbf{Módulo};
+  \item \textbf{Cuadrático};
+  \item \textbf{Truncamiento};
+  \item \textbf{Plegamiento}.
+\end{itemize}
+
+Además, se solicitan los campos \textbf{Tamaño} y \textbf{Dígitos}, y se dispone del botón \textbf{Inicializar Tabla}. Una vez creada la tabla, aparecen los controles \textbf{Clave}, \textbf{Insertar}, \textbf{Buscar} y \textbf{Borrar}.
+
+De manera sencilla, estas funciones hash ayudan a transformar una clave en una posición dentro de la tabla. El usuario puede elegir la opción que mejor represente el comportamiento que desea estudiar. No es necesario conocer la fórmula interna para usar el simulador; basta con seleccionar la función, crear la tabla e introducir las claves.
+
+\subsubsection{Módulo Árboles}
+El módulo de árboles ofrece tres botones de selección: \textbf{Digital}, \textbf{Residuo Simple} y \textbf{Residuo Múltiple}. Por defecto, \textbf{Digital} aparece activado.
+
+Tras pulsar \textbf{Crear estructura}, el simulador muestra las opciones de trabajo según el tipo de árbol seleccionado. Para \textbf{Digital} y \textbf{Residuo Simple} aparecen:
+\begin{itemize}
+  \item campo \textbf{Letra};
+  \item botones \textbf{Insertar}, \textbf{Buscar}, \textbf{Eliminar} y \textbf{Ver árbol};
+  \item una barra deslizante para ajustar el tamaño de visualización del árbol.
+\end{itemize}
+
+En \textbf{Residuo Múltiple} aparece además un campo adicional \textbf{m}, cuyo valor predeterminado es \(m = 2\). El usuario solo debe modificar este valor si desea probar otro factor de ramificación.
+
+La opción \textbf{Ver árbol} permite actualizar o mostrar la representación visual del árbol en pantalla. La barra de tamaño es útil cuando el dibujo resulta demasiado pequeño o demasiado grande; al desplazarla, la imagen del árbol se adapta al espacio visible para mejorar la lectura.
+
+\subsubsection{Módulo Huffman}
+El módulo de Huffman presenta una interfaz enfocada en texto. El usuario ve un campo para ingresar un \textbf{Mensaje} y el botón \textbf{Crear árbol}. Al presionarlo, el sistema genera la representación del árbol y la codificación asociada al mensaje introducido.
+
+Después de la creación aparecen resultados visuales y tabulares que permiten revisar el proceso. El usuario puede consultar el árbol generado, observar la tabla de frecuencias y códigos, y usar la sección de búsqueda por letra para localizar un carácter específico. También existe una barra para ajustar el tamaño de la imagen del árbol.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\linewidth]{figura2.png}
+\caption{Vista de un simulador de árboles}
+\label{fig:arboles}
+\end{figure}
+
+\subsection{Búsquedas externas}
+Al seleccionar \textit{Externas}, la cinta presenta las opciones \textbf{Lineal}, \textbf{Binaria}, \textbf{Hash}, \textbf{Dinámica} e \textbf{Índices}. Las opciones \textbf{Lineal}, \textbf{Binaria} y \textbf{Hash} conservan una lógica similar a sus equivalentes internas, aunque algunos nombres y detalles visuales cambian para adaptarse al contexto de almacenamiento externo.
+
+\subsubsection{Módulo Lineal}
+Este módulo permite trabajar con la estructura externa correspondiente a la búsqueda lineal. Su interfaz es muy parecida a la interna: se definen parámetros iniciales, se crea la estructura y luego se usan las acciones de inserción, búsqueda y borrado.
+
+\subsubsection{Módulo Binaria}
+Su funcionamiento es análogo al de la búsqueda binaria interna. El usuario reconoce una secuencia de configuración e interacción muy similar, por lo que la curva de aprendizaje es baja.
+
+\subsubsection{Módulo Hash}
+La pantalla de hash externo mantiene la misma filosofía de configuración previa. El usuario ajusta el tamaño, los dígitos y la función hash cuando corresponda, crea la estructura y después opera sobre la clave mediante los botones de acción.
+
+\subsubsection{Módulo Hash Dinámica}
+La búsqueda externa dinámica ofrece controles más específicos. En esta pantalla aparecen los siguientes elementos:
+\begin{itemize}
+  \item selector \textbf{Tipo de Hash};
+  \item campo \textbf{Dígitos};
+  \item campo \textbf{Cubetas iniciales};
+  \item campo \textbf{Tamaño de cubeta};
+  \item selector \textbf{Política de expansión}, con las opciones \textbf{Total} y \textbf{Parcial};
+  \item botón \textbf{Crear estructura}.
+\end{itemize}
+
+Una vez creada la estructura, el usuario encuentra el campo \textbf{Clave} y los botones \textbf{Insertar}, \textbf{Buscar} y \textbf{Borrar}. Este módulo es útil para estudiar cómo cambia la organización de las cubetas cuando crece el volumen de datos.
+
+\subsubsection{Módulo Índices}
+El módulo de índices permite calcular y visualizar estructuras de almacenamiento primario, secundario y multinivel. El usuario no necesita introducir fórmulas manuales; basta con completar los formularios y ejecutar el cálculo.
+
+De forma general, el flujo de uso es:
+\begin{enumerate}
+  \item ingresar los parámetros del problema;
+  \item seleccionar el tipo de índice deseado;
+  \item presionar \textbf{Calcular y visualizar};
+  \item revisar el resultado presentado en pantalla.
+\end{enumerate}
+
+Los campos visibles permiten ajustar el número de registros, el tamaño del bloque, la longitud del registro de datos y la longitud del registro índice. Luego, la aplicación presenta un resumen y una visualización del índice calculado.
+
+\section{Módulo Grafos}
+Al seleccionar \textbf{Grafos}, la interfaz cambia por completo. En esta sección el usuario trabaja con dos paneles principales, denominados \textbf{Graph A} y \textbf{Graph B}, y con un panel auxiliar inferior donde se muestran los resultados de las operaciones.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\linewidth]{figura3.png}
+\caption{Interfaz principal del módulo de grafos}
+\label{fig:grafos}
+\end{figure}
+
+\subsection{Estructura de la pantalla}
+La pantalla de grafos está organizada para facilitar el trabajo con dos estructuras al mismo tiempo. Esto permite crear, cargar y comparar grafos de manera paralela. El panel izquierdo concentra las opciones de configuración y operaciones; los paneles central y derecho contienen las visualizaciones de los grafos.
+
+\subsection{Creación y edición de grafos}
+En cada panel de grafo el usuario puede:
+\begin{itemize}
+  \item definir o modificar el \textbf{ID} del grafo;
+  \item indicar si el grafo es \textbf{Dirigido} o \textbf{Ponderado};
+  \item pulsar \textbf{Crear / Resetear} para iniciar una nueva estructura;
+  \item seleccionar un grafo existente y usar \textbf{Cargar};
+  \item usar \textbf{Completar} para poblar rápidamente el grafo según la opción disponible;
+  \item agregar vértices escribiendo su nombre y pulsando \textbf{Agregar};
+  \item agregar o eliminar aristas mediante la opción \textbf{Operación arista};
+  \item ejecutar la acción seleccionada con el botón correspondiente.
+\end{itemize}
+
+La visualización central permite ver el grafo y arrastrar vértices para reorganizarlos en el lienzo. Esta característica ayuda a interpretar mejor la forma de la red y a comparar estructuras de un vistazo.
+
+\subsection{Operaciones disponibles}
+En la parte lateral se agrupan varios módulos funcionales. El usuario puede desplegarlos y elegir la operación deseada.
+
+\subsubsection{Operaciones}
+Este módulo permite combinar grafos y trabajar con dos estructuras a la vez. El usuario selecciona un grafo A, un grafo B, define un identificador para el resultado y elige una operación como unión, intersección, suma simétrica, suma, producto cartesiano, producto tensor o composición. Luego presiona \textbf{Ejecutar} para ver el resultado.
+
+\subsubsection{Caminos mínimos}
+En esta sección se elige un grafo, se indican los vértices de origen y destino, y se ejecuta el método de caminos mínimos disponible. El usuario solo debe escoger la opción que desea probar y leer el resultado que se muestra en el panel inferior.
+
+\subsubsection{Circuitos}
+Este módulo permite solicitar la detección de circuitos o circuitos fundamentales. La salida se presenta como un resultado textual o visual en el área inferior de la aplicación.
+
+\subsubsection{Matrices}
+Aquí el usuario puede visualizar distintos tipos de matrices asociadas al grafo, como incidencia, adyacencia de vértices o adyacencia de aristas. Después de seleccionar el tipo de matriz, se pulsa \textbf{Mostrar} para generar la vista correspondiente.
+
+\subsubsection{Coloreado}
+El módulo de coloreado ofrece opciones para colorear vértices o aristas. Su finalidad es mostrar una representación ordenada del grafo y facilitar la lectura de relaciones entre elementos.
+
+\subsubsection{Independencia}
+Esta opción calcula conjuntos independientes y presenta el resultado en el área de salida. Es útil para explorar visualmente qué vértices pueden agruparse sin compartir conexiones directas.
+
+\subsubsection{Árboles}
+En esta sección se ejecutan funciones relacionadas con árboles de expansión o estructuras afines derivadas del grafo. El botón disponible permite obtener el resultado y revisarlo en el panel inferior.
+
+\subsubsection{Persistencia}
+El módulo de persistencia de grafos permite exportar e importar el estado de trabajo. También ofrece una opción para restaurar el estado actual sin perder la estructura cargada. Esto es útil cuando el estudiante desea continuar una práctica en otro momento.
+
+\section{Persistencia}
+Además de la persistencia disponible dentro del módulo de grafos, la aplicación conserva un conjunto global de acciones ubicado en la parte inferior de la ventana. Allí se encuentran tres botones permanentes: \textbf{Guardar}, \textbf{Abrir} e \textbf{Imprimir}.
+
+\subsection{Guardar}
+El botón \textbf{Guardar} exporta el estado actual del simulador activo. Su finalidad es conservar la estructura tal como se encuentra en pantalla para retomarla posteriormente. Es importante guardar antes de cambiar de pestaña si se desea mantener la información actual.
+
+\subsection{Abrir}
+La opción \textbf{Abrir} permite restaurar estructuras previamente almacenadas. Al seleccionar esta acción, el usuario carga un archivo compatible y recupera el estado anterior del simulador.
+
+\subsection{Imprimir}
+El botón \textbf{Imprimir} genera una salida imprimible del estado actual. Antes de imprimir, la aplicación limpia temporalmente elementos de control que no deben aparecer en el documento final, de manera que la vista exportada resulte más clara.
+
+\subsection{Recomendación de uso del guardado}
+Es aconsejable guardar el trabajo antes de cerrar la aplicación, antes de cambiar de módulo y antes de realizar operaciones extensas sobre grafos o estructuras grandes. De esta forma se reduce la posibilidad de perder avances no confirmados.
+
+\section{Recomendaciones de uso}
+Para obtener mejores resultados al usar \textit{Ciencias2}, se recomienda seguir estas pautas:
+\begin{itemize}
+  \item Crear la estructura antes de intentar insertar datos.
+  \item Usar tamaños moderados cuando se trabaje por primera vez con un módulo.
+  \item Revisar los valores de entrada para evitar caracteres no compatibles con el tipo de dato esperado.
+  \item Guardar el estado antes de cambiar de pestaña si el usuario desea conservar la información.
+  \item Ajustar la escala visual en módulos con árboles o grafos para mejorar la lectura.
+  \item Utilizar el módulo de grafos en pantallas amplias para aprovechar mejor el espacio de visualización.
+\end{itemize}
+
+\section{Errores comunes}
+En el uso diario pueden presentarse algunos mensajes o comportamientos esperables. La Tabla~\ref{tab:errores} resume los casos más frecuentes y la acción sugerida.
+
+\begin{table}[H]
+\centering
+\caption{Errores comunes y recomendaciones}
+\label{tab:errores}
+\begin{tabularx}{0.96\linewidth}{>{\raggedright\arraybackslash}p{4cm}X}
+\toprule
+\textbf{Situación} & \textbf{Recomendación} \\
+\midrule
+Aparece la advertencia de seguridad de Windows al ejecutar el archivo. & Seleccionar \textit{Más información} y luego \textit{Ejecutar de todas formas}. \\
+No ocurre nada al usar \textbf{Guardar} o \textbf{Abrir}. & Confirmar que primero se haya seleccionado un simulador activo. \\
+El sistema solicita continuar al cambiar de pestaña. & Aceptar solo si se desea abandonar cambios no guardados. \\
+Un botón de operación no produce el resultado esperado. & Verificar que la estructura ya haya sido creada antes de operar sobre ella. \\
+La pantalla se ve pequeña o saturada. & Usar una resolución mayor o ajustar la barra de tamaño en árboles y grafos. \\
+Se cerró la ventana del selector de archivo sin elegir un documento. & Repetir la acción de apertura y seleccionar el archivo correcto. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Conclusiones}
+El proyecto \textit{Ciencias2} ofrece una experiencia de aprendizaje práctica para estudiantes de Ciencias de la Computación II. Su diseño permite explorar distintas estructuras de datos y grafos mediante una interfaz directa, con controles claramente identificables y una navegación coherente entre módulos.
+
+Desde la perspectiva del usuario, la aplicación destaca por tres aspectos: la facilidad para iniciar el uso sin configuraciones complejas, la organización clara por pestañas y submódulos, y la posibilidad de guardar o restaurar el estado de trabajo. En conjunto, estas características convierten al sistema en una herramienta útil para repasar conceptos, probar escenarios y visualizar resultados de manera inmediata.
+
+\section{Bibliografía}
+\begin{thebibliography}{99}
+
+\bibitem{python}
+Python Software Foundation, \enquote{Python 3 Documentation}, 2026. [En línea]. Disponible en: \url{https://docs.python.org/3/}. [Accedido: 25-may-2026].
+
+\bibitem{fastapi}
+FastAPI, \enquote{FastAPI Documentation}, 2026. [En línea]. Disponible en: \url{https://fastapi.tiangolo.com/}. [Accedido: 25-may-2026].
+
+\bibitem{pyinstaller}
+PyInstaller, \enquote{PyInstaller Manual}, 2026. [En línea]. Disponible en: \url{https://pyinstaller.org/en/stable/}. [Accedido: 25-may-2026].
+
+\bibitem{postman}
+Postman, \enquote{Postman Learning Center}, 2026. [En línea]. Disponible en: \url{https://learning.postman.com/}. [Accedido: 25-may-2026].
+
+\bibitem{htmlcssjs}
+MDN Web Docs, \enquote{Referencias de HTML, CSS y JavaScript}, 2026. [En línea]. Disponible en: \url{https://developer.mozilla.org/}. [Accedido: 25-may-2026].
+
+\bibitem{networkx}
+NetworkX Developers, \enquote{NetworkX Documentation}, 2026. [En línea]. Disponible en: \url{https://networkx.org/documentation/stable/}. [Accedido: 25-may-2026].
+
+\bibitem{numpy}
+NumPy Developers, \enquote{NumPy User Guide}, 2026. [En línea]. Disponible en: \url{https://numpy.org/doc/stable/}. [Accedido: 25-may-2026].
+
+\bibitem{matplotlib}
+Matplotlib Development Team, \enquote{Matplotlib Documentation}, 2026. [En línea]. Disponible en: \url{https://matplotlib.org/stable/}. [Accedido: 25-may-2026].
+
+\bibitem{repo}
+Repositorio GitHub del proyecto \textit{Ciencias2}, \enquote{Ciencias2: Simuladores de estructuras de datos y grafos}, 2026. [En línea]. Disponible en \url{https://github.com/bl815v/computer_science2}[Accedido: 25-may-2026].
+
+\bibitem{cairo}
+I. Cairo, \textit{Estructuras de Datos}. México: Pearson.
+
+\bibitem{aho}
+A. V. Aho, J. E. Hopcroft y J. D. Ullman, \textit{Estructuras de Datos y Algoritmos}. México: Addison-Wesley.
+
+\end{thebibliography}
+
+\end{document}
