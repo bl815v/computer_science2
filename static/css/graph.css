@@ -1,0 +1,27 @@
+.graph-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+#graph-canvas {
+  width: 100%;
+  height: auto;
+  background: var(--ms-panel);
+  border: 1px solid var(--ms-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.result-area {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-sm);
+  background: var(--ms-bg-secondary);
+  border-radius: var(--radius-md);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
+}
+
+/* Transiciones para campos dinámicos */
+#edge-add-fields, #edge-delete-fields {
+  transition: all 0.2s ease;
+}

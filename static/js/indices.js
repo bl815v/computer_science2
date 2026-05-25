@@ -79,16 +79,22 @@
       const blocksPerIndex = Math.ceil(b / b_i);
       const indexBlocksToShow = getIndexBlocksToShow(b_i);
       const dataBlocksToShow = getDataBlocksForIndexes(indexBlocksToShow, b_i, b, blocksPerIndex);
-      structuresHtml += generateIndexColumn(b_i, bfr_i, index_record_length, indexBlocksToShow, { totalDataBlocks: b, blocksPerIndex });
+      structuresHtml += generateIndexColumn(b_i, bfr_i, index_record_length, indexBlocksToShow, { totalTargetBlocks: b, blocksPerIndex, levelLabel: 'Índice' });
       structuresHtml += generateDataColumn(b, bfr, record_length, dataBlocksToShow, { totalRecords: r, recordsPerBlock: bfr });
     } else if (levels && levels.length > 0) {
       for (let i = 0; i < levels.length; i++) {
         const lvl = levels[i];
-        const blocksPerIndex = Math.ceil(b / lvl.blocks);
+        const targetBlocks = i === levels.length - 1 ? b : levels[i + 1].blocks;
+        const blocksPerIndex = Math.ceil(targetBlocks / lvl.blocks);
         const indexBlocksToShow = getIndexBlocksToShow(lvl.blocks);
-        structuresHtml += generateIndexColumn(lvl.blocks, bfr_i, index_record_length, indexBlocksToShow, { totalDataBlocks: b, blocksPerIndex });
+        structuresHtml += generateIndexColumn(lvl.blocks, bfr_i, index_record_length, indexBlocksToShow, {
+          totalTargetBlocks: targetBlocks,
+          blocksPerIndex,
+          levelLabel: `Nivel ${i + 1}`,
+          isLastLevel: i === levels.length - 1,
+        });
       }
-      const lastLevel = levels[levels.length-1];
+      const lastLevel = levels[levels.length - 1];
       const blocksPerIndexLast = Math.ceil(b / lastLevel.blocks);
       const lastIndexBlocks = getIndexBlocksToShow(lastLevel.blocks);
       const dataBlocksToShow = getDataBlocksForIndexes(lastIndexBlocks, lastLevel.blocks, b, blocksPerIndexLast);
@@ -126,6 +132,7 @@
 
   function generateIndexColumn(totalBlocks, entriesPerBlock, bytes, blocksToShow, extra) {
     const prefix = 'B';
+    const title = extra.levelLabel || 'Índice';
     let cellsHtml = '';
     for (let i = 0; i < blocksToShow.length; i++) {
       const blockNum = blocksToShow[i];
@@ -133,7 +140,7 @@
         cellsHtml += `<div class="cell dots">...</div>`;
       }
       const firstEntryBlock = (blockNum - 1) * extra.blocksPerIndex + 1;
-      const lastEntryBlock = Math.min(blockNum * extra.blocksPerIndex, extra.totalDataBlocks);
+      const lastEntryBlock = Math.min(blockNum * extra.blocksPerIndex, extra.totalTargetBlocks);
       cellsHtml += `<div class="cell index-cell" data-block="${blockNum}" 
                     data-first-entry-block="${firstEntryBlock}" 
                     data-last-entry-block="${lastEntryBlock}">
@@ -143,8 +150,8 @@
                       <span class="range-end bottom-right">${formatNumber(lastEntryBlock)}</span>
                     </div>`;
     }
-    return `<div class="structure-column" data-structure-type="Índice">
-      <div class="structure-title">Índice</div>
+    return `<div class="structure-column" data-structure-type="${title}">
+      <div class="structure-title">${title}</div>
       <div class="structure-size">${bytes} bytes por entrada</div>
       <div class="cell-list">${cellsHtml}</div>
     </div>`;
@@ -223,16 +230,26 @@
       if (!isNaN(blockNum)) dataBlockMap.set(blockNum, cell);
     });
 
-    for (const idxCol of indexColumns) {
+    for (let idx = 0; idx < indexColumns.length; idx++) {
+      const idxCol = indexColumns[idx];
+      const targetCol = idx < indexColumns.length - 1 ? indexColumns[idx + 1] : dataColumn;
+      if (!targetCol) continue;
+      const targetCells = Array.from(targetCol.querySelectorAll('.cell:not(.dots)'));
+      const targetMap = new Map();
+      targetCells.forEach(cell => {
+        const blockNum = parseInt(cell.dataset.block, 10);
+        if (!isNaN(blockNum)) targetMap.set(blockNum, cell);
+      });
+
       const idxCells = Array.from(idxCol.querySelectorAll('.cell:not(.dots)'));
       for (const idxCell of idxCells) {
         const firstBlock = parseInt(idxCell.dataset.firstEntryBlock, 10);
         const lastBlock = parseInt(idxCell.dataset.lastEntryBlock, 10);
-        if (!isNaN(firstBlock) && dataBlockMap.has(firstBlock)) {
-          drawArrowBetween(ctx, idxCell, dataBlockMap.get(firstBlock), container, 'top');
+        if (!isNaN(firstBlock) && targetMap.has(firstBlock)) {
+          drawArrowBetween(ctx, idxCell, targetMap.get(firstBlock), container, 'top');
         }
-        if (!isNaN(lastBlock) && dataBlockMap.has(lastBlock)) {
-          drawArrowBetween(ctx, idxCell, dataBlockMap.get(lastBlock), container, 'bottom');
+        if (!isNaN(lastBlock) && targetMap.has(lastBlock)) {
+          drawArrowBetween(ctx, idxCell, targetMap.get(lastBlock), container, 'bottom');
         }
       }
     }
@@ -297,7 +314,7 @@
       });
       if (!response.ok) throw new Error('Error al exportar');
       const data = await response.json();
-      data.type = type;   // Guardar el tipo en el JSON
+      data.index = type;   // Guardar el subtipo de índice sin cambiar el snapshot.type
       const filename = `indice_${type}.json`;
       window.saveUtils.downloadJSON(data, filename);
       window.notifySuccess?.(`Índice guardado como ${filename}`);
@@ -319,14 +336,33 @@
   window.importIndex = async () => {
     try {
       const snapshot = await window.saveUtils.loadJSONFile();
-      if (!snapshot || !snapshot.type) {
+      if (!snapshot || (!snapshot.type && !snapshot.index)) {
         throw new Error('Archivo inválido: no contiene el tipo de índice');
       }
-      const type = snapshot.type;
+      const type = snapshot.index || snapshot.type;
+      const validTypes = ['primary', 'secondary', 'multilevel-primary', 'multilevel-secondary'];
+      if (!validTypes.includes(type)) {
+        throw new Error(`Tipo de índice desconocido: ${type}`);
+      }
+
+      const config = snapshot.config || {};
+      const totalRecordsInput = document.getElementById('total-records');
+      const blockSizeInput = document.getElementById('block-size');
+      const recordLengthInput = document.getElementById('record-length');
+      const indexRecordLengthInput = document.getElementById('index-record-length');
+      if (totalRecordsInput) totalRecordsInput.value = String(config.r || totalRecordsInput.value);
+      if (blockSizeInput) blockSizeInput.value = String(config.block_size || blockSizeInput.value);
+      if (recordLengthInput) recordLengthInput.value = String(config.record_length || recordLengthInput.value);
+      if (indexRecordLengthInput) indexRecordLengthInput.value = String(config.index_record_length || indexRecordLengthInput.value);
+
       // Cambiar el select al tipo correspondiente
-      const select = document.getElementById("index-type");
+      const select = document.getElementById('index-type');
       if (select) select.value = type;
       currentIndexType = type;
+
+      // El backend siempre valida snapshot.type como 'index' para las estructuras de índices.
+      snapshot.type = 'index';
+      snapshot.index = type;
 
       const importEndpoint = getImportEndpoint(type);
       const response = await fetch(`http://127.0.0.1:8000${importEndpoint}`, {
@@ -338,7 +374,6 @@
         const err = await response.json();
         throw new Error(err.detail || 'Error al cargar el índice');
       }
-      // Refrescar la visualización
       await window.refreshStructure();
       window.notifySuccess?.('Estructura de índices cargada correctamente');
     } catch (err) {

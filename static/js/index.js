@@ -87,6 +87,13 @@ function showContent(type) {
         setActiveRibbonButton(this);
         showBusquedaExterna();
       });
+  } else if (type === "grafos") {
+    // Pestaña de grafos: sin subniveles, cargar directamente el simulador
+    lvl1.innerHTML = `<div class="ribbon-buttons"></div>`;
+    lvl2.innerHTML = "";
+    lvl3.innerHTML = "";
+    content.innerHTML = "<p>Cargando simulador de grafos…</p>";
+    loadExternalPage("graph");
   }
 }
 
@@ -305,11 +312,12 @@ function getSimulatorConfig(pageName) {
     hash: { endpoint: '/hash/export', filename: 'tabla_hash.json' },
     arbol: { endpoint: null, filename: null }, // handled separately
     huffman: { endpoint: '/huffman/export', filename: 'arbol_huffman.json' },
-    indices: { endpoint: null, filename: null }, // has multiple index types
+    indices: { endpoint: null, filename: null }, // handled separately
     lineal_externa: { endpoint: '/external/linear/export', filename: 'busqueda_lineal_externa.json' },
     binaria_externa: { endpoint: '/external/binary/export', filename: 'busqueda_binaria_externa.json' },
     hash_externa: { endpoint: '/hash-external/export', filename: 'hash_externo.json' },
     hash_dinamica: { endpoint: '/dynamic-hash/export', filename: 'hash_dinamico.json' },
+    graph: { endpoint: '/graphs/export', filename: 'grafo.json' },
   };
   return configs[pageName];
 }
@@ -365,6 +373,40 @@ async function handleSave() {
     } else {
       if (window.notifyError) {
         window.notifyError('El simulador de árboles no soporta guardado todavía.');
+      }
+    }
+    return;
+  }
+
+  // Caso especial para índices
+  if (page === 'indices') {
+    if (typeof window.exportIndex === 'function') {
+      try {
+        await window.exportIndex();
+        window.resetStructureDirty?.();
+      } catch (err) {
+        console.error('Export error:', err);
+      }
+    } else {
+      if (window.notifyError) {
+        window.notifyError('El simulador de índices no soporta guardado todavía.');
+      }
+    }
+    return;
+  }
+
+  // Caso especial para grafos
+  if (page === 'graph') {
+    if (typeof window.exportGraph === 'function') {
+      try {
+        await window.exportGraph();
+        window.resetStructureDirty?.();
+      } catch (err) {
+        console.error('Export error:', err);
+      }
+    } else {
+      if (window.notifyError) {
+        window.notifyError('El simulador de grafos no soporta guardado todavía.');
       }
     }
     return;
@@ -426,6 +468,53 @@ async function handleOpen() {
     } else {
       if (window.notifyError) {
         window.notifyError('El simulador de árboles no soporta cargar archivos todavía.');
+      }
+    }
+    return;
+  }
+
+  // Caso especial para índices
+  if (page === 'indices') {
+    if (typeof window.importIndex === 'function') {
+      try {
+        await window.importIndex();
+        // Refrescar visualización después de importar
+        if (typeof window.refreshStructure === 'function') {
+          await window.refreshStructure();
+        }
+        window.resetStructureDirty?.();
+      } catch (err) {
+        console.error('Import error:', err);
+        if (window.notifyError) {
+          window.notifyError('Error al cargar el índice: ' + (err.message || 'Error desconocido'));
+        }
+      }
+    } else {
+      if (window.notifyError) {
+        window.notifyError('El simulador de índices no soporta cargar archivos todavía.');
+      }
+    }
+    return;
+  }
+
+  // Caso especial para grafos
+  if (page === 'graph') {
+    if (typeof window.importGraph === 'function') {
+      try {
+        await window.importGraph();
+        if (typeof window.refreshStructure === 'function') {
+          await window.refreshStructure();
+        }
+        window.resetStructureDirty?.();
+      } catch (err) {
+        console.error('Import error:', err);
+        if (window.notifyError) {
+          window.notifyError('Error al cargar el grafo: ' + (err.message || 'Error desconocido'));
+        }
+      }
+    } else {
+      if (window.notifyError) {
+        window.notifyError('El simulador de grafos no soporta cargar archivos todavía.');
       }
     }
     return;
