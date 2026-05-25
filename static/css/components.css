@@ -13,6 +13,8 @@
   max-width: 900px;
   box-sizing: border-box;
   text-align: center;
+      padding-left: 95px;
+    padding-right: 85px;
 }
 
 /* --- Flexbox Row (form elements) --- */
