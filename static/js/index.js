@@ -88,13 +88,45 @@ function showContent(type) {
         showBusquedaExterna();
       });
   } else if (type === "grafos") {
-    // Pestaña de grafos: sin subniveles, cargar directamente el simulador
-    lvl1.innerHTML = `<div class="ribbon-buttons"></div>`;
+    lvl1.innerHTML = `
+      <div class="ribbon-buttons">
+        <button class="ribbon-btn" data-category="operations">Operaciones</button>
+        <button class="ribbon-btn" data-category="traversals">Recorridos y Árboles</button>
+        <button class="ribbon-btn" data-category="paths">Caminos y Distancias</button>
+        <button class="ribbon-btn" data-category="coloring">Coloreo</button>
+      </div>
+    `;
     lvl2.innerHTML = "";
     lvl3.innerHTML = "";
-    content.innerHTML = "<p>Cargando simulador de grafos…</p>";
-    loadExternalPage("graph");
+    content.innerHTML = `
+      <h2>Grafos</h2>
+      <p>Selecciona una categoría para abrir el simulador de grafos y mostrar sólo las herramientas relevantes.</p>
+    `;
+
+    lvl1.querySelectorAll('[data-category]').forEach(btn => {
+      btn.addEventListener('click', function () {
+        if (appState.structureDirty) {
+          window.confirmModal(
+            'Has creado una estructura. Si cambias de categoría, se perderán los datos no guardados. ¿Deseas continuar?',
+            () => {
+              setActiveRibbonButton(this);
+              selectGraphCategory(this.dataset.category);
+              window.resetStructureDirty();
+            },
+            () => {}
+          );
+        } else {
+          setActiveRibbonButton(this);
+          selectGraphCategory(this.dataset.category);
+        }
+      });
+    });
   }
+}
+
+function selectGraphCategory(category) {
+  window.graphInitialCategory = category;
+  loadExternalPage('graph');
 }
 
 function showBusquedaInterna() {
@@ -233,15 +265,16 @@ function loadExternalCSS(url) {
 }
 
 function loadExternalJS(url, callback) {
-  if (appState.loadedScripts.has(url)) {
+  const normalizedUrl = url.replace(/\?.*$/, '');
+  if (appState.loadedScripts.has(normalizedUrl)) {
     if (callback) callback();
     return;
   }
 
-  const script = document.createElement("script");
+  const script = document.createElement('script');
   script.src = url;
   script.onload = () => {
-    appState.loadedScripts.add(url);
+    appState.loadedScripts.add(normalizedUrl);
     if (callback) callback();
   };
   document.body.appendChild(script);
