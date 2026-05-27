@@ -50,6 +50,10 @@ function teardownCurrentSimulator() {
   appState.currentSimulator = null;
 }
 
+function getSimulatorInitializer(page) {
+  return window.simulatorRegistry.initializers[page] || window.initSimulator;
+}
+
 function handleTabClick(type) {
   if (appState.structureDirty) {
     window.confirmModal(
@@ -274,7 +278,11 @@ function loadExternalPage(page) {
       const version = Date.now();
       loadExternalCSS(`static/css/${page}.css?v=${version}`);
       loadExternalJS(`static/js/${page}.js?v=${version}`, () => {
-        const initializer = window.simulatorRegistry.initializers[page] || window.initSimulator;
+        if (!window.simulatorRegistry.initializers[page] && typeof window.initSimulator === "function") {
+          window.simulatorRegistry.initializers[page] = window.initSimulator;
+        }
+
+        const initializer = getSimulatorInitializer(page);
         if (typeof initializer === "function") {
           initializer();
         }
@@ -316,9 +324,29 @@ function loadExternalJS(url, callback) {
 function printCurrentView() {
   const content = document.getElementById("content");
   if (!content) return;
+  const page = getCurrentSimulatorPage();
 
   // Guardar el HTML original
   const originalHTML = content.innerHTML;
+  let restored = false;
+
+  const restorePrintedView = () => {
+    if (restored) return;
+    restored = true;
+    content.innerHTML = originalHTML;
+    document.body.classList.remove('printing');
+
+    const initializer = page ? getSimulatorInitializer(page) : null;
+    if (typeof initializer === "function") {
+      initializer();
+    }
+
+    window.requestAnimationFrame(() => {
+      window.focus?.();
+      content.setAttribute("tabindex", "-1");
+      content.focus({ preventScroll: true });
+    });
+  };
 
   // Convertir inputs a texto
   const inputs = content.querySelectorAll('input');
@@ -350,17 +378,14 @@ function printCurrentView() {
   // Añadir clase temporal al body para ocultar elementos no deseados
   document.body.classList.add('printing');
 
+  window.addEventListener("afterprint", restorePrintedView, { once: true });
+
   // Llamar a la impresión
   window.print();
 
   // Restaurar contenido y quitar clase tras un breve retraso
   setTimeout(() => {
-    content.innerHTML = originalHTML;
-    document.body.classList.remove('printing');
-    // Reiniciar el simulador si existe la función
-    if (typeof window.initSimulator === "function") {
-      window.initSimulator();
-    }
+    restorePrintedView();
   }, 100);
 }
 
@@ -611,9 +636,9 @@ async function handleOpen() {
     // Refresh the current simulator's UI (if available)
     if (typeof window.refreshStructure === 'function') {
       await window.refreshStructure();
-    } else if (typeof window.initSimulator === 'function') {
+    } else if (typeof getSimulatorInitializer(page) === 'function') {
       // Fallback: reinitialize completely
-      window.initSimulator();
+      getSimulatorInitializer(page)();
     }
     
     window.notifySuccess('Estructura cargada correctamente.');
