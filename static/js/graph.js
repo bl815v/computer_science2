@@ -63,7 +63,7 @@ function updateOperationInterface() {
     populateOperationOptions([
       { value: 'vertex-coloring', label: 'Coloreado de vértices' },
       { value: 'edge-coloring', label: 'Coloreado de aristas' },
-      { value: 'independent-sets', label: 'Independencia' },
+      { value: 'independent-sets', label: 'Ambos' },
     ]);
   }
 
@@ -636,18 +636,6 @@ function createGraphInfoTable(graph) {
     return acc;
   }, {});
 
-  graph.vertices.forEach(vertex => {
-    const row = document.createElement('tr');
-    const nameCell = document.createElement('td');
-    nameCell.textContent = vertex.name;
-    const edgesCell = document.createElement('td');
-    edgesCell.textContent = (adjacency[vertex.name] || []).join(', ') || '-';
-    row.appendChild(nameCell);
-    row.appendChild(edgesCell);
-    table.appendChild(row);
-  });
-
-  return table;
 }
 
 function createInfoCard(label, value) {

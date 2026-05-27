@@ -91,9 +91,9 @@ function showContent(type) {
     lvl1.innerHTML = `
       <div class="ribbon-buttons">
         <button class="ribbon-btn" data-category="operations">Operaciones</button>
-        <button class="ribbon-btn" data-category="traversals">Recorridos y Árboles</button>
-        <button class="ribbon-btn" data-category="paths">Caminos y Distancias</button>
-        <button class="ribbon-btn" data-category="coloring">Coloreo</button>
+        <button class="ribbon-btn" data-category="traversals">Árboles</button>
+        <button class="ribbon-btn" data-category="paths">Caminos </button>
+        <button class="ribbon-btn" data-category="coloring">Coloreado</button>
       </div>
     `;
     lvl2.innerHTML = "";
