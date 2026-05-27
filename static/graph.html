@@ -34,6 +34,17 @@
           </div>
           <input id="graphA-delete-edge-text" type="text" placeholder="o escribe nombre de la arista" />
         </div>
+
+        <div class="delete-block">
+          <label>Editar arista</label>
+          <select id="graphA-edit-edge-select"></select>
+          <div class="toggle-row">
+            <label><input id="graphA-edit-edge-directed" type="checkbox" /> Dirigida</label>
+            <label><input id="graphA-edit-edge-weighted" type="checkbox" /> Ponderada</label>
+          </div>
+          <input id="graphA-edit-edge-weight" type="text" placeholder="Peso" />
+          <button id="update-edge-A" class="secondary">Aplicar cambios</button>
+        </div>
       </section>
 
       <section class="panel" id="graphB-panel">
@@ -68,6 +79,17 @@
           </div>
           <input id="graphB-delete-edge-text" type="text" placeholder="o escribe nombre de la arista" />
         </div>
+
+        <div class="delete-block">
+          <label>Editar arista</label>
+          <select id="graphB-edit-edge-select"></select>
+          <div class="toggle-row">
+            <label><input id="graphB-edit-edge-directed" type="checkbox" /> Dirigida</label>
+            <label><input id="graphB-edit-edge-weighted" type="checkbox" /> Ponderada</label>
+          </div>
+          <input id="graphB-edit-edge-weight" type="text" placeholder="Peso" />
+          <button id="update-edge-B" class="secondary">Aplicar cambios</button>
+        </div>
       </section>
 
       <section class="panel">
@@ -84,7 +106,7 @@
           <option value="composition">Composición</option>
         </select>
 
-        <div class="toggle-row label-options">
+        <div id="edge-label-options-row" class="toggle-row label-options">
           <label><input id="edge-label-name-toggle" type="checkbox" /> Mostrar nombres de aristas</label>
           <label><input id="edge-label-weight-toggle" type="checkbox" /> Mostrar pesos</label>
         </div>
@@ -96,11 +118,30 @@
           <select id="graphB-select"></select>
         </div>
 
-        <label>Id de resultado</label>
-        <input id="graph-result-id" type="text" placeholder="resultado" />
+        <div id="path-params-row" style="display: none;">
+          <label>Vértice origen</label>
+          <input id="path-source" type="text" placeholder="A" />
+          <label>Vértice destino</label>
+          <input id="path-target" type="text" placeholder="B" />
+        </div>
+
+        <div id="graph-result-row">
+          <label>Id de resultado</label>
+          <input id="graph-result-id" type="text" placeholder="resultado" />
+        </div>
         <div class="button-row">
           <button id="execute-operation" class="primary">Ejecutar operación</button>
           <button id="reset-all" class="danger">Reiniciar vista</button>
+        </div>
+
+        <div id="matrix-view-row">
+          <label>Ver matriz</label>
+          <select id="matrix-view-select">
+            <option value="">Resumen</option>
+            <option value="incidence">Incidencia</option>
+            <option value="vertex-adjacency">Adyacencia de vértices</option>
+            <option value="edge-adjacency">Adyacencia de aristas</option>
+          </select>
         </div>
 
         <p id="unary-note" class="unary-note">El complemento sólo usa Grafo A. Grafo B se mantiene inactivo.</p>

@@ -139,12 +139,14 @@ button.secondary {
 }
 
 .visual-panel {
+  display: grid;
   gap: 16px;
+  align-content: start;
 }
 
 .graph-cards {
   position: relative;
-  display: block;
+  display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   transition: grid-template-columns 0.2s ease;
@@ -201,7 +203,7 @@ button.secondary {
 
 .graph-card h3 {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 1rem;
 }
 
 .graph-summary {
@@ -358,6 +360,7 @@ button.secondary {
 .graph-log-panel {
   min-height: auto;
   padding: 10px;
+  align-self: start;
 }
 
 .graph-log {
@@ -399,9 +402,9 @@ button.secondary {
 }
 
 .test-card {
-    height: 899.688px;
-    transform: translate(0px, 290px);
-    left: 1px;
-    top: -274px;
-    gap: 10px;
+  height: auto;
+  transform: none;
+  left: auto;
+  top: auto;
+  gap: 16px;
 }

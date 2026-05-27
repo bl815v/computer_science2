@@ -1,4 +1,32 @@
 ﻿const GRAPH_API_BASE = 'http://127.0.0.1:8000/graphs';
+const GRAPH_CATEGORY_TOOLSETS = {
+  operations: [
+    { value: 'union', label: 'Unión' },
+    { value: 'intersection', label: 'Intersección' },
+    { value: 'ring-sum', label: 'Suma anillo' },
+    { value: 'sum', label: 'Suma de grafos' },
+    { value: 'complement', label: 'Complemento' },
+    { value: 'cartesian-product', label: 'Producto cartesiano' },
+    { value: 'tensor-product', label: 'Producto tensor' },
+    { value: 'composition', label: 'Composición' },
+  ],
+  traversals: [
+    { value: 'center', label: 'Centro / Bicentro' },
+    { value: 'mst', label: 'MST' },
+    { value: 'tree-distance', label: 'Distancia entre árboles' },
+  ],
+  paths: [
+    { value: 'ordinal', label: 'Ordinal' },
+    { value: 'bellman', label: 'Bellman' },
+    { value: 'dijkstra', label: 'Dijkstra' },
+    { value: 'floyd-warshall', label: 'Caminos mínimos' },
+  ],
+  coloring: [
+    { value: 'vertex-coloring', label: 'Coloreado de vértices' },
+    { value: 'edge-coloring', label: 'Coloreado de aristas' },
+  ],
+};
+
 const cyInstances = {
   'graphA-container': null,
   'graphB-container': null,
@@ -8,8 +36,34 @@ const cyInstances = {
 const graphEditState = {
   A: { graphId: null, graph: null },
   B: { graphId: null, graph: null },
-  Result: { graphId: null, graph: null },
+  Result: { graphId: null, graph: null, detail: null },
 };
+
+function getGraphCategory() {
+  return window.graphInitialCategory || 'operations';
+}
+
+function getGraphToolset(category = getGraphCategory()) {
+  return GRAPH_CATEGORY_TOOLSETS[category] || GRAPH_CATEGORY_TOOLSETS.operations;
+}
+
+function isBinaryGraphOperation(operation) {
+  return ['union', 'intersection', 'ring-sum', 'sum', 'cartesian-product', 'tensor-product', 'composition'].includes(operation);
+}
+
+function needsGraphBEditor(category, operation) {
+  if (category === 'operations') return isBinaryGraphOperation(operation);
+  if (category === 'traversals') return operation === 'tree-distance';
+  return false;
+}
+
+function needsPathParameters(category, operation) {
+  return category === 'paths' && ['bellman', 'dijkstra'].includes(operation);
+}
+
+function needsResultIdentifier(category) {
+  return category === 'operations';
+}
 
 function initSimulator() {
   bindEvents();
@@ -23,7 +77,23 @@ function initSimulator() {
   });
 }
 
+function teardownSimulator() {
+  clearPreview('A');
+  clearPreview('B');
+  clearResultPreview();
+}
+
+async function refreshGraphStructure() {
+  updateOperationInterface();
+  await refreshGraphSelectors();
+  refreshRenderedGraphs();
+}
+
 window.initSimulator = initSimulator;
+window.refreshStructure = refreshGraphStructure;
+window.simulatorRegistry = window.simulatorRegistry || { initializers: {}, teardowns: {} };
+window.simulatorRegistry.initializers.graph = initSimulator;
+window.simulatorRegistry.teardowns.graph = teardownSimulator;
 
 function bindEvents() {
   document.getElementById('create-graphA').addEventListener('click', () => createGraph('A'));
@@ -48,43 +118,67 @@ function bindEvents() {
   const edgeWeightToggle = document.getElementById('edge-label-weight-toggle');
   if (edgeNameToggle) edgeNameToggle.addEventListener('change', refreshRenderedGraphs);
   if (edgeWeightToggle) edgeWeightToggle.addEventListener('change', refreshRenderedGraphs);
+
+  const edgeSelectA = document.getElementById('graphA-edit-edge-select');
+  const edgeSelectB = document.getElementById('graphB-edit-edge-select');
+  if (edgeSelectA) edgeSelectA.addEventListener('change', () => syncEdgeEditor('A'));
+  if (edgeSelectB) edgeSelectB.addEventListener('change', () => syncEdgeEditor('B'));
+  const edgeDirectedA = document.getElementById('graphA-edit-edge-directed');
+  const edgeDirectedB = document.getElementById('graphB-edit-edge-directed');
+  if (edgeDirectedA) edgeDirectedA.addEventListener('change', () => syncEdgeWeightState('A'));
+  if (edgeDirectedB) edgeDirectedB.addEventListener('change', () => syncEdgeWeightState('B'));
+  const edgeWeightedA = document.getElementById('graphA-edit-edge-weighted');
+  const edgeWeightedB = document.getElementById('graphB-edit-edge-weighted');
+  if (edgeWeightedA) edgeWeightedA.addEventListener('change', () => syncEdgeWeightState('A'));
+  if (edgeWeightedB) edgeWeightedB.addEventListener('change', () => syncEdgeWeightState('B'));
+  const updateEdgeA = document.getElementById('update-edge-A');
+  const updateEdgeB = document.getElementById('update-edge-B');
+  if (updateEdgeA) updateEdgeA.addEventListener('click', () => updateGraphEdge('A'));
+  if (updateEdgeB) updateEdgeB.addEventListener('click', () => updateGraphEdge('B'));
+
+  const matrixSelect = document.getElementById('matrix-view-select');
+  if (matrixSelect) matrixSelect.addEventListener('change', renderStoredResultDetails);
 }
 
 function updateOperationInterface() {
+  const category = getGraphCategory();
   const select = document.getElementById('operation-select');
   const graphBRow = document.getElementById('graphB-selector-row');
   const label = document.getElementById('execute-label');
   const unaryNote = document.getElementById('unary-note');
   const graphBPanel = document.getElementById('graphB-panel');
   const graphBCard = document.getElementById('graphB-card');
-  const isColorCategory = window.graphInitialCategory === 'coloring';
+  const pathParamsRow = document.getElementById('path-params-row');
+  const resultRow = document.getElementById('graph-result-row');
+  const matrixRow = document.getElementById('matrix-view-row');
+  const edgeLabelRow = document.getElementById('edge-label-options-row');
 
-  if (isColorCategory) {
-    populateOperationOptions([
-      { value: 'vertex-coloring', label: 'Coloreado de vértices' },
-      { value: 'edge-coloring', label: 'Coloreado de aristas' },
-      { value: 'independent-sets', label: 'Ambos' },
-    ]);
-  }
+  populateOperationOptions(getGraphToolset(category));
 
   const operation = select.value;
-  const unaryOperation = operation === 'complement' || isColorOperation(operation);
+  const showGraphBEditor = needsGraphBEditor(category, operation);
+  const showPathParams = needsPathParameters(category, operation);
+  const showResultIdentifier = needsResultIdentifier(category);
+  const showEdgeLabels = category === 'operations';
 
-  if (unaryOperation) {
-    graphBRow.style.display = 'none';
-    graphBPanel.style.display = 'none';
-    if (graphBCard) graphBCard.style.display = 'none';
-    unaryNote.textContent = 'Estas operaciones solo utilizan el grafo A.';
-    label.textContent = 'Grafo A';
-  } else {
-    graphBRow.style.display = 'block';
-    graphBPanel.style.display = 'block';
-    graphBPanel.style.opacity = '1';
-    graphBPanel.style.pointerEvents = 'auto';
-    if (graphBCard) graphBCard.style.display = 'block';
-    unaryNote.style.display = 'none';
-    label.textContent = 'Grafo A';
+  graphBRow.style.display = showGraphBEditor ? 'block' : 'none';
+  graphBPanel.style.display = showGraphBEditor ? 'block' : 'none';
+  if (graphBCard) graphBCard.style.display = showGraphBEditor ? 'block' : 'none';
+  if (pathParamsRow) pathParamsRow.style.display = showPathParams ? 'grid' : 'none';
+  if (resultRow) resultRow.style.display = showResultIdentifier ? 'block' : 'none';
+  if (matrixRow) matrixRow.style.display = category === 'operations' ? 'block' : 'none';
+  if (edgeLabelRow) edgeLabelRow.style.display = showEdgeLabels ? 'flex' : 'none';
+
+  if (unaryNote) {
+    if (category === 'operations' && operation === 'complement') {
+      unaryNote.style.display = 'block';
+      unaryNote.textContent = 'El complemento solo usa Grafo A. Grafo B se mantiene inactivo.';
+    } else {
+      unaryNote.style.display = 'none';
+    }
   }
+
+  label.textContent = 'Grafo A';
 }
 
 async function ensureCytoscape() {
@@ -211,16 +305,22 @@ function populateOperationOptions(options) {
     if (option.value === current) option.selected = true;
     select.appendChild(option);
   });
+
+  if (!select.value && options.length) {
+    select.value = options[0].value || options[0];
+  }
 }
 
 function isColorOperation(operation) {
-  return ['vertex-coloring', 'edge-coloring', 'independent-sets'].includes(operation);
+  return ['vertex-coloring', 'edge-coloring'].includes(operation);
 }
 
 function toggleGraphLayout() {
   const cards = document.getElementById('graph-cards');
+  const button = document.getElementById('graph-layout-toggle');
   if (!cards) return;
   cards.classList.toggle('full-width');
+  if (button) button.textContent = cards.classList.contains('full-width') ? '<->' : '↕';
 }
 
 function refreshRenderedGraphs() {
@@ -239,6 +339,99 @@ function updateGraphEditors(side, graph) {
   if (!graph) return;
   fillOptions(document.getElementById(`graph${side}-delete-vertex-select`), graph.vertices.map(v => v.name));
   fillOptions(document.getElementById(`graph${side}-delete-edge-select`), graph.edges.map(e => e.name));
+  fillOptions(document.getElementById(`graph${side}-edit-edge-select`), graph.edges.map(e => e.name));
+  syncEdgeEditor(side);
+}
+
+function syncEdgeEditor(side) {
+  const graph = graphEditState[side].graph;
+  if (!graph) return;
+
+  const edgeSelect = document.getElementById(`graph${side}-edit-edge-select`);
+  const edgeName = edgeSelect?.value;
+  const edge = graph.edges.find(item => item.name === edgeName) || graph.edges[0];
+  if (!edge) return;
+
+  if (edgeSelect && !edgeSelect.value) {
+    edgeSelect.value = edge.name;
+  }
+
+  const directedField = document.getElementById(`graph${side}-edit-edge-directed`);
+  const weightedField = document.getElementById(`graph${side}-edit-edge-weighted`);
+  const weightField = document.getElementById(`graph${side}-edit-edge-weight`);
+
+  if (directedField) directedField.checked = !!edge.directed;
+  if (weightedField) weightedField.checked = edge.weight != null;
+  if (weightField) {
+    weightField.value = edge.weight != null ? String(edge.weight) : '';
+    weightField.disabled = !(weightedField?.checked);
+  }
+}
+
+function syncEdgeWeightState(side) {
+  const weightedField = document.getElementById(`graph${side}-edit-edge-weighted`);
+  const weightField = document.getElementById(`graph${side}-edit-edge-weight`);
+  if (weightField) weightField.disabled = !(weightedField?.checked);
+}
+
+function getEdgeEditPayload(side) {
+  const graph = graphEditState[side].graph;
+  const edgeSelect = document.getElementById(`graph${side}-edit-edge-select`);
+  const edgeName = edgeSelect?.value;
+  const edge = graph?.edges.find(item => item.name === edgeName);
+  if (!edge) return null;
+
+  const directed = document.getElementById(`graph${side}-edit-edge-directed`)?.checked ?? edge.directed;
+  const weighted = document.getElementById(`graph${side}-edit-edge-weighted`)?.checked ?? (edge.weight != null);
+  const weightInput = document.getElementById(`graph${side}-edit-edge-weight`)?.value.trim() || '';
+  const parsedWeight = weighted ? (weightInput ? Number(weightInput) : null) : null;
+
+  return {
+    original: edge,
+    directed,
+    weighted,
+    weight: Number.isFinite(parsedWeight) ? parsedWeight : null,
+  };
+}
+
+async function updateGraphEdge(side) {
+  const state = graphEditState[side];
+  const graphId = state.graphId || document.getElementById(`graph${side}-select`).value;
+  const payload = getEdgeEditPayload(side);
+  if (!graphId || !payload) {
+    logError('Selecciona una arista para editar.');
+    return;
+  }
+
+  try {
+    await fetchJSON(`${GRAPH_API_BASE}/${encodeURIComponent(graphId)}/edge/${encodeURIComponent(payload.original.name)}`, {
+      method: 'DELETE',
+    });
+
+    await fetchJSON(`${GRAPH_API_BASE}/${encodeURIComponent(graphId)}/edge`, {
+      method: 'POST',
+      body: JSON.stringify({
+        name: payload.original.name,
+        source: payload.original.source,
+        target: payload.original.target,
+        directed: payload.directed,
+        weight: payload.weight,
+      }),
+    });
+
+    await refreshGraphSelectors();
+    const updated = await loadGraphFromState(graphId);
+    if (updated) {
+      setGraphState(side, updated);
+      renderGraph(updated, `graph${side}-container`);
+      setSummary(side, updated);
+      syncEdgeEditor(side);
+    }
+
+    logStatus(`Arista ${payload.original.name} actualizada en ${graphId}.`);
+  } catch (error) {
+    logError(`Error editando arista: ${error.message}`);
+  }
 }
 
 function getDeletionTarget(side, type) {
@@ -485,69 +678,162 @@ function mountRecenterButton(container, containerId) {
 }
 
 async function executeOperation() {
+  const category = getGraphCategory();
   const operation = document.getElementById('operation-select').value;
   const graphAId = document.getElementById('graphA-select').value;
   const graphBId = document.getElementById('graphB-select').value;
   const resultIdField = document.getElementById('graph-result-id');
   const resultId = resultIdField.value.trim() || `resultado-${operation}-${Date.now()}`;
+  const sourceField = document.getElementById('path-source');
+  const targetField = document.getElementById('path-target');
+  const source = sourceField ? sourceField.value.trim() : '';
+  const target = targetField ? targetField.value.trim() : '';
 
   if (!graphAId) {
     logError('Selecciona un grafo A para ejecutar la operación.');
     return;
   }
 
-  const isColorOp = isColorOperation(operation);
-  if (!isColorOp && operation !== 'complement' && !graphBId) {
-    logError('Selecciona un grafo B para ejecutar esta operación.');
-    return;
-  }
-
   try {
-    if (isColorOp) {
-      const endpoint = `${GRAPH_API_BASE}/${encodeURIComponent(graphAId)}/${operation}`;
-      const payload = await fetchJSON(endpoint, {
+    if (category === 'operations') {
+      if (!isColorOperation(operation) && operation !== 'complement' && !graphBId) {
+        logError('Selecciona un grafo B para ejecutar esta operación.');
+        return;
+      }
+
+      if (isColorOperation(operation)) {
+        const endpoint = `${GRAPH_API_BASE}/${encodeURIComponent(graphAId)}/${operation}`;
+        const payload = await fetchJSON(endpoint, {
+          method: 'POST',
+        });
+        await refreshGraphSelectors();
+        const updated = await loadGraphFromState(graphAId);
+        if (updated) {
+          setGraphState('A', updated);
+          renderGraph(updated, 'graphResult-container');
+          graphEditState.Result.graph = updated;
+          graphEditState.Result.graphId = graphAId;
+          setSummary('Result', updated);
+          renderGraphInfo(operation, payload, updated);
+        }
+        logStatus(`Operación ${operation} ejecutada sobre ${graphAId}.`);
+        return;
+      }
+
+      const endpoint = `${GRAPH_API_BASE}/${operation}`;
+      const body = { result_id: resultId };
+
+      if (operation === 'complement') {
+        body.graph_id = graphAId;
+      } else {
+        body.graph_a_id = graphAId;
+        body.graph_b_id = graphBId;
+      }
+
+      const graph = await fetchJSON(endpoint, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
+
+      await refreshGraphSelectors();
+      renderGraph(graph, 'graphResult-container');
+      graphEditState.Result.graph = graph;
+      graphEditState.Result.graphId = graph.graph_id || resultId;
+      setSummary('Result', graph);
+      renderGraphInfo(operation, graph, graph);
+      logStatus(`Operación ${operation} creada como ${resultId}.`);
+      resultIdField.value = resultId;
+      return;
+    }
+
+    if (category === 'traversals') {
+      if (operation === 'tree-distance') {
+        if (!graphBId) {
+          logError('Selecciona un grafo B para calcular la distancia entre árboles.');
+          return;
+        }
+        const graph = await fetchJSON(`${GRAPH_API_BASE}/tree-distance`, {
+          method: 'POST',
+          body: JSON.stringify({ graph_a_id: graphAId, graph_b_id: graphBId }),
+        });
+        renderResultPayload(operation, graph, null);
+        logStatus(`Distancia entre árboles calculada para ${graphAId} y ${graphBId}.`);
+        return;
+      }
+
+      const graph = await fetchJSON(`${GRAPH_API_BASE}/${encodeURIComponent(graphAId)}/${operation}`, {
+        method: 'POST',
+      });
+      renderResultPayload(operation, graph, graph?.visualization || null);
+      logStatus(`Operación ${operation} ejecutada sobre ${graphAId}.`);
+      return;
+    }
+
+    if (category === 'paths') {
+      if ((operation === 'bellman' || operation === 'dijkstra') && !source) {
+        logError('Indica un vértice origen para ejecutar esta operación.');
+        return;
+      }
+
+      const payload = operation === 'floyd-warshall'
+        ? await fetchJSON(`${GRAPH_API_BASE}/${encodeURIComponent(graphAId)}/floyd-warshall`, { method: 'POST' })
+        : await fetchJSON(`${GRAPH_API_BASE}/${encodeURIComponent(graphAId)}/${operation}`, {
+            method: 'POST',
+            body: JSON.stringify({ source, target: target || null }),
+          });
+
+      renderResultPayload(operation, payload, payload?.visualization || null);
+      logStatus(`Operación ${operation} ejecutada sobre ${graphAId}.`);
+      return;
+    }
+
+    if (category === 'coloring') {
+      const payload = await fetchJSON(`${GRAPH_API_BASE}/${encodeURIComponent(graphAId)}/${operation}`, {
         method: 'POST',
       });
       await refreshGraphSelectors();
       const updated = await loadGraphFromState(graphAId);
       if (updated) {
         setGraphState('A', updated);
+        renderGraph(updated, 'graphResult-container');
         graphEditState.Result.graph = updated;
         graphEditState.Result.graphId = graphAId;
-        renderGraph(updated, 'graphResult-container');
         setSummary('Result', updated);
         renderGraphInfo(operation, payload, updated);
       }
       logStatus(`Operación ${operation} ejecutada sobre ${graphAId}.`);
-      return;
     }
-
-    let endpoint = `${GRAPH_API_BASE}/${operation}`;
-    let body = { result_id: resultId };
-
-    if (operation === 'complement') {
-      body.graph_id = graphAId;
-    } else {
-      body.graph_a_id = graphAId;
-      body.graph_b_id = graphBId;
-    }
-
-    const graph = await fetchJSON(endpoint, {
-      method: 'POST',
-      body: JSON.stringify(body),
-    });
-
-    await refreshGraphSelectors();
-    renderGraph(graph, 'graphResult-container');
-    graphEditState.Result.graph = graph;
-    graphEditState.Result.graphId = graph.graph_id || resultId;
-    setSummary('Result', graph);
-    renderGraphInfo(operation, graph, graph);
-    logStatus(`Operación ${operation} creada como ${resultId}.`);
-    resultIdField.value = resultId;
   } catch (error) {
     logError(`Error al ejecutar ${operation}: ${error.message}`);
   }
+}
+
+function renderResultPayload(operation, payload, visualization) {
+  const container = document.getElementById('graphResult-container');
+  const renderableGraph = visualization && Array.isArray(visualization.vertices) && Array.isArray(visualization.edges)
+    ? visualization
+    : payload && Array.isArray(payload.vertices) && Array.isArray(payload.edges)
+      ? payload
+      : null;
+
+  if (renderableGraph) {
+    renderGraph(renderableGraph, 'graphResult-container');
+    graphEditState.Result.graph = renderableGraph;
+    graphEditState.Result.graphId = renderableGraph.graph_id || null;
+    setSummary('Result', renderableGraph);
+  } else if (container) {
+    if (cyInstances['graphResult-container']) {
+      cyInstances['graphResult-container'].destroy();
+      cyInstances['graphResult-container'] = null;
+    }
+    container.innerHTML = '<div class="placeholder">Sin vista gráfica</div>';
+    const summary = document.getElementById('graphResult-summary');
+    if (summary) summary.textContent = '';
+    graphEditState.Result.graphId = null;
+    graphEditState.Result.graph = null;
+  }
+
+  renderGraphInfo(operation, payload, renderableGraph);
 }
 
 async function loadGraphFromState(graphId) {
@@ -568,6 +854,8 @@ function renderGraphInfo(operation, payload, graph) {
   if (!container) return;
   container.innerHTML = '';
 
+  graphEditState.Result.detail = { operation, payload, graph };
+
   if (!payload) {
     container.innerHTML = '<div class="placeholder">No hay detalles disponibles.</div>';
     return;
@@ -581,6 +869,11 @@ function renderGraphInfo(operation, payload, graph) {
   const summaryRow = document.createElement('div');
   summaryRow.className = 'graph-info-row';
 
+  if (getGraphCategory() === 'operations') {
+    renderOperationDetails(container, operation, payload, graph, summaryRow);
+    return;
+  }
+
   if (operation === 'vertex-coloring') {
     summaryRow.appendChild(createInfoCard('Número cromático', payload.chromatic_number));
     summaryRow.appendChild(createInfoCard('Clases de color', Object.keys(payload.chromatic_classes || {}).length));
@@ -592,12 +885,47 @@ function renderGraphInfo(operation, payload, graph) {
     summaryRow.appendChild(createInfoCard('Clases de aristas', Object.keys(payload.edge_chromatic_classes || {}).length));
     container.appendChild(summaryRow);
     container.appendChild(createClassList('Colores de aristas', payload.edge_chromatic_classes));
-  } else if (operation === 'independent-sets') {
-    summaryRow.appendChild(createInfoCard('Número de independencia', payload.independence_number));
-    summaryRow.appendChild(createInfoCard('Conjuntos máximos', (payload.maximum_independent_sets || []).length));
-    summaryRow.appendChild(createInfoCard('Conjuntos maximales', (payload.maximal_independent_sets || []).length));
+  } else if (operation === 'center') {
+    summaryRow.appendChild(createInfoCard('Tipo', payload.type || 'N/A'));
+    summaryRow.appendChild(createInfoCard('Centros', Array.isArray(payload.centers) ? payload.centers.length : 0));
     container.appendChild(summaryRow);
-    container.appendChild(createClassList('Máximos conjuntos independientes', payload.maximum_independent_sets, true));
+    container.appendChild(createClassList('Centros', { centros: payload.centers || [] }));
+  } else if (operation === 'mst') {
+    summaryRow.appendChild(createInfoCard('Peso total', payload.total_weight ?? 'N/A'));
+    summaryRow.appendChild(createInfoCard('Rango', payload.rank ?? 'N/A'));
+    summaryRow.appendChild(createInfoCard('Nulidad', payload.nullity ?? 'N/A'));
+    container.appendChild(summaryRow);
+    container.appendChild(createClassList('Aristas del MST', { ramas: payload.branches || [], cuerdas: payload.chords || [] }));
+  } else if (operation === 'tree-distance') {
+    summaryRow.appendChild(createInfoCard('Distancia', payload.distance ?? 'N/A'));
+    summaryRow.appendChild(createInfoCard('Suma unión', payload.union_weight_sum ?? 'N/A'));
+    summaryRow.appendChild(createInfoCard('Suma intersección', payload.intersection_weight_sum ?? 'N/A'));
+    container.appendChild(summaryRow);
+    container.appendChild(createClassList('Operaciones', { union: payload.union_edges || [], intersección: payload.intersection_edges || [] }));
+  } else if (operation === 'ordinal') {
+    summaryRow.appendChild(createInfoCard('Orden', Array.isArray(payload.traversal_order) ? payload.traversal_order.length : 0));
+    container.appendChild(summaryRow);
+    container.appendChild(createJsonBlock('Mapa ordinal', payload.ordinal_map || {}));
+  } else if (operation === 'bellman') {
+    summaryRow.appendChild(createInfoCard('Origen', payload.source || 'N/A'));
+    summaryRow.appendChild(createInfoCard('Destino', payload.target || 'N/A'));
+    container.appendChild(summaryRow);
+    container.appendChild(createJsonBlock('Lambda', payload.lambda_values || {}));
+    if (Array.isArray(payload.path) && payload.path.length) {
+      container.appendChild(createOrderedList('Camino', payload.path));
+    }
+  } else if (operation === 'dijkstra') {
+    summaryRow.appendChild(createInfoCard('Origen', payload.source || 'N/A'));
+    summaryRow.appendChild(createInfoCard('Destino', payload.target || 'N/A'));
+    container.appendChild(summaryRow);
+    container.appendChild(createJsonBlock('Distancias', payload.distances || {}));
+    if (Array.isArray(payload.path) && payload.path.length) {
+      container.appendChild(createOrderedList('Camino', payload.path));
+    }
+  } else if (operation === 'floyd-warshall') {
+    summaryRow.appendChild(createInfoCard('Vertices', graph && graph.vertices ? graph.vertices.length : 'N/A'));
+    container.appendChild(summaryRow);
+    container.appendChild(createJsonBlock('Caminos mínimos', payload.shortest_paths || {}));
   } else if (graph && Array.isArray(graph.vertices) && Array.isArray(graph.edges)) {
     summaryRow.appendChild(createInfoCard('Grafo resultante', graph.graph_id || 'resultado'));
     summaryRow.appendChild(createInfoCard('Vértices', graph.vertices.length));
@@ -613,6 +941,144 @@ function renderGraphInfo(operation, payload, graph) {
   } else {
     container.innerHTML = '<div class="placeholder">Resultados no disponibles para esta operación.</div>';
   }
+}
+
+function renderStoredResultDetails() {
+  const detail = graphEditState.Result.detail;
+  if (!detail) return;
+  renderGraphInfo(detail.operation, detail.payload, detail.graph);
+}
+
+function renderOperationDetails(container, operation, payload, graph, summaryRow) {
+  const currentGraph = graph && Array.isArray(graph.vertices) && Array.isArray(graph.edges) ? graph : null;
+
+  summaryRow.appendChild(createInfoCard('Tipo', document.getElementById('operation-select').selectedOptions[0]?.textContent || operation));
+  summaryRow.appendChild(createInfoCard('Vértices', currentGraph?.vertices?.length ?? 0));
+  summaryRow.appendChild(createInfoCard('Aristas', currentGraph?.edges?.length ?? 0));
+  summaryRow.appendChild(createInfoCard('Dirigido', currentGraph?.directed ? 'Sí' : 'No'));
+  summaryRow.appendChild(createInfoCard('Ponderado', currentGraph?.weighted ? 'Sí' : 'No'));
+  container.appendChild(summaryRow);
+
+  const matrixType = document.getElementById('matrix-view-select')?.value || '';
+  if (matrixType && currentGraph) {
+    const matrixTable = createMatrixTable(currentGraph, matrixType);
+    if (matrixTable) container.appendChild(matrixTable);
+  } else {
+    const info = createOperationSummaryList(operation, payload, currentGraph);
+    if (info) container.appendChild(info);
+  }
+}
+
+function createOperationSummaryList(operation, payload, graph) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'graph-info-classes';
+  const list = document.createElement('div');
+  list.className = 'graph-info-list';
+
+  const entries = [];
+  if (operation === 'union' || operation === 'intersection' || operation === 'ring-sum' || operation === 'sum' || operation === 'cartesian-product' || operation === 'tensor-product' || operation === 'composition' || operation === 'complement') {
+    entries.push(`Resultado: ${payload?.graph_id || payload?.result_id || 'N/A'}`);
+    entries.push(`Vértices resultantes: ${graph?.vertices?.length ?? 0}`);
+    entries.push(`Aristas resultantes: ${graph?.edges?.length ?? 0}`);
+  }
+
+  entries.forEach(text => {
+    const row = document.createElement('div');
+    row.textContent = text;
+    list.appendChild(row);
+  });
+
+  wrapper.appendChild(list);
+  return wrapper;
+}
+
+function createMatrixTable(graph, matrixType) {
+  const matrixData = getGraphMatrixData(graph, matrixType);
+  if (!matrixData) return null;
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'graph-info-classes';
+  const heading = document.createElement('strong');
+  heading.textContent = matrixData.title;
+  wrapper.appendChild(heading);
+
+  const table = document.createElement('table');
+  table.className = 'graph-info-table';
+
+  const headerRow = document.createElement('tr');
+  const corner = document.createElement('th');
+  corner.textContent = matrixData.rowTitle;
+  headerRow.appendChild(corner);
+  matrixData.columns.forEach(label => {
+    const th = document.createElement('th');
+    th.textContent = label;
+    headerRow.appendChild(th);
+  });
+  table.appendChild(headerRow);
+
+  matrixData.rows.forEach((label, rowIndex) => {
+    const row = document.createElement('tr');
+    const rowLabel = document.createElement('th');
+    rowLabel.textContent = label;
+    row.appendChild(rowLabel);
+    matrixData.matrix[rowIndex].forEach(value => {
+      const cell = document.createElement('td');
+      cell.textContent = String(value);
+      row.appendChild(cell);
+    });
+    table.appendChild(row);
+  });
+
+  wrapper.appendChild(table);
+  return wrapper;
+}
+
+function getGraphMatrixData(graph, matrixType) {
+  if (!graph || !Array.isArray(graph.vertices) || !Array.isArray(graph.edges)) return null;
+
+  const vertexLabels = graph.vertices.map(vertex => vertex.name);
+  const edgeLabels = graph.edges.map(edge => edge.name);
+
+  if (matrixType === 'incidence') {
+    const matrix = vertexLabels.map(() => edgeLabels.map(() => 0));
+    graph.edges.forEach((edge, edgeIndex) => {
+      const sourceIndex = vertexLabels.indexOf(edge.source);
+      const targetIndex = vertexLabels.indexOf(edge.target);
+      if (sourceIndex >= 0) matrix[sourceIndex][edgeIndex] = edge.directed ? -1 : 1;
+      if (targetIndex >= 0) matrix[targetIndex][edgeIndex] = 1;
+    });
+    return { title: 'Matriz de incidencia', rowTitle: 'Vértice', rows: vertexLabels, columns: edgeLabels, matrix };
+  }
+
+  if (matrixType === 'vertex-adjacency') {
+    const matrix = vertexLabels.map(() => vertexLabels.map(() => 0));
+    graph.edges.forEach(edge => {
+      const sourceIndex = vertexLabels.indexOf(edge.source);
+      const targetIndex = vertexLabels.indexOf(edge.target);
+      if (sourceIndex >= 0 && targetIndex >= 0) {
+        matrix[sourceIndex][targetIndex] += 1;
+        if (!edge.directed) matrix[targetIndex][sourceIndex] += 1;
+      }
+    });
+    return { title: 'Matriz de adyacencia de vértices', rowTitle: 'Vértice', rows: vertexLabels, columns: vertexLabels, matrix };
+  }
+
+  if (matrixType === 'edge-adjacency') {
+    const matrix = edgeLabels.map(() => edgeLabels.map(() => 0));
+    graph.edges.forEach((leftEdge, leftIndex) => {
+      graph.edges.forEach((rightEdge, rightIndex) => {
+        if (leftIndex === rightIndex) return;
+        const leftVertices = new Set([leftEdge.source, leftEdge.target]);
+        const rightVertices = new Set([rightEdge.source, rightEdge.target]);
+        if ([...leftVertices].some(vertex => rightVertices.has(vertex))) {
+          matrix[leftIndex][rightIndex] = 1;
+        }
+      });
+    });
+    return { title: 'Matriz de adyacencia de aristas', rowTitle: 'Arista', rows: edgeLabels, columns: edgeLabels, matrix };
+  }
+
+  return null;
 }
 
 function createGraphInfoTable(graph) {
@@ -635,7 +1101,18 @@ function createGraphInfoTable(graph) {
     if (edge.source !== edge.target) acc[edge.target].push(edge.name);
     return acc;
   }, {});
+  graph.vertices.forEach(vertex => {
+    const row = document.createElement('tr');
+    const vertexCell = document.createElement('td');
+    vertexCell.textContent = vertex.name;
+    const edgesCell = document.createElement('td');
+    edgesCell.textContent = (adjacency[vertex.name] || []).join(', ');
+    row.appendChild(vertexCell);
+    row.appendChild(edgesCell);
+    table.appendChild(row);
+  });
 
+  return table;
 }
 
 function createInfoCard(label, value) {
@@ -673,6 +1150,38 @@ function createClassList(title, classes, flatten = false) {
   return wrapper;
 }
 
+function createOrderedList(title, values) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'graph-info-classes';
+  const heading = document.createElement('strong');
+  heading.textContent = title;
+  wrapper.appendChild(heading);
+
+  const list = document.createElement('div');
+  list.className = 'graph-info-list';
+  values.forEach((value, index) => {
+    const row = document.createElement('div');
+    row.textContent = `${index + 1}. ${value}`;
+    list.appendChild(row);
+  });
+
+  wrapper.appendChild(list);
+  return wrapper;
+}
+
+function createJsonBlock(title, value) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'graph-info-classes';
+  const heading = document.createElement('strong');
+  heading.textContent = title;
+  wrapper.appendChild(heading);
+
+  const pre = document.createElement('pre');
+  pre.textContent = JSON.stringify(value, null, 2);
+  wrapper.appendChild(pre);
+  return wrapper;
+}
+
 async function renderSelectedGraph(side) {
   const select = document.getElementById(`graph${side}-select`);
   const graphId = select.value;
@@ -704,6 +1213,17 @@ function clearGraphForm(side) {
   document.getElementById(`graph${side}-delete-edge-select`).innerHTML = '';
   document.getElementById(`graph${side}-delete-vertex-text`).value = '';
   document.getElementById(`graph${side}-delete-edge-text`).value = '';
+  const editEdgeSelect = document.getElementById(`graph${side}-edit-edge-select`);
+  const editEdgeDirected = document.getElementById(`graph${side}-edit-edge-directed`);
+  const editEdgeWeighted = document.getElementById(`graph${side}-edit-edge-weighted`);
+  const editEdgeWeight = document.getElementById(`graph${side}-edit-edge-weight`);
+  if (editEdgeSelect) editEdgeSelect.innerHTML = '';
+  if (editEdgeDirected) editEdgeDirected.checked = false;
+  if (editEdgeWeighted) editEdgeWeighted.checked = false;
+  if (editEdgeWeight) {
+    editEdgeWeight.value = '';
+    editEdgeWeight.disabled = true;
+  }
   document.getElementById(`graph${side}-select`).value = '';
   graphEditState[side].graphId = null;
   graphEditState[side].graph = null;
@@ -716,6 +1236,10 @@ function resetView() {
   clearGraphForm('B');
   clearResultPreview();
   document.getElementById('graph-result-id').value = '';
+  const pathSource = document.getElementById('path-source');
+  const pathTarget = document.getElementById('path-target');
+  if (pathSource) pathSource.value = '';
+  if (pathTarget) pathTarget.value = '';
   refreshGraphSelectors();
   logStatus('Vista reseteada.');
 }
@@ -750,6 +1274,7 @@ function clearResultPreview() {
   if (infoContainer) infoContainer.innerHTML = '';
   graphEditState.Result.graphId = null;
   graphEditState.Result.graph = null;
+  graphEditState.Result.detail = null;
 }
 
 function renderGraph(graph, containerId) {
@@ -768,8 +1293,9 @@ function renderGraph(graph, containerId) {
   container.innerHTML = '';
   mountRecenterButton(container, containerId);
 
-  const showEdgeNames = document.getElementById('edge-label-name-toggle')?.checked;
-  const showEdgeWeights = document.getElementById('edge-label-weight-toggle')?.checked;
+  const forceTreeLabels = getGraphCategory() === 'traversals';
+  const showEdgeNames = forceTreeLabels || document.getElementById('edge-label-name-toggle')?.checked;
+  const showEdgeWeights = forceTreeLabels || document.getElementById('edge-label-weight-toggle')?.checked;
   const renderDerivedColors = containerId === 'graphResult-container';
   const vertexColorClasses = renderDerivedColors ? graph.derived?.vertex_coloring?.chromatic_classes || {} : {};
   const edgeColorClasses = renderDerivedColors ? graph.derived?.edge_coloring?.edge_chromatic_classes || {} : {};
@@ -807,11 +1333,11 @@ function renderGraph(graph, containerId) {
           color: '#ffffff',
           'text-valign': 'center',
           'text-halign': 'center',
-          'font-size': 12,
-          'text-outline-width': 6,
+          'font-size': 13,
+          'text-outline-width': 5,
           'text-outline-color': '#2563eb',
-          width: 46,
-          height: 46,
+          width: 40,
+          height: 40,
         },
       },
       {
@@ -820,10 +1346,10 @@ function renderGraph(graph, containerId) {
           width: 3,
           'line-color': '#9ca3af',
           'target-arrow-color': '#9ca3af',
-          'curve-style': 'bezier',
+          'curve-style': 'straight',
           'target-arrow-shape': 'triangle',
           label: 'data(label)',
-          'font-size': 10,
+          'font-size': 11,
           'text-margin-x': 0,
           'text-margin-y': -10,
           'text-rotation': 'autorotate',
@@ -840,16 +1366,12 @@ function renderGraph(graph, containerId) {
       },
     ],
     layout: {
-      name: 'cose',
+      name: 'grid',
       animate: true,
-      randomize: false,
-      idealEdgeLength: 100,
-      nodeOverlap: 20,
-      gravity: 0.15,
-      edgeElasticity: 0.9,
-      nestingFactor: 0.8,
-      componentSpacing: 80,
-      refresh: 20,
+      fit: true,
+      avoidOverlap: true,
+      avoidOverlapPadding: 24,
+      nodeDimensionsIncludeLabels: true,
     },
   };
 

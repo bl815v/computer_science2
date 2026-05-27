@@ -4,6 +4,11 @@ const appState = {
   currentSimulator: null,
 };
 
+window.simulatorRegistry = window.simulatorRegistry || {
+  initializers: {},
+  teardowns: {},
+};
+
 window.markStructureDirty = () => {
   appState.structureDirty = true;
 };
@@ -32,11 +37,25 @@ function setActiveTab(type) {
   });
 }
 
+function teardownCurrentSimulator() {
+  const currentPage = appState.currentSimulator;
+  const teardown = currentPage ? window.simulatorRegistry.teardowns[currentPage] : null;
+  if (typeof teardown === 'function') {
+    try {
+      teardown();
+    } catch (error) {
+      console.error('Simulator teardown error:', error);
+    }
+  }
+  appState.currentSimulator = null;
+}
+
 function handleTabClick(type) {
   if (appState.structureDirty) {
     window.confirmModal(
       "Has creado una estructura. Si cambias de pestaña, se perderán los datos no guardados. ¿Deseas continuar?",
       () => {
+        teardownCurrentSimulator();
         resetAllServices();
         setActiveTab(type);
         showContent(type);
@@ -45,6 +64,7 @@ function handleTabClick(type) {
       () => {} // cancelar no hace nada
     );
   } else {
+    teardownCurrentSimulator();
     resetAllServices();
     setActiveTab(type);
     showContent(type);
@@ -92,7 +112,7 @@ function showContent(type) {
       <div class="ribbon-buttons">
         <button class="ribbon-btn" data-category="operations">Operaciones</button>
         <button class="ribbon-btn" data-category="traversals">Árboles</button>
-        <button class="ribbon-btn" data-category="paths">Caminos </button>
+        <button class="ribbon-btn" data-category="paths">Caminos</button>
         <button class="ribbon-btn" data-category="coloring">Coloreado</button>
       </div>
     `;
@@ -227,6 +247,16 @@ function resetAllServices() {
 }
 
 function loadExternalPage(page) {
+  const previousPage = appState.currentSimulator;
+  const teardown = previousPage ? window.simulatorRegistry.teardowns[previousPage] : null;
+  if (typeof teardown === 'function') {
+    try {
+      teardown();
+    } catch (error) {
+      console.error('Simulator teardown error:', error);
+    }
+  }
+
   appState.currentSimulator = page;
   resetAllServices();
   window.resetStructureDirty();
@@ -244,8 +274,9 @@ function loadExternalPage(page) {
       const version = Date.now();
       loadExternalCSS(`static/css/${page}.css?v=${version}`);
       loadExternalJS(`static/js/${page}.js?v=${version}`, () => {
-        if (typeof window.initSimulator === "function") {
-          window.initSimulator();
+        const initializer = window.simulatorRegistry.initializers[page] || window.initSimulator;
+        if (typeof initializer === "function") {
+          initializer();
         }
       });
     })
