@@ -5,7 +5,7 @@
       <section class="panel" id="graphA-panel">
         <h2>Grafo A</h2>
         <label>Id del grafo</label>
-        <input id="graphA-id" type="text" placeholder="grafoA" />
+        <input id="graphA-id" list="graph-id-list" type="text" placeholder="grafoA" autocomplete="off" />
         <div class="toggle-row">
           <label><input id="graphA-directed" type="checkbox" /> Dirigido</label>
           <label><input id="graphA-weighted" type="checkbox" /> Ponderado</label>
@@ -23,14 +23,14 @@
           <label>Eliminar vértice</label>
           <div class="delete-row">
             <select id="graphA-delete-vertex-select"></select>
-            <button id="delete-vertex-A" class="secondary">Borrar</button>
+            <button id="delete-vertex-A" class="danger">Borrar</button>
           </div>
           <input id="graphA-delete-vertex-text" type="text" placeholder="o escribe nombre del vértice" />
 
           <label>Eliminar arista</label>
           <div class="delete-row">
             <select id="graphA-delete-edge-select"></select>
-            <button id="delete-edge-A" class="secondary">Borrar</button>
+            <button id="delete-edge-A" class="danger">Borrar</button>
           </div>
           <input id="graphA-delete-edge-text" type="text" placeholder="o escribe nombre de la arista" />
         </div>
@@ -39,7 +39,7 @@
       <section class="panel" id="graphB-panel">
         <h2>Grafo B</h2>
         <label>Id del grafo</label>
-        <input id="graphB-id" type="text" placeholder="grafoB" />
+        <input id="graphB-id" list="graph-id-list" type="text" placeholder="grafoB" autocomplete="off" />
         <div class="toggle-row">
           <label><input id="graphB-directed" type="checkbox" /> Dirigido</label>
           <label><input id="graphB-weighted" type="checkbox" /> Ponderado</label>
@@ -57,14 +57,14 @@
           <label>Eliminar vértice</label>
           <div class="delete-row">
             <select id="graphB-delete-vertex-select"></select>
-            <button id="delete-vertex-B" class="secondary">Borrar</button>
+            <button id="delete-vertex-B" class="danger">Borrar</button>
           </div>
           <input id="graphB-delete-vertex-text" type="text" placeholder="o escribe nombre del vértice" />
 
           <label>Eliminar arista</label>
           <div class="delete-row">
             <select id="graphB-delete-edge-select"></select>
-            <button id="delete-edge-B" class="secondary">Borrar</button>
+            <button id="delete-edge-B" class="danger">Borrar</button>
           </div>
           <input id="graphB-delete-edge-text" type="text" placeholder="o escribe nombre de la arista" />
         </div>
@@ -84,6 +84,11 @@
           <option value="composition">Composición</option>
         </select>
 
+        <div class="toggle-row label-options">
+          <label><input id="edge-label-name-toggle" type="checkbox" /> Mostrar nombres de aristas</label>
+          <label><input id="edge-label-weight-toggle" type="checkbox" /> Mostrar pesos</label>
+        </div>
+
         <label id="execute-label">Grafo A</label>
         <select id="graphA-select"></select>
         <div id="graphB-selector-row">
@@ -95,15 +100,17 @@
         <input id="graph-result-id" type="text" placeholder="resultado" />
         <div class="button-row">
           <button id="execute-operation" class="primary">Ejecutar operación</button>
-          <button id="reset-all" class="secondary">Reiniciar vista</button>
+          <button id="reset-all" class="danger">Reiniciar vista</button>
         </div>
 
         <p id="unary-note" class="unary-note">El complemento sólo usa Grafo A. Grafo B se mantiene inactivo.</p>
       </section>
+      <datalist id="graph-id-list"></datalist>
     </aside>
 
     <main class="visual-panel">
-      <div class="graph-cards">
+      <div class="graph-cards" id="graph-cards">
+        <button id="graph-layout-toggle" class="graph-control graph-layout-control" type="button" title="Alternar disposición">↕</button>
         <article class="graph-card">
           <header>
             <h3>Grafo A</h3>
@@ -112,7 +119,7 @@
           <div class="graph-viewport" id="graphA-container"></div>
         </article>
 
-        <article class="graph-card">
+        <article class="graph-card" id="graphB-card">
           <header>
             <h3>Grafo B</h3>
             <span id="graphB-summary" class="graph-summary"></span>
@@ -131,6 +138,7 @@
 
       <section class="panel graph-log-panel">
         <h2>Estado y detalles</h2>
+        <div id="graph-info" class="graph-info"></div>
         <div id="graph-log" class="graph-log"></div>
       </section>
     </main>

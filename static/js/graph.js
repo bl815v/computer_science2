@@ -8,6 +8,7 @@ const cyInstances = {
 const graphEditState = {
   A: { graphId: null, graph: null },
   B: { graphId: null, graph: null },
+  Result: { graphId: null, graph: null },
 };
 
 function initSimulator() {
@@ -38,25 +39,49 @@ function bindEvents() {
   document.getElementById('operation-select').addEventListener('input', updateOperationInterface);
   document.getElementById('graphA-select').addEventListener('change', () => renderSelectedGraph('A'));
   document.getElementById('graphB-select').addEventListener('change', () => renderSelectedGraph('B'));
+
+  document.getElementById('graphA-id').addEventListener('input', () => loadInputGraphIfExists('A'));
+  document.getElementById('graphB-id').addEventListener('input', () => loadInputGraphIfExists('B'));
+  document.getElementById('graph-layout-toggle').addEventListener('click', toggleGraphLayout);
+
+  const edgeNameToggle = document.getElementById('edge-label-name-toggle');
+  const edgeWeightToggle = document.getElementById('edge-label-weight-toggle');
+  if (edgeNameToggle) edgeNameToggle.addEventListener('change', refreshRenderedGraphs);
+  if (edgeWeightToggle) edgeWeightToggle.addEventListener('change', refreshRenderedGraphs);
 }
 
 function updateOperationInterface() {
-  const operation = document.getElementById('operation-select').value;
+  const select = document.getElementById('operation-select');
   const graphBRow = document.getElementById('graphB-selector-row');
   const label = document.getElementById('execute-label');
   const unaryNote = document.getElementById('unary-note');
   const graphBPanel = document.getElementById('graphB-panel');
+  const graphBCard = document.getElementById('graphB-card');
+  const isColorCategory = window.graphInitialCategory === 'coloring';
 
-  if (operation === 'complement') {
+  if (isColorCategory) {
+    populateOperationOptions([
+      { value: 'vertex-coloring', label: 'Coloración de vértices' },
+      { value: 'edge-coloring', label: 'Coloración de aristas' },
+      { value: 'independent-sets', label: 'Independencia' },
+    ]);
+  }
+
+  const operation = select.value;
+  const unaryOperation = operation === 'complement' || isColorOperation(operation);
+
+  if (unaryOperation) {
     graphBRow.style.display = 'none';
-    graphBPanel.style.opacity = '0.55';
-    graphBPanel.style.pointerEvents = 'none';
-    unaryNote.style.display = 'block';
+    graphBPanel.style.display = 'none';
+    if (graphBCard) graphBCard.style.display = 'none';
+    unaryNote.textContent = 'Estas operaciones solo utilizan el grafo A.';
     label.textContent = 'Grafo A';
   } else {
     graphBRow.style.display = 'block';
+    graphBPanel.style.display = 'block';
     graphBPanel.style.opacity = '1';
     graphBPanel.style.pointerEvents = 'auto';
+    if (graphBCard) graphBCard.style.display = 'block';
     unaryNote.style.display = 'none';
     label.textContent = 'Grafo A';
   }
@@ -88,6 +113,7 @@ async function refreshGraphSelectors() {
     const graphs = Array.isArray(state.graphs) ? state.graphs : [];
     populateSelect('graphA-select', graphs);
     populateSelect('graphB-select', graphs);
+    populateGraphIdDatalist(graphs);
     logStatus('Lista de grafos actualizada.');
   } catch (error) {
     logError(error.message);
@@ -115,6 +141,41 @@ function populateSelect(selectId, graphs) {
   });
 }
 
+function populateGraphIdDatalist(graphs) {
+  const datalist = document.getElementById('graph-id-list');
+  datalist.innerHTML = '';
+  graphs.forEach(graph => {
+    const option = document.createElement('option');
+    option.value = graph.graph_id;
+    datalist.appendChild(option);
+  });
+}
+
+function loadInputGraphIfExists(side) {
+  const idField = document.getElementById(`graph${side}-id`);
+  const graphId = idField.value.trim();
+  if (!graphId) return;
+  if (graphEditState[side].graphId === graphId) return;
+
+  const existingOption = Array.from(document.querySelectorAll('#graph-id-list option')).find(opt => opt.value === graphId);
+  if (!existingOption) return;
+  loadGraphIntoSide(side, graphId);
+}
+
+async function loadGraphIntoSide(side, graphId) {
+  try {
+    const graph = await loadGraphFromState(graphId);
+    if (!graph) return;
+    setGraphState(side, graph);
+    renderGraph(graph, `graph${side}-container`);
+    setSummary(side, graph);
+    document.getElementById(`graph${side}-id`).value = graphId;
+    logStatus(`Grafo ${graphId} cargado automáticamente en ${side}.`);
+  } catch (error) {
+    logError(error.message);
+  }
+}
+
 function fillOptions(select, items) {
   if (!select) return;
   const current = select.value;
@@ -126,11 +187,46 @@ function fillOptions(select, items) {
 
   items.forEach(item => {
     const option = document.createElement('option');
-    option.value = item;
-    option.textContent = item;
-    if (item === current) option.selected = true;
+    option.value = item.value || item;
+    option.textContent = item.label || item;
+    if (option.value === current) option.selected = true;
     select.appendChild(option);
   });
+
+  if (!select.value && items.length) {
+    select.value = items[0].value || items[0];
+  }
+}
+
+function populateOperationOptions(options) {
+  const select = document.getElementById('operation-select');
+  if (!select) return;
+  const current = select.value;
+  select.innerHTML = '';
+
+  options.forEach(item => {
+    const option = document.createElement('option');
+    option.value = item.value || item;
+    option.textContent = item.label || item;
+    if (option.value === current) option.selected = true;
+    select.appendChild(option);
+  });
+}
+
+function isColorOperation(operation) {
+  return ['vertex-coloring', 'edge-coloring', 'independent-sets'].includes(operation);
+}
+
+function toggleGraphLayout() {
+  const cards = document.getElementById('graph-cards');
+  if (!cards) return;
+  cards.classList.toggle('full-width');
+}
+
+function refreshRenderedGraphs() {
+  if (graphEditState.A.graph) renderGraph(graphEditState.A.graph, 'graphA-container');
+  if (graphEditState.B.graph) renderGraph(graphEditState.B.graph, 'graphB-container');
+  if (graphEditState.Result.graph) renderGraph(graphEditState.Result.graph, 'graphResult-container');
 }
 
 function setGraphState(side, graph) {
@@ -400,22 +496,42 @@ async function executeOperation() {
     return;
   }
 
-  if (operation !== 'complement' && !graphBId) {
+  const isColorOp = isColorOperation(operation);
+  if (!isColorOp && operation !== 'complement' && !graphBId) {
     logError('Selecciona un grafo B para ejecutar esta operación.');
     return;
   }
 
-  let endpoint = `${GRAPH_API_BASE}/${operation}`;
-  let body = { result_id: resultId };
-
-  if (operation === 'complement') {
-    body.graph_id = graphAId;
-  } else {
-    body.graph_a_id = graphAId;
-    body.graph_b_id = graphBId;
-  }
-
   try {
+    if (isColorOp) {
+      const endpoint = `${GRAPH_API_BASE}/${encodeURIComponent(graphAId)}/${operation}`;
+      const payload = await fetchJSON(endpoint, {
+        method: 'POST',
+      });
+      await refreshGraphSelectors();
+      const updated = await loadGraphFromState(graphAId);
+      if (updated) {
+        setGraphState('A', updated);
+        graphEditState.Result.graph = updated;
+        graphEditState.Result.graphId = graphAId;
+        renderGraph(updated, 'graphResult-container');
+        setSummary('Result', updated);
+        renderGraphInfo(operation, payload, updated);
+      }
+      logStatus(`Operación ${operation} ejecutada sobre ${graphAId}.`);
+      return;
+    }
+
+    let endpoint = `${GRAPH_API_BASE}/${operation}`;
+    let body = { result_id: resultId };
+
+    if (operation === 'complement') {
+      body.graph_id = graphAId;
+    } else {
+      body.graph_a_id = graphAId;
+      body.graph_b_id = graphBId;
+    }
+
     const graph = await fetchJSON(endpoint, {
       method: 'POST',
       body: JSON.stringify(body),
@@ -423,7 +539,10 @@ async function executeOperation() {
 
     await refreshGraphSelectors();
     renderGraph(graph, 'graphResult-container');
+    graphEditState.Result.graph = graph;
+    graphEditState.Result.graphId = graph.graph_id || resultId;
     setSummary('Result', graph);
+    renderGraphInfo(operation, graph, graph);
     logStatus(`Operación ${operation} creada como ${resultId}.`);
     resultIdField.value = resultId;
   } catch (error) {
@@ -442,6 +561,128 @@ function setSummary(side, graph) {
   const summary = document.getElementById(summaryId);
   if (!summary) return;
   summary.textContent = `${graph.vertices.length} vértices, ${graph.edges.length} aristas${graph.directed ? ', dirigido' : ''}${graph.weighted ? ', ponderado' : ''}`;
+}
+
+function renderGraphInfo(operation, payload, graph) {
+  const container = document.getElementById('graph-info');
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (!payload) {
+    container.innerHTML = '<div class="placeholder">No hay detalles disponibles.</div>';
+    return;
+  }
+
+  const title = document.createElement('div');
+  title.className = 'graph-info-title';
+  title.textContent = `Detalle: ${document.getElementById('operation-select').selectedOptions[0].textContent}`;
+  container.appendChild(title);
+
+  const summaryRow = document.createElement('div');
+  summaryRow.className = 'graph-info-row';
+
+  if (operation === 'vertex-coloring') {
+    summaryRow.appendChild(createInfoCard('Número cromático', payload.chromatic_number));
+    summaryRow.appendChild(createInfoCard('Clases de color', Object.keys(payload.chromatic_classes || {}).length));
+    summaryRow.appendChild(createInfoCard('Polinomio cromático', payload.chromatic_polynomial || 'N/A'));
+    container.appendChild(summaryRow);
+    container.appendChild(createClassList('Colores de vértices', payload.chromatic_classes));
+  } else if (operation === 'edge-coloring') {
+    summaryRow.appendChild(createInfoCard('Índice cromático', payload.chromatic_index));
+    summaryRow.appendChild(createInfoCard('Clases de aristas', Object.keys(payload.edge_chromatic_classes || {}).length));
+    container.appendChild(summaryRow);
+    container.appendChild(createClassList('Colores de aristas', payload.edge_chromatic_classes));
+  } else if (operation === 'independent-sets') {
+    summaryRow.appendChild(createInfoCard('Número de independencia', payload.independence_number));
+    summaryRow.appendChild(createInfoCard('Conjuntos máximos', (payload.maximum_independent_sets || []).length));
+    summaryRow.appendChild(createInfoCard('Conjuntos maximales', (payload.maximal_independent_sets || []).length));
+    container.appendChild(summaryRow);
+    container.appendChild(createClassList('Máximos conjuntos independientes', payload.maximum_independent_sets, true));
+  } else if (graph && Array.isArray(graph.vertices) && Array.isArray(graph.edges)) {
+    summaryRow.appendChild(createInfoCard('Grafo resultante', graph.graph_id || 'resultado'));
+    summaryRow.appendChild(createInfoCard('Vértices', graph.vertices.length));
+    summaryRow.appendChild(createInfoCard('Aristas', graph.edges.length));
+    summaryRow.appendChild(createInfoCard('Dirigido', graph.directed ? 'Sí' : 'No'));
+    summaryRow.appendChild(createInfoCard('Ponderado', graph.weighted ? 'Sí' : 'No'));
+    container.appendChild(summaryRow);
+
+    if (graph.vertices.length && graph.edges.length) {
+      const adjacency = createGraphInfoTable(graph);
+      if (adjacency) container.appendChild(adjacency);
+    }
+  } else {
+    container.innerHTML = '<div class="placeholder">Resultados no disponibles para esta operación.</div>';
+  }
+}
+
+function createGraphInfoTable(graph) {
+  if (!graph || !Array.isArray(graph.vertices) || !Array.isArray(graph.edges)) return null;
+
+  const table = document.createElement('table');
+  table.className = 'graph-info-table';
+  const headerRow = document.createElement('tr');
+  ['Vértice', 'Aristas adjacentes'].forEach(text => {
+    const th = document.createElement('th');
+    th.textContent = text;
+    headerRow.appendChild(th);
+  });
+  table.appendChild(headerRow);
+
+  const adjacency = graph.edges.reduce((acc, edge) => {
+    acc[edge.source] = acc[edge.source] || [];
+    acc[edge.target] = acc[edge.target] || [];
+    acc[edge.source].push(edge.name);
+    if (edge.source !== edge.target) acc[edge.target].push(edge.name);
+    return acc;
+  }, {});
+
+  graph.vertices.forEach(vertex => {
+    const row = document.createElement('tr');
+    const nameCell = document.createElement('td');
+    nameCell.textContent = vertex.name;
+    const edgesCell = document.createElement('td');
+    edgesCell.textContent = (adjacency[vertex.name] || []).join(', ') || '-';
+    row.appendChild(nameCell);
+    row.appendChild(edgesCell);
+    table.appendChild(row);
+  });
+
+  return table;
+}
+
+function createInfoCard(label, value) {
+  const card = document.createElement('div');
+  card.className = 'graph-info-card';
+  card.innerHTML = `<strong>${label}</strong><span>${value}</span>`;
+  return card;
+}
+
+function createClassList(title, classes, flatten = false) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'graph-info-classes';
+  const heading = document.createElement('strong');
+  heading.textContent = title;
+  wrapper.appendChild(heading);
+
+  const list = document.createElement('div');
+  list.className = 'graph-info-list';
+
+  if (flatten && Array.isArray(classes)) {
+    classes.forEach((item, index) => {
+      const row = document.createElement('div');
+      row.textContent = `${index + 1}. ${Array.isArray(item) ? item.join(', ') : item}`;
+      list.appendChild(row);
+    });
+  } else {
+    Object.entries(classes || {}).forEach(([group, items]) => {
+      const row = document.createElement('div');
+      row.innerHTML = `<strong>${group}</strong>: ${Array.isArray(items) ? items.join(', ') : items}`;
+      list.appendChild(row);
+    });
+  }
+
+  wrapper.appendChild(list);
+  return wrapper;
 }
 
 async function renderSelectedGraph(side) {
@@ -517,6 +758,10 @@ function clearResultPreview() {
   }
   const summary = document.getElementById('graphResult-summary');
   if (summary) summary.textContent = '';
+  const infoContainer = document.getElementById('graph-info');
+  if (infoContainer) infoContainer.innerHTML = '';
+  graphEditState.Result.graphId = null;
+  graphEditState.Result.graph = null;
 }
 
 function renderGraph(graph, containerId) {
@@ -535,16 +780,30 @@ function renderGraph(graph, containerId) {
   container.innerHTML = '';
   mountRecenterButton(container, containerId);
 
+  const showEdgeNames = document.getElementById('edge-label-name-toggle')?.checked;
+  const showEdgeWeights = document.getElementById('edge-label-weight-toggle')?.checked;
+  const renderDerivedColors = containerId === 'graphResult-container';
+  const vertexColorClasses = renderDerivedColors ? graph.derived?.vertex_coloring?.chromatic_classes || {} : {};
+  const edgeColorClasses = renderDerivedColors ? graph.derived?.edge_coloring?.edge_chromatic_classes || {} : {};
+  const vertexColorLookup = buildColorLookup(vertexColorClasses);
+  const edgeColorLookup = buildColorLookup(edgeColorClasses);
+
   const elements = [
-    ...graph.vertices.map(vertex => ({ data: { id: vertex.name, label: vertex.name } })),
+    ...graph.vertices.map(vertex => ({
+      data: { id: vertex.name, label: vertex.name },
+      style: vertexColorLookup[vertex.name]
+        ? { 'background-color': vertexColorLookup[vertex.name], 'text-outline-color': vertexColorLookup[vertex.name] }
+        : {},
+    })),
     ...graph.edges.map(edge => ({
       data: {
         id: edge.name,
         source: edge.source,
         target: edge.target,
-        label: edge.weight != null ? String(edge.weight) : '',
+        label: formatEdgeLabel(edge, showEdgeNames, showEdgeWeights),
       },
       classes: edge.directed ? 'directed' : 'undirected',
+      style: edgeColorLookup[edge.name] ? { 'line-color': edgeColorLookup[edge.name], 'target-arrow-color': edgeColorLookup[edge.name] } : {},
     })),
   ];
 
@@ -575,11 +834,14 @@ function renderGraph(graph, containerId) {
           'target-arrow-color': '#9ca3af',
           'curve-style': 'bezier',
           'target-arrow-shape': 'triangle',
-          'label': 'data(label)',
+          label: 'data(label)',
           'font-size': 10,
           'text-margin-x': 0,
           'text-margin-y': -10,
           'text-rotation': 'autorotate',
+          'text-background-color': '#ffffff',
+          'text-background-opacity': 0.7,
+          'text-background-shape': 'roundrectangle',
         },
       },
       {
@@ -593,9 +855,13 @@ function renderGraph(graph, containerId) {
       name: 'cose',
       animate: true,
       randomize: false,
-      idealEdgeLength: 120,
-      nodeOverlap: 24,
-      gravity: 0.1,
+      idealEdgeLength: 100,
+      nodeOverlap: 20,
+      gravity: 0.15,
+      edgeElasticity: 0.9,
+      nestingFactor: 0.8,
+      componentSpacing: 80,
+      refresh: 20,
     },
   };
 
@@ -632,6 +898,34 @@ function logStatus(message) {
   if (!log) return;
   const timestamp = new Date().toLocaleTimeString();
   log.textContent = `${timestamp} · ${message}\n${log.textContent}`;
+}
+
+function formatEdgeLabel(edge, showName, showWeight) {
+  const labelParts = [];
+  if (showName) labelParts.push(edge.name);
+  if (showWeight && edge.weight != null) labelParts.push(`(${edge.weight})`);
+  return labelParts.join(' ').trim();
+}
+
+function buildColorLookup(classes) {
+  const lookup = {};
+  const palette = generatePalette(Object.keys(classes).length);
+  Object.entries(classes).forEach(([group, items], index) => {
+    const color = palette[index] || '#6b7280';
+    if (Array.isArray(items)) {
+      items.forEach(item => {
+        lookup[item] = color;
+      });
+    }
+  });
+  return lookup;
+}
+
+function generatePalette(count) {
+  const defaultPalette = [
+    '#2563eb', '#16a34a', '#dc2626', '#d97706', '#9333ea', '#0ea5e9', '#14b8a6', '#db2777', '#f97316', '#84cc16', '#8b5cf6', '#ec4899',
+  ];
+  return defaultPalette.slice(0, Math.max(1, count));
 }
 
 function logError(message) {
