@@ -172,7 +172,7 @@ button.secondary {
 }
 
 .graph-cards.full-width {
-  grid-template-columns: 1fr;
+  grid-template-columns: 1fr !important;
 }
 
 .graph-card {
@@ -303,7 +303,7 @@ button.secondary {
   height: clamp(240px, 34vh, 360px);
   max-height: 380px;
   border-radius: 16px;
-  background: #111827;
+  background: #f6f8fb;
   overflow: hidden;
   transition: opacity 0.18s ease;
 }
@@ -336,7 +336,7 @@ button.secondary {
   display: grid;
   place-items: center;
   min-height: 100%;
-  color: #e5e7eb;
+  color: #ababab;
   font-size: 0.95rem;
   text-align: center;
   padding: 14px;

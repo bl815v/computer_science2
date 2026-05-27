@@ -61,8 +61,8 @@ function updateOperationInterface() {
 
   if (isColorCategory) {
     populateOperationOptions([
-      { value: 'vertex-coloring', label: 'Coloración de vértices' },
-      { value: 'edge-coloring', label: 'Coloración de aristas' },
+      { value: 'vertex-coloring', label: 'Coloreado de vértices' },
+      { value: 'edge-coloring', label: 'Coloreado de aristas' },
       { value: 'independent-sets', label: 'Independencia' },
     ]);
   }
