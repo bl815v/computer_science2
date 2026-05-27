@@ -2,6 +2,7 @@ const appState = {
   loadedScripts: new Set(),
   structureDirty: false,
   currentSimulator: null,
+  navigationPromptOpen: false,
 };
 
 window.simulatorRegistry = window.simulatorRegistry || {
@@ -54,25 +55,40 @@ function getSimulatorInitializer(page) {
   return window.simulatorRegistry.initializers[page] || window.initSimulator;
 }
 
-function handleTabClick(type) {
-  if (appState.structureDirty) {
-    window.confirmModal(
-      "Has creado una estructura. Si cambias de pestaña, se perderán los datos no guardados. ¿Deseas continuar?",
-      () => {
-        teardownCurrentSimulator();
-        resetAllServices();
-        setActiveTab(type);
-        showContent(type);
-        window.resetStructureDirty();
-      },
-      () => {} // cancelar no hace nada
-    );
-  } else {
-    teardownCurrentSimulator();
-    resetAllServices();
-    setActiveTab(type);
-    showContent(type);
+function runWithUnsavedChangesGuard(action, message) {
+  if (!appState.structureDirty) {
+    action();
+    return;
   }
+
+  if (appState.navigationPromptOpen) {
+    return;
+  }
+
+  appState.navigationPromptOpen = true;
+  window.confirmModal(
+    message,
+    () => {
+      appState.navigationPromptOpen = false;
+      action();
+      window.resetStructureDirty();
+    },
+    () => {
+      appState.navigationPromptOpen = false;
+    }
+  );
+}
+
+function handleTabClick(type) {
+  runWithUnsavedChangesGuard(
+    () => {
+      teardownCurrentSimulator();
+      resetAllServices();
+      setActiveTab(type);
+      showContent(type);
+    },
+    "Has creado una estructura. Si cambias de pestaña, se perderán los datos no guardados. ¿Deseas continuar?"
+  );
 }
 
 /* ---------------- Main switch ---------------- */
@@ -102,14 +118,24 @@ function showContent(type) {
 
     document.getElementById("btn-internas")
       .addEventListener("click", function () {
-        setActiveRibbonButton(this);
-        showBusquedaInterna();
+        runWithUnsavedChangesGuard(
+          () => {
+            setActiveRibbonButton(this);
+            showBusquedaInterna();
+          },
+          "Has creado una estructura. Si cambias de sección, se perderán los datos no guardados. ¿Deseas continuar?"
+        );
       });
 
     document.getElementById("btn-externas")
       .addEventListener("click", function () {
-        setActiveRibbonButton(this);
-        showBusquedaExterna();
+        runWithUnsavedChangesGuard(
+          () => {
+            setActiveRibbonButton(this);
+            showBusquedaExterna();
+          },
+          "Has creado una estructura. Si cambias de sección, se perderán los datos no guardados. ¿Deseas continuar?"
+        );
       });
   } else if (type === "grafos") {
     lvl1.innerHTML = `
@@ -129,20 +155,13 @@ function showContent(type) {
 
     lvl1.querySelectorAll('[data-category]').forEach(btn => {
       btn.addEventListener('click', function () {
-        if (appState.structureDirty) {
-          window.confirmModal(
-            'Has creado una estructura. Si cambias de categoría, se perderán los datos no guardados. ¿Deseas continuar?',
-            () => {
-              setActiveRibbonButton(this);
-              selectGraphCategory(this.dataset.category);
-              window.resetStructureDirty();
-            },
-            () => {}
-          );
-        } else {
-          setActiveRibbonButton(this);
-          selectGraphCategory(this.dataset.category);
-        }
+        runWithUnsavedChangesGuard(
+          () => {
+            setActiveRibbonButton(this);
+            selectGraphCategory(this.dataset.category);
+          },
+          'Has creado una estructura. Si cambias de categoría, se perderán los datos no guardados. ¿Deseas continuar?'
+        );
       });
     });
   }
@@ -178,20 +197,13 @@ function showBusquedaInterna() {
   lvl2.querySelectorAll("[data-page]").forEach(btn => {
     btn.addEventListener("click", function () {
 
-      if (appState.structureDirty) {
-        window.confirmModal(
-          "Has creado una estructura. Si cambias de simulador, se perderán los datos no guardados. ¿Deseas continuar?",
-          () => {
-            setActiveRibbonButton(this);
-            loadExternalPage(this.dataset.page);
-            window.resetStructureDirty();
-          },
-          () => {}
-        );
-      } else {
-        setActiveRibbonButton(this);
-        loadExternalPage(this.dataset.page);
-      }
+      runWithUnsavedChangesGuard(
+        () => {
+          setActiveRibbonButton(this);
+          loadExternalPage(this.dataset.page);
+        },
+        "Has creado una estructura. Si cambias de simulador, se perderán los datos no guardados. ¿Deseas continuar?"
+      );
 
     });
   });
@@ -222,20 +234,13 @@ function showBusquedaExterna() {
   lvl2.querySelectorAll("[data-page]").forEach(btn => {
     btn.addEventListener("click", function () {
 
-      if (appState.structureDirty) {
-        window.confirmModal(
-          "Has creado una estructura. Si cambias de simulador, se perderán los datos no guardados. ¿Deseas continuar?",
-          () => {
-            setActiveRibbonButton(this);
-            loadExternalPage(this.dataset.page);
-            window.resetStructureDirty();
-          },
-          () => {}
-        );
-      } else {
-        setActiveRibbonButton(this);
-        loadExternalPage(this.dataset.page);
-      }
+      runWithUnsavedChangesGuard(
+        () => {
+          setActiveRibbonButton(this);
+          loadExternalPage(this.dataset.page);
+        },
+        "Has creado una estructura. Si cambias de simulador, se perderán los datos no guardados. ¿Deseas continuar?"
+      );
 
     });
   });
