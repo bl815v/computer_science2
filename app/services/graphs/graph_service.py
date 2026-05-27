@@ -9,9 +9,14 @@ from copy import deepcopy
 from typing import Any, Dict, List, Optional
 
 from app.services.graphs.algorithms.circuits import all_circuits, fundamental_circuits
+from app.services.graphs.algorithms.cut_sets import cut_sets as detect_cut_sets, fundamental_cut_sets
 from app.services.graphs.algorithms.coloring import edge_coloring, vertex_coloring
+from app.services.graphs.algorithms.domination import domination
+from app.services.graphs.algorithms.floyd_warshall import floyd_warshall
 from app.services.graphs.algorithms.independent_sets import independent_sets
+from app.services.graphs.algorithms.matching import matching
 from app.services.graphs.algorithms.mst import center_or_bicenter, minimum_spanning_tree, validate_tree
+from app.services.graphs.algorithms.mst import maximum_spanning_tree
 from app.services.graphs.algorithms.operations import (
 	add_edge,
 	add_vertex,
@@ -29,6 +34,7 @@ from app.services.graphs.algorithms.operations import (
 	union_graphs,
 	vertex_fusion,
 )
+from app.services.graphs.algorithms.visualization import build_family_groups, build_visualization_payload
 from app.services.graphs.algorithms.ordinal import ordinal_function
 from app.services.graphs.algorithms.paths import bellman_lambda, dijkstra, tree_distance
 from app.services.graphs.matrix_utils import (
@@ -254,6 +260,7 @@ class GraphService:
 		graph = self.get_graph_model(graph_id)
 		ensure_has_direction(graph)
 		result = minimum_spanning_tree(graph)
+		groups = build_family_groups('B', [result.branches], 'edges') + build_family_groups('C', [result.chords], 'edges')
 		payload = {
 			'mst_edges': result.edges,
 			'complement_tree_edges': result.complement_edges,
@@ -262,8 +269,34 @@ class GraphService:
 			'rank': result.rank,
 			'nullity': result.nullity,
 			'total_weight': result.total_weight,
+			'visualization': build_visualization_payload(
+				graph,
+				highlighted_edges=result.branches,
+				groups=groups,
+			),
 		}
 		graph.derived['mst'] = payload
+		return payload
+
+	def maximum_spanning_tree(self, graph_id: str) -> Dict[str, Any]:
+		"""Compute maximum spanning tree and complement data."""
+		graph = self.get_graph_model(graph_id)
+		ensure_has_direction(graph)
+		result = maximum_spanning_tree(graph)
+		groups = build_family_groups('B', [result.branches], 'edges') + build_family_groups('C', [result.chords], 'edges')
+		payload = {
+			'branches': result.branches,
+			'chords': result.chords,
+			'rank': result.rank,
+			'nullity': result.nullity,
+			'total_weight': result.total_weight,
+			'visualization': build_visualization_payload(
+				graph,
+				highlighted_edges=result.branches,
+				groups=groups,
+			),
+		}
+		graph.derived['maximum_spanning_tree'] = payload
 		return payload
 
 	def tree_distance(self, graph_a_id: str, graph_b_id: str) -> Dict[str, Any]:
@@ -304,6 +337,7 @@ class GraphService:
 		"""Compute Dijkstra shortest paths."""
 		graph = self.get_graph_model(graph_id)
 		result = dijkstra(graph, source, target)
+		path_edges = self._path_edges(graph, result.path)
 		payload = {
 			'source': result.source,
 			'target': result.target,
@@ -311,18 +345,50 @@ class GraphService:
 			'definitive_order': result.definitive_order,
 			'distances': result.distances,
 			'path': result.path,
+			'visualization': build_visualization_payload(
+				graph,
+				highlighted_vertices=result.path,
+				highlighted_edges=path_edges,
+				groups=build_family_groups('P', [result.path], 'vertices') if result.path else [],
+			),
 		}
 		graph.derived['dijkstra'] = payload
+		return payload
+
+	def floyd_warshall(self, graph_id: str) -> Dict[str, Any]:
+		"""Compute Floyd-Warshall all-pairs shortest paths."""
+		graph = self.get_graph_model(graph_id)
+		result = floyd_warshall(graph)
+		groups = []
+		for source, targets in result.shortest_paths.items():
+			for target, path in targets.items():
+				if len(path) >= 2:
+					groups.extend(build_family_groups(f'{source}_{target}_', [path], 'vertices'))
+		payload = {
+			'distance_matrix': result.distance_matrix,
+			'predecessor_matrix': result.predecessor_matrix,
+			'shortest_paths': result.shortest_paths,
+			'paths': result.shortest_paths,
+			'negative_cycle_detected': result.negative_cycle_detected,
+			'visualization': build_visualization_payload(graph, groups=groups),
+		}
+		graph.derived['floyd_warshall'] = payload
 		return payload
 
 	def circuits(self, graph_id: str) -> Dict[str, Any]:
 		"""Detect all circuits and build circuit matrix."""
 		graph = self.get_graph_model(graph_id)
 		result = all_circuits(graph)
+		groups = build_family_groups('C', result.circuits, 'edges')
 		payload = {
 			'circuits': result.circuits,
 			'edge_labels': result.edge_labels,
 			'matrix': result.matrix,
+			'visualization': build_visualization_payload(
+				graph,
+				highlighted_edges=sorted({edge for circuit in result.circuits for edge in circuit}),
+				groups=groups,
+			),
 		}
 		graph.derived['circuits'] = payload
 		return payload
@@ -334,12 +400,60 @@ class GraphService:
 		if not mst_data:
 			mst_data = self.mst(graph_id)
 		result = fundamental_circuits(graph, mst_data.get('branches', []), mst_data.get('chords', []))
+		groups = build_family_groups('CF', result.circuits, 'edges')
 		payload = {
 			'circuits': result.circuits,
 			'edge_labels': result.edge_labels,
 			'matrix': result.matrix,
+			'visualization': build_visualization_payload(
+				graph,
+				highlighted_edges=sorted({edge for circuit in result.circuits for edge in circuit}),
+				groups=groups,
+			),
 		}
 		graph.derived['fundamental_circuits'] = payload
+		return payload
+
+	def cut_sets(self, graph_id: str) -> Dict[str, Any]:
+		"""Detect all edge cut sets and build the cut matrix."""
+		graph = self.get_graph_model(graph_id)
+		result = detect_cut_sets(graph)
+		groups = build_family_groups('K', result['cut_sets'], 'edges')
+		payload = {
+			'cut_sets': result['cut_sets'],
+			'cut_matrix': result['cut_matrix'],
+			'edge_labels': result['edge_labels'],
+			'disconnecting_sets': result['disconnecting_sets'],
+			'visualization': build_visualization_payload(
+				graph,
+				highlighted_edges=sorted({edge for cut_set in result['cut_sets'] for edge in cut_set}),
+				groups=groups,
+			),
+		}
+		graph.derived['cut_sets'] = payload
+		return payload
+
+	def fundamental_cut_sets(self, graph_id: str) -> Dict[str, Any]:
+		"""Compute fundamental cut sets from the stored MST."""
+		graph = self.get_graph_model(graph_id)
+		mst_data = graph.derived.get('mst')
+		if not mst_data:
+			mst_data = self.mst(graph_id)
+		result = fundamental_cut_sets(graph, mst_data.get('branches', []))
+		groups = build_family_groups('FK', result['cut_sets'], 'edges')
+		payload = {
+			'cut_sets': result['cut_sets'],
+			'cut_matrix': result['cut_matrix'],
+			'edge_labels': result['edge_labels'],
+			'branches': result['branches'],
+			'chords': result['chords'],
+			'visualization': build_visualization_payload(
+				graph,
+				highlighted_edges=sorted({edge for cut_set in result['cut_sets'] for edge in cut_set}),
+				groups=groups,
+			),
+		}
+		graph.derived['fundamental_cut_sets'] = payload
 		return payload
 
 	def incidence_matrix(self, graph_id: str) -> Dict[str, Any]:
@@ -370,10 +484,25 @@ class GraphService:
 		"""Compute vertex coloring."""
 		graph = self.get_graph_model(graph_id)
 		result = vertex_coloring(graph)
+		groups = [
+			{
+				'name': name,
+				'label': f"{name} = {{{', '.join(vertices)}}}" if vertices else f'{name} = {{}}',
+				'type': 'vertices_set',
+				'vertices': list(vertices),
+				'edges': [],
+			}
+			for name, vertices in result.classes.items()
+		]
 		payload = {
 			'chromatic_number': result.chromatic_number,
 			'chromatic_polynomial': result.chromatic_polynomial,
 			'chromatic_classes': result.classes,
+			'visualization': build_visualization_payload(
+				graph,
+				highlighted_vertices=sorted({vertex for vertices in result.classes.values() for vertex in vertices}),
+				groups=groups,
+			),
 		}
 		graph.derived['vertex_coloring'] = payload
 		return payload
@@ -382,9 +511,24 @@ class GraphService:
 		"""Compute edge coloring."""
 		graph = self.get_graph_model(graph_id)
 		result = edge_coloring(graph)
+		groups = [
+			{
+				'name': name,
+				'label': f"{name} = {{{', '.join(edges)}}}" if edges else f'{name} = {{}}',
+				'type': 'edges_set',
+				'vertices': [],
+				'edges': list(edges),
+			}
+			for name, edges in result.edge_classes.items()
+		]
 		payload = {
 			'chromatic_index': result.chromatic_index,
 			'edge_chromatic_classes': result.edge_classes,
+			'visualization': build_visualization_payload(
+				graph,
+				highlighted_edges=sorted({edge for edges in result.edge_classes.values() for edge in edges}),
+				groups=groups,
+			),
 		}
 		graph.derived['edge_coloring'] = payload
 		return payload
@@ -393,14 +537,76 @@ class GraphService:
 		"""Compute independent-set families and metrics."""
 		graph = self.get_graph_model(graph_id)
 		result = independent_sets(graph)
+		groups = build_family_groups('I', result.maximum_sets, 'vertices')
 		payload = {
 			'all_independent_sets': result.all_sets,
 			'independence_number': result.independence_number,
 			'maximum_independent_sets': result.maximum_sets,
 			'maximal_independent_sets': result.maximal_sets,
+			'visualization': build_visualization_payload(
+				graph,
+				highlighted_vertices=sorted({vertex for family in result.maximum_sets for vertex in family}),
+				groups=groups,
+			),
 		}
 		graph.derived['independent_sets'] = payload
 		return payload
+
+	def domination(self, graph_id: str) -> Dict[str, Any]:
+		"""Compute dominating-set families and domination number."""
+		graph = self.get_graph_model(graph_id)
+		result = domination(graph)
+		groups = (
+			build_family_groups('D', result.dominating_sets, 'vertices')
+			+ build_family_groups('MD', result.minimum_dominating_sets, 'vertices')
+			+ build_family_groups('ID', result.independent_dominating_sets, 'vertices')
+		)
+		payload = {
+			'domination_number': result.domination_number,
+			'dominating_sets': result.dominating_sets,
+			'minimum_dominating_sets': result.minimum_dominating_sets,
+			'independent_dominating_sets': result.independent_dominating_sets,
+			'visualization': build_visualization_payload(
+				graph,
+				highlighted_vertices=sorted({vertex for family in result.minimum_dominating_sets for vertex in family}),
+				groups=groups,
+			),
+		}
+		graph.derived['domination'] = payload
+		return payload
+
+	def matching(self, graph_id: str) -> Dict[str, Any]:
+		"""Compute matching families and matching number."""
+		graph = self.get_graph_model(graph_id)
+		result = matching(graph)
+		groups = build_family_groups('M', result.matchings, 'edges')
+		payload = {
+			'matchings': result.matchings,
+			'maximal_matchings': result.maximal_matchings,
+			'maximum_matchings': result.maximum_matchings,
+			'matching_number': result.matching_number,
+			'visualization': build_visualization_payload(
+				graph,
+				highlighted_edges=sorted({edge for family in result.maximum_matchings for edge in family}),
+				groups=groups,
+			),
+		}
+		graph.derived['matching'] = payload
+		return payload
+
+	def _path_edges(self, graph: Graph, path: List[str]) -> List[str]:
+		"""Return edge names that connect a vertex path."""
+		edge_names: List[str] = []
+		for left, right in zip(path, path[1:]):
+			matching_edges = [
+				edge.name
+				for edge in graph.edges.values()
+				if (edge.source == left and edge.target == right)
+				or (not edge.directed and edge.source == right and edge.target == left)
+			]
+			if matching_edges:
+				edge_names.append(sorted(matching_edges)[0])
+		return edge_names
 
 	def validate_snapshot(self, snapshot: Dict[str, Any]) -> Dict[str, Any]:
 		"""Validate graph snapshot envelope."""

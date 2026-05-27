@@ -83,6 +83,47 @@ class PathResult:
 
 
 @dataclass(slots=True)
+class FloydWarshallResult:
+	"""Store Floyd-Warshall matrices and reconstructed paths."""
+
+	distance_matrix: List[List[float]] = field(default_factory=list)
+	predecessor_matrix: List[List[Optional[str]]] = field(default_factory=list)
+	shortest_paths: Dict[str, Dict[str, List[str]]] = field(default_factory=dict)
+	negative_cycle_detected: bool = False
+	vertex_labels: List[str] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class CutSetResult:
+	"""Store cut-set families and matrix representations."""
+
+	cut_sets: List[List[str]] = field(default_factory=list)
+	cut_matrix: List[List[int]] = field(default_factory=list)
+	edge_labels: List[str] = field(default_factory=list)
+	disconnecting_sets: List[List[str]] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class DominationResult:
+	"""Store dominating-set families and domination metrics."""
+
+	dominating_sets: List[List[str]] = field(default_factory=list)
+	minimum_dominating_sets: List[List[str]] = field(default_factory=list)
+	independent_dominating_sets: List[List[str]] = field(default_factory=list)
+	domination_number: int = 0
+
+
+@dataclass(slots=True)
+class MatchingResult:
+	"""Store matching families and matching metrics."""
+
+	matchings: List[List[str]] = field(default_factory=list)
+	maximal_matchings: List[List[str]] = field(default_factory=list)
+	maximum_matchings: List[List[str]] = field(default_factory=list)
+	matching_number: int = 0
+
+
+@dataclass(slots=True)
 class BellmanResult:
 	"""Store Bellman lambda calculations."""
 

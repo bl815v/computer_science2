@@ -99,20 +99,23 @@ def center_or_bicenter(graph: Graph) -> Dict[str, object]:
 	}
 
 
-def minimum_spanning_tree(graph: Graph) -> MSTResult:
-	"""Compute minimum spanning tree using Kruskal algorithm."""
+def _spanning_tree(graph: Graph, maximize: bool = False) -> MSTResult:
+	"""Compute a spanning tree using Kruskal algorithm."""
 	if graph.directed:
-		raise GraphValidationError('MST requires an undirected graph')
+		operation_name = 'maximum spanning tree' if maximize else 'MST'
+		raise GraphValidationError(f'{operation_name} requires an undirected graph')
 	if not _is_connected(graph):
-		raise GraphValidationError('MST requires a connected graph')
+		operation_name = 'maximum spanning tree' if maximize else 'MST'
+		raise GraphValidationError(f'{operation_name} requires a connected graph')
 
 	weighted_edges: List[Tuple[float, str, str, str]] = []
 	for edge in graph.edges.values():
 		if edge.weight is None:
-			raise GraphValidationError('MST requires weighted edges')
+			operation_name = 'maximum spanning tree' if maximize else 'MST'
+			raise GraphValidationError(f'{operation_name} requires weighted edges')
 		weighted_edges.append((float(edge.weight), edge.name, edge.source, edge.target))
 
-	weighted_edges.sort(key=lambda item: (item[0], item[1]))
+	weighted_edges.sort(key=lambda item: (-item[0], item[1]) if maximize else (item[0], item[1]))
 	dsu = _DisjointSet(list(graph.vertices))
 	mst_edge_names: List[str] = []
 	total_weight = 0.0
@@ -139,3 +142,13 @@ def minimum_spanning_tree(graph: Graph) -> MSTResult:
 		nullity=nullity,
 		total_weight=total_weight,
 	)
+
+
+def minimum_spanning_tree(graph: Graph) -> MSTResult:
+	"""Compute minimum spanning tree using Kruskal algorithm."""
+	return _spanning_tree(graph, maximize=False)
+
+
+def maximum_spanning_tree(graph: Graph) -> MSTResult:
+	"""Compute maximum spanning tree using Kruskal algorithm."""
+	return _spanning_tree(graph, maximize=True)

@@ -23,28 +23,60 @@ def _edge_name_map(graph: Graph) -> Dict[Tuple[str, str], List[str]]:
 
 
 def all_circuits(graph: Graph) -> CircuitResult:
-	"""Detect all simple circuits ignoring edge direction."""
-	g = nx.Graph()
-	g.add_nodes_from(graph.vertices)
-	for edge in graph.edges.values():
-		g.add_edge(edge.source, edge.target, name=edge.name)
-
-	cycles = nx.cycle_basis(g)
+	"""Detect all simple circuits in the graph."""
 	edge_map = _edge_name_map(graph)
-	circuit_edges: List[List[str]] = []
-
-	for cycle in cycles:
-		edges: List[str] = []
-		for idx in range(len(cycle)):
-			u = cycle[idx]
-			v = cycle[(idx + 1) % len(cycle)]
-			key = tuple(sorted((u, v)))
-			names = sorted(edge_map.get(key, []))
-			if names:
-				edges.append(names[0])
-		circuit_edges.append(sorted(set(edges)))
-
 	edge_labels = sorted(graph.edges)
+	circuit_set: Set[Tuple[str, ...]] = set()
+
+	if graph.directed:
+		digraph = nx.DiGraph()
+		digraph.add_nodes_from(graph.vertices)
+		directed_edge_map: Dict[Tuple[str, str], List[str]] = {}
+		for edge in graph.edges.values():
+			digraph.add_edge(edge.source, edge.target, name=edge.name)
+			directed_edge_map.setdefault((edge.source, edge.target), []).append(edge.name)
+		for cycle in nx.simple_cycles(digraph):
+			edges: List[str] = []
+			for index, vertex in enumerate(cycle):
+				neighbor = cycle[(index + 1) % len(cycle)]
+				names = sorted(directed_edge_map.get((vertex, neighbor), []))
+				if names:
+					edges.append(names[0])
+			if len(edges) >= 2:
+				circuit_set.add(tuple(sorted(set(edges))))
+	else:
+		adjacency: Dict[str, List[str]] = {name: [] for name in graph.vertices}
+		for edge in graph.edges.values():
+			adjacency[edge.source].append(edge.target)
+			adjacency[edge.target].append(edge.source)
+		for name in adjacency:
+			adjacency[name] = sorted(set(adjacency[name]))
+
+		vertices = sorted(graph.vertices)
+
+		def dfs(start: str, current: str, path: List[str], seen: Set[str]) -> None:
+			for neighbor in adjacency[current]:
+				if neighbor == start and len(path) >= 3:
+					edges: List[str] = []
+					cycle_vertices = path + [start]
+					for index, vertex in enumerate(cycle_vertices[:-1]):
+						next_vertex = cycle_vertices[index + 1]
+						key = tuple(sorted((vertex, next_vertex)))
+						names = sorted(edge_map.get(key, []))
+						if names:
+							edges.append(names[0])
+					if len(edges) >= 3:
+						circuit_set.add(tuple(sorted(set(edges))))
+				continue
+				if neighbor in seen or neighbor < start:
+					continue
+				dfs(start, neighbor, path + [neighbor], seen | {neighbor})
+
+		for start in vertices:
+			dfs(start, start, [start], {start})
+
+	circuit_edges = [list(circuit) for circuit in sorted(circuit_set)]
+
 	matrix = [[1 if edge in circuit else 0 for edge in edge_labels] for circuit in circuit_edges]
 
 	return CircuitResult(circuits=circuit_edges, matrix=matrix, edge_labels=edge_labels)

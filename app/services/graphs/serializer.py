@@ -12,7 +12,8 @@ from typing import Any, Dict, Iterable, List
 from app.services.graphs.models import Edge, Graph, Vertex
 
 SNAPSHOT_TYPE = 'graph'
-SNAPSHOT_VERSION = 1
+SNAPSHOT_VERSION = 2
+SUPPORTED_SNAPSHOT_VERSIONS = {1, 2}
 
 
 class GraphSnapshotError(ValueError):
@@ -53,7 +54,7 @@ def validate_snapshot(snapshot: Any) -> Dict[str, Any]:
 			f"Snapshot type mismatch: expected {SNAPSHOT_TYPE}, got {snapshot.get('type')}"
 		)
 
-	if snapshot.get('version') != SNAPSHOT_VERSION:
+	if snapshot.get('version') not in SUPPORTED_SNAPSHOT_VERSIONS:
 		raise GraphSnapshotError(
 			f"Unsupported snapshot version: {snapshot.get('version')}"
 		)

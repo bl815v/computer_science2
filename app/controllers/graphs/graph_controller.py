@@ -195,6 +195,15 @@ def mst(graph_id: str) -> dict:
 		_handle_error(exc)
 
 
+@router.post('/{graph_id}/maximum-spanning-tree')
+def maximum_spanning_tree(graph_id: str) -> dict:
+	"""Compute maximum spanning tree and its complement."""
+	try:
+		return service.maximum_spanning_tree(graph_id)
+	except Exception as exc:
+		_handle_error(exc)
+
+
 @router.post('/{graph_id}/center')
 def center(graph_id: str) -> dict:
 	"""Compute center or bicenter of a tree."""
@@ -240,6 +249,15 @@ def dijkstra(graph_id: str, request: PathRequest) -> dict:
 		_handle_error(exc)
 
 
+@router.post('/{graph_id}/floyd-warshall')
+def floyd_warshall(graph_id: str) -> dict:
+	"""Compute Floyd-Warshall all-pairs shortest paths."""
+	try:
+		return service.floyd_warshall(graph_id)
+	except Exception as exc:
+		_handle_error(exc)
+
+
 @router.post('/{graph_id}/circuits')
 def circuits(graph_id: str) -> dict:
 	"""Detect all circuits and build matrix."""
@@ -249,11 +267,47 @@ def circuits(graph_id: str) -> dict:
 		_handle_error(exc)
 
 
+@router.post('/{graph_id}/cut-sets')
+def cut_sets(graph_id: str) -> dict:
+	"""Detect cut sets and build matrix."""
+	try:
+		return service.cut_sets(graph_id)
+	except Exception as exc:
+		_handle_error(exc)
+
+
 @router.post('/{graph_id}/fundamental-circuits')
 def fundamental_circuits_endpoint(graph_id: str) -> dict:
 	"""Compute fundamental circuits from MST structure."""
 	try:
 		return service.fundamental_circuits(graph_id)
+	except Exception as exc:
+		_handle_error(exc)
+
+
+@router.post('/{graph_id}/fundamental-cut-sets')
+def fundamental_cut_sets_endpoint(graph_id: str) -> dict:
+	"""Compute fundamental cut sets from MST structure."""
+	try:
+		return service.fundamental_cut_sets(graph_id)
+	except Exception as exc:
+		_handle_error(exc)
+
+
+@router.post('/{graph_id}/domination')
+def domination_endpoint(graph_id: str) -> dict:
+	"""Compute dominating-set families and domination number."""
+	try:
+		return service.domination(graph_id)
+	except Exception as exc:
+		_handle_error(exc)
+
+
+@router.post('/{graph_id}/matching')
+def matching_endpoint(graph_id: str) -> dict:
+	"""Compute matching families and matching number."""
+	try:
+		return service.matching(graph_id)
 	except Exception as exc:
 		_handle_error(exc)
 

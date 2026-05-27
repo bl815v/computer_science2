@@ -1,0 +1,104 @@
+"""Floyd-Warshall shortest-path algorithm.
+
+Author: Juan Esteban Bedoya <jebedoyal@udistrital.edu.co>
+"""
+
+from __future__ import annotations
+
+from math import inf
+from typing import Dict, List, Optional
+
+from app.services.graphs.algorithms.shared import sorted_vertices
+from app.services.graphs.models import FloydWarshallResult, Graph
+from app.services.graphs.validators import GraphValidationError
+
+
+def _reconstruct_path(
+	predecessors: List[List[Optional[str]]],
+	vertex_labels: List[str],
+	vertex_index: Dict[str, int],
+	source_index: int,
+	target_index: int,
+) -> List[str]:
+	"""Reconstruct a shortest path from a predecessor matrix."""
+	if source_index == target_index:
+		return [vertex_labels[source_index]]
+
+	current = vertex_labels[target_index]
+	path = [current]
+	visited = {current}
+
+	while current != vertex_labels[source_index]:
+		predecessor = predecessors[source_index][vertex_index[current]]
+		if predecessor is None or predecessor in visited:
+			return []
+		path.append(predecessor)
+		visited.add(predecessor)
+		current = predecessor
+
+	path.reverse()
+	return path
+
+
+def floyd_warshall(graph: Graph) -> FloydWarshallResult:
+	"""Compute all-pairs shortest paths using Floyd-Warshall."""
+	if not graph.weighted:
+		raise GraphValidationError('Floyd-Warshall requires a weighted graph')
+
+	vertex_labels = sorted_vertices(graph)
+	vertex_index = {name: index for index, name in enumerate(vertex_labels)}
+	size = len(vertex_labels)
+	distance_matrix = [[inf for _ in range(size)] for _ in range(size)]
+	predecessor_matrix: List[List[Optional[str]]] = [[None for _ in range(size)] for _ in range(size)]
+
+	for index, vertex in enumerate(vertex_labels):
+		distance_matrix[index][index] = 0.0
+		predecessor_matrix[index][index] = vertex
+
+	for edge in graph.edges.values():
+		if edge.weight is None:
+			raise GraphValidationError('Floyd-Warshall requires weighted edges')
+		left_index = vertex_index[edge.source]
+		right_index = vertex_index[edge.target]
+		weight = float(edge.weight)
+		if weight < distance_matrix[left_index][right_index]:
+			distance_matrix[left_index][right_index] = weight
+			predecessor_matrix[left_index][right_index] = edge.source
+		if not edge.directed and weight < distance_matrix[right_index][left_index]:
+			distance_matrix[right_index][left_index] = weight
+			predecessor_matrix[right_index][left_index] = edge.target
+
+	for middle in range(size):
+		for left in range(size):
+			if distance_matrix[left][middle] == inf:
+				continue
+			for right in range(size):
+				if distance_matrix[middle][right] == inf:
+					continue
+				candidate = distance_matrix[left][middle] + distance_matrix[middle][right]
+				if candidate < distance_matrix[left][right]:
+					distance_matrix[left][right] = candidate
+					predecessor_matrix[left][right] = predecessor_matrix[middle][right]
+
+	negative_cycle_detected = any(distance_matrix[index][index] < 0 for index in range(size))
+	shortest_paths: Dict[str, Dict[str, List[str]]] = {name: {} for name in vertex_labels}
+	for left_index, source in enumerate(vertex_labels):
+		for right_index, target in enumerate(vertex_labels):
+			if distance_matrix[left_index][right_index] == inf:
+				shortest_paths[source][target] = []
+				continue
+			shortest_paths[source][target] = _reconstruct_path(
+				predecessor_matrix,
+				vertex_labels,
+				vertex_index,
+				left_index,
+				right_index,
+			)
+
+	return FloydWarshallResult(
+		distance_matrix=distance_matrix,
+		predecessor_matrix=predecessor_matrix,
+		shortest_paths=shortest_paths,
+		negative_cycle_detected=negative_cycle_detected,
+		vertex_labels=vertex_labels,
+	)
