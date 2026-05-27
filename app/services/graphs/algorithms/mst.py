@@ -1,6 +1,26 @@
 """Tree-center and minimum spanning tree algorithms.
 
+Provide utilities for tree validation, center and bicenter detection,
+and spanning-tree computation using Kruskal's algorithm. The module
+supports both minimum and maximum spanning trees for connected,
+weighted, undirected graphs.
+
 Author: Juan Esteban Bedoya <jebedoyal@udistrital.edu.co>
+
+This file is part of ComputerScience2 project.
+
+ComputerScience2 is free software: you can redistribute it and/or
+modify it under the terms of the GNU General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+ComputerScience2 is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with ComputerScience2. If not, see <https://www.gnu.org/licenses/>.
 """
 
 from __future__ import annotations
@@ -13,20 +33,53 @@ from app.services.graphs.validators import GraphValidationError
 
 
 class _DisjointSet:
-	"""Disjoint-set data structure for Kruskal algorithm."""
+	"""Implement a disjoint-set structure for Kruskal algorithm.
+
+	Manage connected components efficiently using path compression
+	and union-by-rank heuristics.
+
+	Attributes:
+		parent (Dict[str, str]): Representative parent for each element.
+		rank (Dict[str, int]): Rank heuristic used to balance unions.
+
+	"""
 
 	def __init__(self, elements: List[str]) -> None:
+		"""Initialize singleton sets for all elements.
+
+		Args:
+			elements: Collection of vertex identifiers.
+
+		"""
 		self.parent = {element: element for element in elements}
 		self.rank = {element: 0 for element in elements}
 
 	def find(self, value: str) -> str:
-		"""Find representative with path compression."""
+		"""Find the representative of a set using path compression.
+
+		Args:
+			value: Element whose representative will be located.
+
+		Returns:
+			str: Representative element of the corresponding set.
+
+		"""
 		if self.parent[value] != value:
 			self.parent[value] = self.find(self.parent[value])
 		return self.parent[value]
 
 	def union(self, left: str, right: str) -> bool:
-		"""Union sets by rank."""
+		"""Merge two sets using union by rank.
+
+		Args:
+			left: First element.
+			right: Second element.
+
+		Returns:
+			bool: True if the sets were merged successfully,
+			False if both elements already belong to the same set.
+
+		"""
 		root_left = self.find(left)
 		root_right = self.find(right)
 		if root_left == root_right:
@@ -42,7 +95,19 @@ class _DisjointSet:
 
 
 def _undirected_neighbors(graph: Graph) -> Dict[str, List[str]]:
-	"""Build undirected neighborhood regardless of edge direction."""
+	"""Build an undirected adjacency representation of a graph.
+
+	Ignore edge orientation and create a neighborhood list for
+	each vertex.
+
+	Args:
+		graph: Graph whose adjacency structure will be generated.
+
+	Returns:
+		Dict[str, List[str]]: Mapping from vertex names to lists
+		of adjacent vertices.
+
+	"""
 	adjacency = {name: [] for name in graph.vertices}
 	for edge in graph.edges.values():
 		adjacency[edge.source].append(edge.target)
@@ -51,7 +116,18 @@ def _undirected_neighbors(graph: Graph) -> Dict[str, List[str]]:
 
 
 def _is_connected(graph: Graph) -> bool:
-	"""Check graph connectivity using BFS."""
+	"""Check whether a graph is connected using BFS traversal.
+
+	Connectivity is evaluated under an undirected interpretation.
+
+	Args:
+		graph: Graph to validate.
+
+	Returns:
+		bool: True if all vertices are reachable from any starting
+		vertex, otherwise False.
+
+	"""
 	if not graph.vertices:
 		return True
 	adjacency = _undirected_neighbors(graph)
@@ -68,7 +144,19 @@ def _is_connected(graph: Graph) -> bool:
 
 
 def validate_tree(graph: Graph) -> None:
-	"""Validate that graph is a tree under undirected interpretation."""
+	"""Validate that a graph satisfies tree properties.
+
+	A valid tree must be connected and contain exactly
+	|V| - 1 edges.
+
+	Args:
+		graph: Graph to validate.
+
+	Raises:
+		GraphValidationError: If the graph is disconnected or
+			does not satisfy the edge-count property of trees.
+
+	"""
 	if not _is_connected(graph):
 		raise GraphValidationError('Graph must be connected to be a tree')
 	if len(graph.edges) != max(0, len(graph.vertices) - 1):
@@ -76,7 +164,22 @@ def validate_tree(graph: Graph) -> None:
 
 
 def center_or_bicenter(graph: Graph) -> Dict[str, object]:
-	"""Compute center or bicenter of a tree."""
+	"""Compute the center or bicenter of a tree.
+
+	Repeatedly remove leaves from the tree until one or two
+	central vertices remain.
+
+	Args:
+		graph: Tree whose center structure will be computed.
+
+	Returns:
+		Dict[str, object]: Dictionary containing the central
+		vertices and the detected type ("center" or "bicenter").
+
+	Raises:
+		GraphValidationError: If the graph is not a valid tree.
+
+	"""
 	validate_tree(graph)
 	adjacency = _undirected_neighbors(graph)
 	remaining = set(graph.vertices)
@@ -100,7 +203,25 @@ def center_or_bicenter(graph: Graph) -> Dict[str, object]:
 
 
 def _spanning_tree(graph: Graph, maximize: bool = False) -> MSTResult:
-	"""Compute a spanning tree using Kruskal algorithm."""
+	"""Compute a spanning tree using Kruskal algorithm.
+
+	Generate either a minimum or maximum spanning tree depending
+	on the maximize flag.
+
+	Args:
+		graph: Weighted undirected graph to process.
+		maximize: If True, compute a maximum spanning tree.
+			Otherwise compute a minimum spanning tree.
+
+	Returns:
+		MSTResult: Object containing spanning-tree edges,
+		complement edges, rank, nullity, and total weight.
+
+	Raises:
+		GraphValidationError: If the graph is directed,
+			disconnected, or contains unweighted edges.
+
+	"""
 	if graph.directed:
 		operation_name = 'maximum spanning tree' if maximize else 'MST'
 		raise GraphValidationError(f'{operation_name} requires an undirected graph')
@@ -145,10 +266,28 @@ def _spanning_tree(graph: Graph, maximize: bool = False) -> MSTResult:
 
 
 def minimum_spanning_tree(graph: Graph) -> MSTResult:
-	"""Compute minimum spanning tree using Kruskal algorithm."""
+	"""Compute a minimum spanning tree using Kruskal algorithm.
+
+	Args:
+		graph: Weighted undirected graph to process.
+
+	Returns:
+		MSTResult: Result object describing the minimum
+		spanning tree.
+
+	"""
 	return _spanning_tree(graph, maximize=False)
 
 
 def maximum_spanning_tree(graph: Graph) -> MSTResult:
-	"""Compute maximum spanning tree using Kruskal algorithm."""
+	"""Compute a maximum spanning tree using Kruskal algorithm.
+
+	Args:
+		graph: Weighted undirected graph to process.
+
+	Returns:
+		MSTResult: Result object describing the maximum
+		spanning tree.
+
+	"""
 	return _spanning_tree(graph, maximize=True)

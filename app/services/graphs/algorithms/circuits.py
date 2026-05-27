@@ -1,6 +1,50 @@
 """Circuit and fundamental-circuit algorithms.
 
+Implement graph algorithms related to circuit detection and
+fundamental circuit generation. Support both directed and
+undirected graphs by combining NetworkX algorithms with
+custom traversal logic.
+
+The module provides utilities for:
+
+	- Detecting all simple circuits in a graph.
+	- Building incidence matrices for detected circuits.
+	- Computing edge mappings for graph traversal.
+	- Finding paths inside spanning trees.
+	- Generating fundamental circuits using branches and chords.
+
+Functions:
+	_edge_name_map:
+		Map undirected edge endpoints to edge identifiers.
+
+	all_circuits:
+		Detect all simple circuits in a graph and generate
+		the corresponding circuit matrix.
+
+	_tree_path:
+		Find the unique edge path between two vertices
+		inside a tree structure.
+
+	fundamental_circuits:
+		Generate fundamental circuits from spanning-tree
+		branches and graph chords.
+
 Author: Juan Esteban Bedoya <jebedoyal@udistrital.edu.co>
+
+This file is part of ComputerScience2 project.
+
+ComputerScience2 is free software: you can redistribute it and/or
+modify it under the terms of the GNU General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+ComputerScience2 is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with ComputerScience2. If not, see <https://www.gnu.org/licenses/>.
 """
 
 from __future__ import annotations
@@ -14,7 +58,46 @@ from app.services.graphs.models import CircuitResult, Graph
 
 
 def _edge_name_map(graph: Graph) -> Dict[Tuple[str, str], List[str]]:
-	"""Map undirected vertex pairs to edge names."""
+	(
+		"""Map undirected vertex pairs to edge identifiers.
+
+	Create a dictionary where each key represents an
+	undirected vertex pair and each value contains the
+	list of edge names connecting those vertices.
+
+	This utility simplifies edge retrieval during
+	circuit detection in undirected graphs.
+
+	Args:
+		graph (Graph):
+			Graph instance containing vertices and edges.
+
+	Returns:
+		Dict[Tuple[str, str], List[str]]:
+			Dictionary mapping sorted vertex pairs
+			to edge-name lists.
+
+	"""
+		"""Map undirected vertex pairs to edge identifiers.
+
+	Create a dictionary where each key represents an
+	undirected vertex pair and each value contains the
+	list of edge names connecting those vertices.
+
+	This utility simplifies edge retrieval during
+	circuit detection in undirected graphs.
+
+	Args:
+		graph (Graph):
+			Graph instance containing vertices and edges.
+
+	Returns:
+		Dict[Tuple[str, str], List[str]]:
+			Dictionary mapping sorted vertex pairs
+			to edge-name lists.
+
+	"""
+	)
 	mapping: Dict[Tuple[str, str], List[str]] = {}
 	for edge in graph.edges.values():
 		key = tuple(sorted((edge.source, edge.target)))
@@ -23,7 +106,37 @@ def _edge_name_map(graph: Graph) -> Dict[Tuple[str, str], List[str]]:
 
 
 def all_circuits(graph: Graph) -> CircuitResult:
-	"""Detect all simple circuits in the graph."""
+	"""Detect all simple circuits in the graph.
+
+	Support both directed and undirected graphs:
+
+		- Directed graphs use NetworkX simple-cycle detection.
+		- Undirected graphs use a depth-first traversal
+		  with duplicate avoidance.
+
+		The resulting circuits are transformed into
+		a binary incidence matrix where rows represent
+		circuits and columns represent graph edges.
+
+	Args:
+		graph (Graph):
+			Graph instance to analyze.
+
+	Returns:
+		CircuitResult:
+			Object containing:
+
+				- circuits:
+				  List of detected circuits represented
+				  by edge names.
+
+				- matrix:
+				  Binary circuit-edge incidence matrix.
+
+				- edge_labels:
+				  Ordered list of graph edge identifiers.
+
+	"""
 	edge_map = _edge_name_map(graph)
 	edge_labels = sorted(graph.edges)
 	circuit_set: Set[Tuple[str, ...]] = set()
@@ -55,6 +168,22 @@ def all_circuits(graph: Graph) -> CircuitResult:
 		vertices = sorted(graph.vertices)
 
 		def dfs(start: str, current: str, path: List[str], seen: Set[str]) -> None:
+			"""Perform DFS traversal for undirected cycle detection.
+
+			Args:
+				start (str):
+					Starting vertex of the traversal.
+
+				current (str):
+					Current vertex being explored.
+
+				path (List[str]):
+					Ordered traversal path.
+
+				seen (Set[str]):
+					Set of visited vertices.
+
+			"""
 			for neighbor in adjacency[current]:
 				if neighbor == start and len(path) >= 3:
 					edges: List[str] = []
@@ -87,7 +216,31 @@ def _tree_path(
 	source: str,
 	target: str,
 ) -> List[str]:
-	"""Find edge path between two vertices in a tree."""
+	"""Find the edge path between two vertices in a tree.
+
+	Perform a breadth-first traversal over a tree adjacency
+	structure to recover the unique edge sequence connecting
+	the source and target vertices.
+
+	Args:
+		tree_adjacency (Dict[str, List[Tuple[str, str]]]):
+			Tree adjacency list where each entry contains
+			neighbor vertices and edge identifiers.
+
+		source (str):
+			Starting vertex identifier.
+
+		target (str):
+			Destination vertex identifier.
+
+	Returns:
+		List[str]:
+			Ordered list of edge identifiers forming
+			the path between the two vertices.
+
+			Returns an empty list if no path exists.
+
+	"""
 	queue = deque([(source, [])])
 	seen: Set[str] = {source}
 	while queue:
@@ -103,9 +256,43 @@ def _tree_path(
 
 
 def fundamental_circuits(graph: Graph, branches: List[str], chords: List[str]) -> CircuitResult:
-	"""Build fundamental circuits from branches and chords.
+	"""Generate fundamental circuits from branches and chords.
 
-	Each resulting circuit contains exactly one chord.
+	Construct a spanning-tree adjacency representation
+	using the provided branch edges. For each chord,
+	find the unique path inside the tree and combine
+	it with the chord to form a fundamental circuit.
+
+	Each generated circuit contains exactly one chord.
+
+	The resulting circuits are also converted into
+	a binary incidence matrix.
+
+	Args:
+		graph (Graph):
+			Original graph instance.
+
+		branches (List[str]):
+			Edge names belonging to the spanning tree.
+
+		chords (List[str]):
+			Edge names not included in the spanning tree.
+
+	Returns:
+		CircuitResult:
+			Object containing:
+
+				- circuits:
+				  Fundamental circuits represented
+				  as edge-name lists.
+
+				- matrix:
+				  Binary incidence matrix relating
+				  circuits and edges.
+
+				- edge_labels:
+				  Ordered list of graph edge identifiers.
+
 	"""
 	tree_adjacency: Dict[str, List[Tuple[str, str]]] = {name: [] for name in graph.vertices}
 	for edge_name in branches:

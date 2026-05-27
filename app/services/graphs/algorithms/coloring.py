@@ -1,6 +1,48 @@
 """Vertex and edge coloring algorithms.
 
+Implement greedy graph coloring algorithms for both
+vertices and edges. Provide utilities for computing
+chromatic classes, chromatic numbers, chromatic indices,
+and polynomial evaluations for small graph instances.
+
+The module includes:
+
+	- Vertex neighborhood construction.
+	- Greedy vertex coloring.
+	- Greedy edge coloring.
+	- Chromatic class generation.
+	- Exact k-coloring counting using backtracking
+	  for small graphs.
+
+Functions:
+	_vertex_neighbors:
+		Build the undirected neighborhood map for vertices.
+
+	vertex_coloring:
+		Compute a greedy vertex coloring and chromatic classes.
+
+	_count_colorings:
+		Count valid k-colorings using recursive backtracking.
+
+	edge_coloring:
+		Compute a greedy edge coloring and edge-color classes.
+
 Author: Juan Esteban Bedoya <jebedoyal@udistrital.edu.co>
+
+This file is part of ComputerScience2 project.
+
+ComputerScience2 is free software: you can redistribute it and/or
+modify it under the terms of the GNU General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+ComputerScience2 is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with ComputerScience2. If not, see <https://www.gnu.org/licenses/>.
 """
 
 from __future__ import annotations
@@ -12,7 +54,25 @@ from app.services.graphs.models import ColoringResult, Graph
 
 
 def _vertex_neighbors(graph: Graph) -> Dict[str, Set[str]]:
-	"""Build undirected vertex neighborhood map."""
+	"""Build an undirected neighborhood map for graph vertices.
+
+	Create a dictionary where each vertex is associated
+	with the set of adjacent vertices connected through
+	graph edges.
+
+	The neighborhood representation is used by coloring
+	algorithms to determine adjacency constraints.
+
+	Args:
+		graph (Graph):
+			Graph instance containing vertices and edges.
+
+	Returns:
+		Dict[str, Set[str]]:
+			Dictionary mapping each vertex to its
+			set of neighboring vertices.
+
+	"""
 	neighbors: Dict[str, Set[str]] = {name: set() for name in graph.vertices}
 	for edge in graph.edges.values():
 		neighbors[edge.source].add(edge.target)
@@ -21,7 +81,37 @@ def _vertex_neighbors(graph: Graph) -> Dict[str, Set[str]]:
 
 
 def vertex_coloring(graph: Graph) -> ColoringResult:
-	"""Compute greedy vertex coloring and classes."""
+	"""Compute a greedy vertex coloring of the graph.
+
+	Apply a greedy coloring strategy by processing
+	vertices in descending order of degree. Each vertex
+	receives the smallest available color not already
+	used by its neighbors.
+
+	The algorithm also computes:
+
+		- Chromatic classes.
+		- Chromatic number.
+		- Chromatic polynomial evaluations for small k.
+
+	Args:
+		graph (Graph):
+			Graph instance to color.
+
+	Returns:
+		ColoringResult:
+			Object containing:
+
+				- chromatic_number:
+				  Number of colors used.
+
+				- chromatic_polynomial:
+				  Evaluated chromatic polynomial values.
+
+				- classes:
+				  Mapping of color classes to vertices.
+
+	"""
 	neighbors = _vertex_neighbors(graph)
 	assignment: Dict[str, int] = {}
 
@@ -50,13 +140,43 @@ def vertex_coloring(graph: Graph) -> ColoringResult:
 
 
 def _count_colorings(graph: Graph, k: int) -> int:
-	"""Count valid k-colorings with backtracking for small instances."""
+	"""Count valid k-colorings using recursive backtracking.
+
+	Explore all possible color assignments and count
+	only those that satisfy the graph coloring constraint:
+	adjacent vertices cannot share the same color.
+
+	To avoid excessive computational cost, the algorithm
+	is only executed for graphs with at most 10 vertices.
+
+	Args:
+		graph (Graph):
+			Graph instance to analyze.
+
+		k (int):
+			Number of available colors.
+
+	Returns:
+		int:
+			Total number of valid k-colorings.
+
+			Returns 0 for graphs with more than
+			10 vertices.
+
+	"""
 	vertices = sorted(graph.vertices)
 	neighbors = _vertex_neighbors(graph)
 	assignment: Dict[str, int] = {}
 	count = 0
 
 	def backtrack(index: int) -> None:
+		"""Perform recursive coloring assignment.
+
+		Args:
+			index (int):
+				Current vertex position in the traversal.
+
+		"""
 		nonlocal count
 		if index == len(vertices):
 			count += 1
@@ -76,7 +196,32 @@ def _count_colorings(graph: Graph, k: int) -> int:
 
 
 def edge_coloring(graph: Graph) -> ColoringResult:
-	"""Compute greedy edge coloring and classes."""
+	"""Compute a greedy edge coloring of the graph.
+
+	Apply a greedy coloring strategy over graph edges.
+	Two edges are considered adjacent if they share
+	at least one endpoint vertex.
+
+	The algorithm computes:
+
+		- Edge chromatic classes.
+		- Chromatic index.
+
+	Args:
+		graph (Graph):
+			Graph instance to color.
+
+	Returns:
+		ColoringResult:
+			Object containing:
+
+				- chromatic_index:
+				  Number of edge colors used.
+
+				- edge_classes:
+				  Mapping of edge-color classes.
+
+	"""
 	edge_names = sorted(graph.edges)
 	adjacent_edges: Dict[str, Set[str]] = {name: set() for name in edge_names}
 

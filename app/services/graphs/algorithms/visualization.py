@@ -1,6 +1,26 @@
 """Reusable visualization payload builders for graph algorithms.
 
+Provide standardized visualization payload generators used by graph
+algorithms and frontend rendering layers. Includes helpers for
+highlighting vertices and edges, grouping graph families, and attaching
+labels and colors to visualization structures.
+
 Author: Juan Esteban Bedoya <jebedoyal@udistrital.edu.co>
+
+This file is part of ComputerScience2 project.
+
+ComputerScience2 is free software: you can redistribute it and/or
+modify it under the terms of the GNU General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+ComputerScience2 is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with ComputerScience2. If not, see <https://www.gnu.org/licenses/>.
 """
 
 from __future__ import annotations
@@ -23,7 +43,18 @@ _PALETTE = [
 
 
 def _normalize_names(values: Iterable[str] | None) -> List[str]:
-	"""Return sorted unique names from an iterable."""
+	"""Normalize a collection of names into a sorted unique list.
+
+	None values are ignored and duplicates are removed to ensure stable
+	and deterministic visualization payloads.
+
+	Args:
+		values (Iterable[str] | None): Collection of names.
+
+	Returns:
+		List[str]: Sorted list of unique valid names.
+
+	"""
 	return sorted({value for value in (values or []) if value is not None})
 
 
@@ -33,7 +64,23 @@ def build_family_groups(
 	member_type: str,
 	color_palette: Optional[List[str]] = None,
 ) -> List[Dict[str, Any]]:
-	"""Build labeled groups for a family of subsets."""
+	"""Build visualization groups for graph family structures.
+
+	This helper generates labeled and colorized groups representing
+	families of vertices or edges, such as dominating sets,
+	independent sets, circuits, or matchings.
+
+	Args:
+		prefix (str): Prefix used for generated group names.
+		families (List[List[str]]): Collection of family members.
+		member_type (str): Either ``'vertices'`` or ``'edges'``.
+		color_palette (Optional[List[str]]): Optional custom color
+			palette for generated groups.
+
+	Returns:
+		List[Dict[str, Any]]: Visualization-ready group payloads.
+
+	"""
 	palette = color_palette or _PALETTE
 	groups: List[Dict[str, Any]] = []
 	for index, family in enumerate(families, start=1):
@@ -42,7 +89,9 @@ def build_family_groups(
 		group_color = palette[(index - 1) % len(palette)]
 		group: Dict[str, Any] = {
 			'name': group_name,
-			'label': f"{group_name} = {{{', '.join(members)}}}" if members else f'{group_name} = {{}}',
+			'label': f'{group_name} = {{{", ".join(members)}}}'
+			if members
+			else f'{group_name} = {{}}',
 			'type': f'{member_type}_set',
 			'color': group_color,
 			'vertices': members if member_type == 'vertices' else [],
@@ -60,7 +109,29 @@ def build_visualization_payload(
 	labels: Optional[Dict[str, Any]] = None,
 	colors: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-	"""Build a standard visualization payload for graph algorithms."""
+	"""Build a standardized visualization payload for graph rendering.
+
+	The generated payload contains normalized graph structures,
+	highlight metadata, visualization groups, labels, and optional
+	color assignments compatible with frontend visualization layers.
+
+	Args:
+		graph (Graph): Input graph instance.
+		highlighted_vertices (Iterable[str] | None): Vertices that must
+			be visually highlighted.
+		highlighted_edges (Iterable[str] | None): Edges that must be
+			visually highlighted.
+		groups (Optional[List[Dict[str, Any]]]): Optional visualization
+			groups describing graph families or subsets.
+		labels (Optional[Dict[str, Any]]): Additional label mappings.
+		colors (Optional[Dict[str, Any]]): Optional custom color
+			assignments for vertices and edges.
+
+	Returns:
+		Dict[str, Any]: Visualization-ready payload containing vertices,
+			edges, groups, labels, highlights, and colors.
+
+	"""
 	highlighted_vertices_list = _normalize_names(highlighted_vertices)
 	highlighted_edges_list = _normalize_names(highlighted_edges)
 	vertex_label_map = {name: name for name in sorted_vertices(graph)}

@@ -1,6 +1,26 @@
 """Floyd-Warshall shortest-path algorithm.
 
+Provide an implementation of the Floyd-Warshall algorithm to compute
+all-pairs shortest paths in weighted graphs. Generate the distance
+matrix, predecessor matrix, reconstructed shortest paths, and detect
+negative cycles.
+
 Author: Juan Esteban Bedoya <jebedoyal@udistrital.edu.co>
+
+This file is part of ComputerScience2 project.
+
+ComputerScience2 is free software: you can redistribute it and/or
+modify it under the terms of the GNU General Public License as
+published by the Free Software Foundation, either version 3 of
+the License, or (at your option) any later version.
+
+ComputerScience2 is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with ComputerScience2. If not, see <https://www.gnu.org/licenses/>.
 """
 
 from __future__ import annotations
@@ -20,7 +40,30 @@ def _reconstruct_path(
 	source_index: int,
 	target_index: int,
 ) -> List[str]:
-	"""Reconstruct a shortest path from a predecessor matrix."""
+	"""Reconstruct a shortest path from a predecessor matrix.
+
+	Traverse the predecessor matrix backwards starting from the
+	target vertex until the source vertex is reached.
+
+	If no valid predecessor chain exists, return an empty path.
+
+	Args:
+		predecessors:
+			Matrix storing predecessor vertices for shortest paths.
+		vertex_labels:
+			Ordered list of graph vertex names.
+		vertex_index:
+			Mapping between vertex names and matrix indices.
+		source_index:
+			Index of the source vertex.
+		target_index:
+			Index of the target vertex.
+
+	Returns:
+		List[str]: Ordered sequence of vertices representing the
+		shortest path. Returns an empty list if no valid path exists.
+
+	"""
 	if source_index == target_index:
 		return [vertex_labels[source_index]]
 
@@ -41,7 +84,42 @@ def _reconstruct_path(
 
 
 def floyd_warshall(graph: Graph) -> FloydWarshallResult:
-	"""Compute all-pairs shortest paths using Floyd-Warshall."""
+	"""Compute all-pairs shortest paths using Floyd-Warshall.
+
+	Apply dynamic programming to compute the minimum path cost
+	between every pair of vertices in a weighted graph.
+
+	The algorithm progressively improves shortest-path estimates
+	by allowing intermediate vertices in the paths.
+
+	Generate:
+		- Distance matrix.
+		- Predecessor matrix.
+		- Reconstructed shortest paths.
+		- Negative-cycle detection result.
+
+	Args:
+		graph: Weighted graph to analyze.
+
+	Returns:
+		FloydWarshallResult: Object containing:
+			- ``distance_matrix``:
+				Matrix of minimum distances between vertices.
+			- ``predecessor_matrix``:
+				Matrix storing predecessor relationships.
+			- ``shortest_paths``:
+				Dictionary containing reconstructed shortest paths.
+			- ``negative_cycle_detected``:
+				Whether a negative cycle exists in the graph.
+			- ``vertex_labels``:
+				Ordered list of graph vertices.
+
+	Raises:
+		GraphValidationError:
+			If the graph is not weighted or contains edges
+			without weights.
+
+	"""
 	if not graph.weighted:
 		raise GraphValidationError('Floyd-Warshall requires a weighted graph')
 
@@ -49,7 +127,9 @@ def floyd_warshall(graph: Graph) -> FloydWarshallResult:
 	vertex_index = {name: index for index, name in enumerate(vertex_labels)}
 	size = len(vertex_labels)
 	distance_matrix = [[inf for _ in range(size)] for _ in range(size)]
-	predecessor_matrix: List[List[Optional[str]]] = [[None for _ in range(size)] for _ in range(size)]
+	predecessor_matrix: List[List[Optional[str]]] = [
+		[None for _ in range(size)] for _ in range(size)
+	]
 
 	for index, vertex in enumerate(vertex_labels):
 		distance_matrix[index][index] = 0.0

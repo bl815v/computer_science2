@@ -1,6 +1,26 @@
 """Ordinal traversal and labeling algorithms.
 
+Provide algorithms for assigning ordinal labels to vertices in directed
+acyclic graphs using a direction-aware topological traversal. The module
+computes traversal order and assigns ordinal values to vertices following
+lexicographic precedence.
+
 Author: Juan Esteban Bedoya <jebedoyal@udistrital.edu.co>
+
+This file is part of ComputerScience2 project.
+
+ComputerScience2 is free software: you can redistribute it and/or
+modify it under the terms of the GNU General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+ComputerScience2 is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with ComputerScience2. If not, see <https://www.gnu.org/licenses/>.
 """
 
 from __future__ import annotations
@@ -13,19 +33,30 @@ from app.services.graphs.validators import GraphValidationError
 
 
 def ordinal_function(graph: Graph) -> Dict[str, object]:
-	"""Assign ordinal labels using direction-aware topological traversal.
+	"""Assign ordinal labels using topological traversal.
 
-	The traversal starts from vertices without labeled predecessors and
-	continues top-down and left-right using lexicographic ordering.
+	The algorithm performs a direction-aware topological traversal over
+	a directed acyclic graph (DAG). Traversal starts from vertices with
+	no incoming edges and continues following edge directions using
+	lexicographic ordering to ensure deterministic results.
+
+	Each visited vertex receives an ordinal label starting at 1
+	according to traversal order.
 
 	Args:
-		graph (Graph): Input graph.
+		graph (Graph): Directed graph to process.
 
 	Returns:
-		Dict[str, object]: Ordinal map and traversal order.
+		Dict[str, object]:
+			Dictionary containing:
+				- ordinal_map:
+					Mapping between vertex names and assigned ordinals.
+				- traversal_order:
+					List representing the topological traversal order.
 
 	Raises:
-		GraphValidationError: If direction is missing or graph has cycles.
+		GraphValidationError:
+			If the graph is not directed or contains cycles.
 
 	"""
 	if not graph.directed:

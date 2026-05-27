@@ -1,6 +1,26 @@
-"""Independent set algorithms.
+"""Independent set algorithms for graphs.
+
+Provide utilities to compute independent vertex sets in an undirected
+interpretation of a graph. The module includes exhaustive generation of
+all independent sets, identification of maximal and maximum independent
+sets, and computation of the graph independence number.
 
 Author: Juan Esteban Bedoya <jebedoyal@udistrital.edu.co>
+
+This file is part of ComputerScience2 project.
+
+ComputerScience2 is free software: you can redistribute it and/or
+modify it under the terms of the GNU General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+ComputerScience2 is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with ComputerScience2. If not, see <https://www.gnu.org/licenses/>.
 """
 
 from __future__ import annotations
@@ -12,7 +32,20 @@ from app.services.graphs.models import Graph, IndependentSetsResult
 
 
 def _neighbors(graph: Graph) -> Dict[str, Set[str]]:
-	"""Build undirected neighbor sets."""
+	"""Build an undirected neighborhood map for each vertex.
+
+	Create a dictionary where every vertex is associated with the set
+	of adjacent vertices. Edges are treated as undirected regardless
+	of the graph orientation.
+
+	Args:
+		graph: Graph whose adjacency relationships will be analyzed.
+
+	Returns:
+		Dict[str, Set[str]]: Mapping from each vertex name to the
+		set of neighboring vertices.
+
+	"""
 	neighbors: Dict[str, Set[str]] = {name: set() for name in graph.vertices}
 	for edge in graph.edges.values():
 		neighbors[edge.source].add(edge.target)
@@ -21,7 +54,26 @@ def _neighbors(graph: Graph) -> Dict[str, Set[str]]:
 
 
 def independent_sets(graph: Graph) -> IndependentSetsResult:
-	"""Compute all, maximal, and maximum independent sets."""
+	"""Compute all independent-set families of a graph.
+
+	Enumerate every subset of vertices and determine whether it forms
+	an independent set, meaning that no two vertices in the subset are
+	adjacent. From the complete collection, derive:
+
+	- All independent sets.
+	- Maximum independent sets.
+	- Maximal independent sets.
+	- The independence number.
+
+	Args:
+		graph: Graph whose independent sets will be computed.
+
+	Returns:
+		IndependentSetsResult: Object containing all independent sets,
+		maximal independent sets, maximum independent sets, and the
+		independence number.
+
+	"""
 	vertices = sorted(graph.vertices)
 	neighbors = _neighbors(graph)
 	all_sets: List[List[str]] = []
