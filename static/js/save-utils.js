@@ -8,6 +8,31 @@
 (function() {
   "use strict";
 
+  function translateStructureError(message) {
+    const text = String(message || '').trim();
+    const normalized = text.toLowerCase();
+    const translations = [
+      ['snapshot type mismatch', 'El tipo de estructura no coincide'],
+      ['graph already exists', 'El grafo ya existe'],
+      ['graph not found', 'No se encontró la estructura'],
+      ['graph does not exist', 'No se encontró la estructura'],
+      ['bad request', 'Solicitud incorrecta'],
+      ['internal server error', 'Error interno del servidor'],
+      ['failed to fetch', 'No se pudo conectar con el servidor'],
+      ['no file selected', 'No se seleccionó ningún archivo'],
+      ['file selection cancelled', 'Selección de archivo cancelada'],
+      ['error exporting structure', 'Error al exportar la estructura'],
+      ['error loading structure', 'Error al cargar la estructura'],
+      ['error saving', 'Error al guardar'],
+    ];
+
+    for (const [needle, replacement] of translations) {
+      if (normalized.includes(needle)) return replacement;
+    }
+
+    return text;
+  }
+
   /**
    * Export structure state via API endpoint.
    * @param {string} endpoint - API endpoint (e.g., '/binary-search/export')
@@ -29,7 +54,7 @@
       
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.detail || 'Error exporting structure');
+        throw new Error(translateStructureError(error.detail || error.message || 'Error exporting structure'));
       }
 
       return await response.json();
@@ -75,7 +100,7 @@
       }
     } catch (error) {
       if (window.notifyError) {
-        window.notifyError(error.message || 'Error al guardar');
+        window.notifyError(translateStructureError(error.message || 'Error al guardar'));
       }
       throw error;
     }
@@ -94,7 +119,7 @@
       input.onchange = async (e) => {
         try {
           const file = e.target.files[0];
-          if (!file) throw new Error('No file selected');
+          if (!file) throw new Error('No se seleccionó ningún archivo');
           
           const text = await file.text();
           const data = JSON.parse(text);
@@ -104,7 +129,7 @@
         }
       };
       
-      input.oncancel = () => reject(new Error('File selection cancelled'));
+      input.oncancel = () => reject(new Error('Selección de archivo cancelada'));
       input.click();
     });
   }
@@ -174,7 +199,7 @@
       }
     } catch (error) {
       if (window.notifyError) {
-        window.notifyError(error.message || 'Error al guardar');
+        window.notifyError(translateStructureError(error.message || 'Error al guardar'));
       }
       throw error;
     }
@@ -197,7 +222,7 @@
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.detail || 'Error loading structure');
+        throw new Error(translateStructureError(error.detail || error.message || 'Error loading structure'));
       }
 
       return await response.json();

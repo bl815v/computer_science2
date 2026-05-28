@@ -79,7 +79,13 @@
       const blocksPerIndex = Math.ceil(b / b_i);
       const indexBlocksToShow = getIndexBlocksToShow(b_i);
       const dataBlocksToShow = getDataBlocksForIndexes(indexBlocksToShow, b_i, b, blocksPerIndex);
-      structuresHtml += generateIndexColumn(b_i, bfr_i, index_record_length, indexBlocksToShow, { totalTargetBlocks: b, blocksPerIndex, levelLabel: 'Índice' });
+      structuresHtml += generateIndexColumn(b_i, bfr_i, index_record_length, indexBlocksToShow, {
+        totalTargetBlocks: b,
+        blocksPerIndex,
+        levelLabel: 'Índice',
+        showFullIndexRanges: type === "secondary",
+        totalEntries: r,
+      });
       structuresHtml += generateDataColumn(b, bfr, record_length, dataBlocksToShow, { totalRecords: r, recordsPerBlock: bfr });
     } else if (levels && levels.length > 0) {
       for (let i = 0; i < levels.length; i++) {
@@ -91,6 +97,7 @@
           totalTargetBlocks: targetBlocks,
           blocksPerIndex,
           levelLabel: `Nivel ${i + 1}`,
+          isMultilevel: true,
           isLastLevel: i === levels.length - 1,
         });
       }
@@ -139,15 +146,24 @@
       if (i > 0 && blockNum > blocksToShow[i-1] + 1) {
         cellsHtml += `<div class="cell dots">...</div>`;
       }
-      const firstEntryBlock = (blockNum - 1) * extra.blocksPerIndex + 1;
-      const lastEntryBlock = Math.min(blockNum * extra.blocksPerIndex, extra.totalTargetBlocks);
+      const range = extra.showFullIndexRanges || extra.isMultilevel
+        ? {
+            start: (blockNum - 1) * entriesPerBlock + 1,
+            end: blockNum * entriesPerBlock,
+          }
+        : {
+            start: (blockNum - 1) * extra.blocksPerIndex + 1,
+            end: Math.min(blockNum * extra.blocksPerIndex, extra.totalTargetBlocks),
+          };
       cellsHtml += `<div class="cell index-cell" data-block="${blockNum}" 
-                    data-first-entry-block="${firstEntryBlock}" 
-                    data-last-entry-block="${lastEntryBlock}">
+                    data-first-entry-block="${range.start}" 
+                    data-last-entry-block="${range.end}" 
+                    data-arrow-first-block="${range.start}" 
+                    data-arrow-last-block="${range.end}">
                       <div><strong>${prefix}${formatNumber(blockNum)}</strong></div>
                       <div style="font-size: 10px; color: var(--ms-muted);">${entriesPerBlock} entradas</div>
-                      <span class="range-start top-right">${formatNumber(firstEntryBlock)}</span>
-                      <span class="range-end bottom-right">${formatNumber(lastEntryBlock)}</span>
+                      <span class="range-start top-right">${formatNumber(range.start)}</span>
+                      <span class="range-end bottom-right">${formatNumber(range.end)}</span>
                     </div>`;
     }
     return `<div class="structure-column" data-structure-type="${title}">
@@ -169,21 +185,22 @@
         cellsHtml += `<div class="cell dots">...</div>`;
       }
       if (blockNum === totalDataBlocks) {
-        const startRecord = totalRecords - recordsPerBlockFull + 1;
+        const startRecord = (blockNum - 1) * recordsPerBlockFull + 1;
         const endRecord = totalRecords;
+        const visibleRecords = Math.max(0, endRecord - startRecord + 1);
         cellsHtml += `<div class="cell data-cell" data-block="${blockNum}">
                         <div><strong>${prefix}${formatNumber(blockNum)}</strong></div>
-                        <div style="font-size: 10px; color: var(--ms-muted);">${entriesPerBlock} registros</div>
+                        <div style="font-size: 10px; color: var(--ms-muted);">${visibleRecords} registros</div>
                         <span class="range-start top-left">${formatNumber(startRecord)}</span>
                         <span class="range-end bottom-left">${formatNumber(endRecord)}</span>
                       </div>`;
       } else {
-        const recordsInThisBlock = recordsPerBlockFull;
         const startRecord = (blockNum - 1) * recordsPerBlockFull + 1;
-        const endRecord = startRecord + recordsInThisBlock - 1;
+        const endRecord = Math.min(blockNum * recordsPerBlockFull, totalRecords);
+        const visibleRecords = Math.max(0, endRecord - startRecord + 1);
         cellsHtml += `<div class="cell data-cell" data-block="${blockNum}">
                         <div><strong>${prefix}${formatNumber(blockNum)}</strong></div>
-                        <div style="font-size: 10px; color: var(--ms-muted);">${entriesPerBlock} registros</div>
+                        <div style="font-size: 10px; color: var(--ms-muted);">${visibleRecords} registros</div>
                         <span class="range-start top-left">${formatNumber(startRecord)}</span>
                         <span class="range-end bottom-left">${formatNumber(endRecord)}</span>
                       </div>`;
@@ -243,16 +260,41 @@
 
       const idxCells = Array.from(idxCol.querySelectorAll('.cell:not(.dots)'));
       for (const idxCell of idxCells) {
-        const firstBlock = parseInt(idxCell.dataset.firstEntryBlock, 10);
-        const lastBlock = parseInt(idxCell.dataset.lastEntryBlock, 10);
-        if (!isNaN(firstBlock) && targetMap.has(firstBlock)) {
-          drawArrowBetween(ctx, idxCell, targetMap.get(firstBlock), container, 'top');
+        const firstBlock = parseInt(idxCell.dataset.arrowFirstBlock || idxCell.dataset.firstEntryBlock, 10);
+        const lastBlock = parseInt(idxCell.dataset.arrowLastBlock || idxCell.dataset.lastEntryBlock, 10);
+        const firstTargetCell = findTargetCellForBlock(targetCells, targetMap, firstBlock);
+        const lastTargetCell = findTargetCellForBlock(targetCells, targetMap, lastBlock);
+        if (firstTargetCell) {
+          drawArrowBetween(ctx, idxCell, firstTargetCell, container, 'top');
         }
-        if (!isNaN(lastBlock) && targetMap.has(lastBlock)) {
-          drawArrowBetween(ctx, idxCell, targetMap.get(lastBlock), container, 'bottom');
+        if (lastTargetCell && lastTargetCell !== firstTargetCell) {
+          drawArrowBetween(ctx, idxCell, lastTargetCell, container, 'bottom');
         }
       }
     }
+  }
+
+  function findTargetCellForBlock(targetCells, targetMap, blockNum) {
+    if (isNaN(blockNum)) return null;
+    if (targetMap.has(blockNum)) return targetMap.get(blockNum);
+
+    let fallbackCell = null;
+    let smallestSpan = Number.POSITIVE_INFINITY;
+
+    for (const cell of targetCells) {
+      const start = parseInt(cell.dataset.firstEntryBlock, 10);
+      const end = parseInt(cell.dataset.lastEntryBlock, 10);
+      if (isNaN(start) || isNaN(end)) continue;
+      if (blockNum >= start && blockNum <= end) {
+        const span = end - start;
+        if (span < smallestSpan) {
+          fallbackCell = cell;
+          smallestSpan = span;
+        }
+      }
+    }
+
+    return fallbackCell;
   }
 
   function drawArrowBetween(ctx, fromCell, toCell, container, position = 'top') {

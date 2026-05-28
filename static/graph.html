@@ -6,9 +6,11 @@
         <h2>Grafo A</h2>
         <label>Id del grafo</label>
         <input id="graphA-id" list="graph-id-list" type="text" placeholder="grafoA" autocomplete="off" />
-        <div class="toggle-row">
+        <div class="toggle-row direction-row">
           <label><input id="graphA-directed" type="checkbox" /> Dirigido</label>
           <label><input id="graphA-weighted" type="checkbox" /> Ponderado</label>
+          <span class="direction-status" id="graphA-direction-status">No dirigido</span>
+          <span class="direction-status weight-status" id="graphA-weight-status">No ponderado</span>
         </div>
         <label>Vértices (uno por línea o separados por comas)</label>
         <textarea id="graphA-vertices" placeholder="A, B, C"></textarea>
@@ -51,9 +53,11 @@
         <h2>Grafo B</h2>
         <label>Id del grafo</label>
         <input id="graphB-id" list="graph-id-list" type="text" placeholder="grafoB" autocomplete="off" />
-        <div class="toggle-row">
+        <div class="toggle-row direction-row">
           <label><input id="graphB-directed" type="checkbox" /> Dirigido</label>
           <label><input id="graphB-weighted" type="checkbox" /> Ponderado</label>
+          <span class="direction-status" id="graphB-direction-status">No dirigido</span>
+          <span class="direction-status weight-status" id="graphB-weight-status">No ponderado</span>
         </div>
         <label>Vértices (uno por línea o separados por comas)</label>
         <textarea id="graphB-vertices" placeholder="1, 2, 3"></textarea>
@@ -92,7 +96,7 @@
         </div>
       </section>
 
-      <section class="panel">
+      <section class="panel" id="operations-panel">
         <h2>Operación</h2>
         <label>Tipo de operación</label>
         <select id="operation-select">
@@ -134,17 +138,21 @@
           <button id="reset-all" class="danger">Reiniciar vista</button>
         </div>
 
-        <div id="matrix-view-row">
-          <label>Ver matriz</label>
-          <select id="matrix-view-select">
-            <option value="">Resumen</option>
-            <option value="incidence">Incidencia</option>
-            <option value="vertex-adjacency">Adyacencia de vértices</option>
-            <option value="edge-adjacency">Adyacencia de aristas</option>
-          </select>
-        </div>
-
         <p id="unary-note" class="unary-note">El complemento sólo usa Grafo A. Grafo B se mantiene inactivo.</p>
+      </section>
+
+      <section class="panel matrices-panel" id="matrices-panel" style="display: none;">
+        <h2>Matrices</h2>
+        <div class="matrix-toolbar">
+          <div class="matrix-select-group">
+            <label>Grafo</label>
+            <select id="matrix-graph-select"></select>
+          </div>
+          <button id="matrix-refresh" class="secondary" type="button">Actualizar</button>
+        </div>
+        <div id="matrix-tabs" class="matrix-tabs"></div>
+        <div id="matrix-status" class="matrix-status"></div>
+        <div id="matrix-output" class="matrix-output"></div>
       </section>
       <datalist id="graph-id-list"></datalist>
     </aside>

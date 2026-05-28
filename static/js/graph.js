@@ -25,7 +25,36 @@ const GRAPH_CATEGORY_TOOLSETS = {
     { value: 'vertex-coloring', label: 'Coloreado de vértices' },
     { value: 'edge-coloring', label: 'Coloreado de aristas' },
   ],
+  matrices: [
+    { value: 'incidence', label: 'Incidencia' },
+    { value: 'vertex-adjacency', label: 'Adyacencia de vértices' },
+    { value: 'edge-adjacency', label: 'Adyacencia de aristas' },
+  ],
 };
+
+const GRAPH_MATRIX_DEFINITIONS = [
+  {
+    key: 'incidence',
+    label: 'Incidencia',
+    title: 'Matriz de incidencia',
+    rowTitle: 'Vértice',
+    endpoint: 'incidence',
+  },
+  {
+    key: 'vertex-adjacency',
+    label: 'Adyacencia de vértices',
+    title: 'Matriz de adyacencia de vértices',
+    rowTitle: 'Vértice',
+    endpoint: 'vertex-adjacency',
+  },
+  {
+    key: 'edge-adjacency',
+    label: 'Adyacencia de aristas',
+    title: 'Matriz de adyacencia de aristas',
+    rowTitle: 'Arista',
+    endpoint: 'edge-adjacency',
+  },
+];
 
 const cyInstances = {
   'graphA-container': null,
@@ -37,6 +66,14 @@ const graphEditState = {
   A: { graphId: null, graph: null },
   B: { graphId: null, graph: null },
   Result: { graphId: null, graph: null, detail: null },
+};
+
+const matrixExplorerState = {
+  graphId: '',
+  activeKey: 'incidence',
+  loading: false,
+  error: '',
+  matrices: {},
 };
 
 function getGraphCategory() {
@@ -65,12 +102,47 @@ function needsResultIdentifier(category) {
   return category === 'operations';
 }
 
+function getEditableGraphId(side) {
+  const state = graphEditState[side];
+  const selectedGraphId = document.getElementById(`graph${side}-select`)?.value?.trim() || '';
+  const inputGraphId = document.getElementById(`graph${side}-id`)?.value?.trim() || '';
+  return state.graphId || selectedGraphId || inputGraphId;
+}
+
+function updateDirectionStatus(side, directed) {
+  const status = document.getElementById(`graph${side}-direction-status`);
+  if (status) {
+    status.textContent = directed ? 'Dirigido' : 'No dirigido';
+  }
+}
+
+function syncGraphControlState(side, graph) {
+  if (!graph) return;
+
+  const directedField = document.getElementById(`graph${side}-directed`);
+  const weightedField = document.getElementById(`graph${side}-weighted`);
+
+  if (directedField) directedField.checked = !!graph.directed;
+  if (weightedField) weightedField.checked = !!graph.weighted;
+  updateDirectionStatus(side, !!graph.directed);
+  updateWeightedStatus(side, !!graph.weighted);
+}
+
+function updateWeightedStatus(side, weighted) {
+  const status = document.getElementById(`graph${side}-weight-status`);
+  if (status) {
+    status.textContent = weighted ? 'Ponderado' : 'No ponderado';
+  }
+}
+
 function initSimulator() {
   bindEvents();
+  updateLayoutToggleIcon(document.getElementById('graph-layout-toggle'), document.getElementById('graph-cards')?.classList.contains('full-width'));
   updateOperationInterface();
   clearPreview('A');
   clearPreview('B');
   clearResultPreview();
+  renderMatrixExplorer();
   refreshGraphSelectors();
   ensureCytoscape().catch(() => {
     logError('No se pudo cargar la librería de visualización. Asegúrate de tener acceso a internet.');
@@ -87,6 +159,9 @@ async function refreshGraphStructure() {
   updateOperationInterface();
   await refreshGraphSelectors();
   refreshRenderedGraphs();
+  if (getGraphCategory() === 'matrices') {
+    await renderMatrixExplorer();
+  }
 }
 
 window.initSimulator = initSimulator;
@@ -113,6 +188,14 @@ function bindEvents() {
   document.getElementById('graphA-id').addEventListener('input', () => loadInputGraphIfExists('A'));
   document.getElementById('graphB-id').addEventListener('input', () => loadInputGraphIfExists('B'));
   document.getElementById('graph-layout-toggle').addEventListener('click', toggleGraphLayout);
+  const graphADirected = document.getElementById('graphA-directed');
+  const graphBDirected = document.getElementById('graphB-directed');
+  if (graphADirected) graphADirected.addEventListener('change', () => handleGraphDirectionChange('A'));
+  if (graphBDirected) graphBDirected.addEventListener('change', () => handleGraphDirectionChange('B'));
+  const graphAWeighted = document.getElementById('graphA-weighted');
+  const graphBWeighted = document.getElementById('graphB-weighted');
+  if (graphAWeighted) graphAWeighted.addEventListener('change', () => handleGraphWeightChange('A'));
+  if (graphBWeighted) graphBWeighted.addEventListener('change', () => handleGraphWeightChange('B'));
 
   const edgeNameToggle = document.getElementById('edge-label-name-toggle');
   const edgeWeightToggle = document.getElementById('edge-label-weight-toggle');
@@ -138,11 +221,17 @@ function bindEvents() {
 
   const matrixSelect = document.getElementById('matrix-view-select');
   if (matrixSelect) matrixSelect.addEventListener('change', renderStoredResultDetails);
+  const matrixGraphSelect = document.getElementById('matrix-graph-select');
+  if (matrixGraphSelect) matrixGraphSelect.addEventListener('change', () => renderMatrixExplorer());
+  const matrixRefresh = document.getElementById('matrix-refresh');
+  if (matrixRefresh) matrixRefresh.addEventListener('click', () => renderMatrixExplorer(true));
 }
 
 function updateOperationInterface() {
   const category = getGraphCategory();
   const select = document.getElementById('operation-select');
+  const operationsPanel = document.getElementById('operations-panel');
+  const matricesPanel = document.getElementById('matrices-panel');
   const graphBRow = document.getElementById('graphB-selector-row');
   const label = document.getElementById('execute-label');
   const unaryNote = document.getElementById('unary-note');
@@ -152,6 +241,23 @@ function updateOperationInterface() {
   const resultRow = document.getElementById('graph-result-row');
   const matrixRow = document.getElementById('matrix-view-row');
   const edgeLabelRow = document.getElementById('edge-label-options-row');
+
+  if (operationsPanel) operationsPanel.style.display = category === 'matrices' ? 'none' : 'block';
+  if (matricesPanel) matricesPanel.style.display = category === 'matrices' ? 'grid' : 'none';
+
+  if (category === 'matrices') {
+    if (graphBRow) graphBRow.style.display = 'none';
+    if (graphBPanel) graphBPanel.style.display = 'none';
+    if (graphBCard) graphBCard.style.display = 'none';
+    if (pathParamsRow) pathParamsRow.style.display = 'none';
+    if (resultRow) resultRow.style.display = 'none';
+    if (matrixRow) matrixRow.style.display = 'none';
+    if (edgeLabelRow) edgeLabelRow.style.display = 'none';
+    if (unaryNote) unaryNote.style.display = 'none';
+    if (label) label.textContent = 'Grafo A';
+    renderMatrixExplorer();
+    return;
+  }
 
   populateOperationOptions(getGraphToolset(category));
 
@@ -166,7 +272,7 @@ function updateOperationInterface() {
   if (graphBCard) graphBCard.style.display = showGraphBEditor ? 'block' : 'none';
   if (pathParamsRow) pathParamsRow.style.display = showPathParams ? 'grid' : 'none';
   if (resultRow) resultRow.style.display = showResultIdentifier ? 'block' : 'none';
-  if (matrixRow) matrixRow.style.display = category === 'operations' ? 'block' : 'none';
+  if (matrixRow) matrixRow.style.display = 'none';
   if (edgeLabelRow) edgeLabelRow.style.display = showEdgeLabels ? 'flex' : 'none';
 
   if (unaryNote) {
@@ -207,8 +313,18 @@ async function refreshGraphSelectors() {
     const graphs = Array.isArray(state.graphs) ? state.graphs : [];
     populateSelect('graphA-select', graphs);
     populateSelect('graphB-select', graphs);
+    populateSelect('matrix-graph-select', graphs);
     populateGraphIdDatalist(graphs);
     logStatus('Lista de grafos actualizada.');
+    if (getGraphCategory() === 'matrices') {
+      const matrixSelect = document.getElementById('matrix-graph-select');
+      const preferredGraphId = matrixSelect?.value || document.getElementById('graphA-select')?.value || '';
+      if (matrixSelect && preferredGraphId) {
+        const hasOption = Array.from(matrixSelect.options).some(option => option.value === preferredGraphId);
+        if (hasOption) matrixSelect.value = preferredGraphId;
+      }
+      await renderMatrixExplorer();
+    }
   } catch (error) {
     logError(error.message);
   }
@@ -320,7 +436,7 @@ function toggleGraphLayout() {
   const button = document.getElementById('graph-layout-toggle');
   if (!cards) return;
   cards.classList.toggle('full-width');
-  if (button) button.textContent = cards.classList.contains('full-width') ? '<->' : '↕';
+  updateLayoutToggleIcon(button, cards.classList.contains('full-width'));
 }
 
 function refreshRenderedGraphs() {
@@ -332,6 +448,7 @@ function refreshRenderedGraphs() {
 function setGraphState(side, graph) {
   graphEditState[side].graphId = graph.graph_id;
   graphEditState[side].graph = graph;
+  syncGraphControlState(side, graph);
   updateGraphEditors(side, graph);
 }
 
@@ -426,6 +543,9 @@ async function updateGraphEdge(side) {
       renderGraph(updated, `graph${side}-container`);
       setSummary(side, updated);
       syncEdgeEditor(side);
+      if (getGraphCategory() === 'matrices') {
+        await renderMatrixExplorer(true);
+      }
     }
 
     logStatus(`Arista ${payload.original.name} actualizada en ${graphId}.`);
@@ -547,6 +667,9 @@ async function createGraph(side) {
       setGraphState(side, updated);
       renderGraph(updated, `graph${side}-container`);
       setSummary(side, updated);
+      if (getGraphCategory() === 'matrices') {
+        await renderMatrixExplorer(true);
+      }
     }
     logStatus(`Grafo ${side} actualizado con ${vertices.length} vértices y ${edges.length} aristas.`);
     document.getElementById(`graph${side}-select`).value = graphId;
@@ -607,6 +730,9 @@ async function deleteGraphVertex(side) {
       setGraphState(side, updated);
       renderGraph(updated, containerId);
       setSummary(side, updated);
+      if (getGraphCategory() === 'matrices') {
+        await renderMatrixExplorer(true);
+      }
     }
     logStatus(`Vértice ${vertex} borrado de ${graphId}.`);
     // limpiar inputs/select solo tras éxito
@@ -644,6 +770,9 @@ async function deleteGraphEdge(side) {
       setGraphState(side, updated);
       renderGraph(updated, containerId);
       setSummary(side, updated);
+      if (getGraphCategory() === 'matrices') {
+        await renderMatrixExplorer(true);
+      }
     }
     logStatus(`Arista ${edge} borrada de ${graphId}.`);
     // limpiar inputs/select solo tras éxito
@@ -808,6 +937,392 @@ async function executeOperation() {
   }
 }
 
+function createEmptyState(message, className = 'matrix-empty') {
+  const block = document.createElement('div');
+  block.className = className;
+  block.textContent = message;
+  return block;
+}
+
+function formatMatrixCellValue(value) {
+  if (value === Infinity) return '∞';
+  if (value === -Infinity) return '-∞';
+  if (value === null || value === undefined) return '—';
+  return String(value);
+}
+
+function createTabbedPanel(tabs, initialKey, tabClassName = 'matrix-tab') {
+  const wrapper = document.createElement('div');
+  const tabBar = document.createElement('div');
+  tabBar.className = 'matrix-tabs';
+  const content = document.createElement('div');
+  content.className = 'matrix-output';
+
+  let activeKey = initialKey || tabs[0]?.key || '';
+
+  const renderContent = () => {
+    content.innerHTML = '';
+    const activeTab = tabs.find(tab => tab.key === activeKey) || tabs[0];
+    if (!activeTab) {
+      content.appendChild(createEmptyState('No hay información disponible.'));
+      return;
+    }
+
+    const rendered = typeof activeTab.render === 'function' ? activeTab.render() : null;
+    if (rendered) {
+      content.appendChild(rendered);
+    } else {
+      content.appendChild(createEmptyState('No hay información disponible.'));
+    }
+
+    tabBar.querySelectorAll('button').forEach(button => {
+      button.classList.toggle('active', button.dataset.key === activeKey);
+    });
+  };
+
+  tabs.forEach(tab => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = tabClassName;
+    button.dataset.key = tab.key;
+    button.textContent = tab.label;
+    button.addEventListener('click', () => {
+      activeKey = tab.key;
+      renderContent();
+      if (typeof tab.onSelect === 'function') {
+        tab.onSelect(tab.key);
+      }
+    });
+    tabBar.appendChild(button);
+  });
+
+  wrapper.appendChild(tabBar);
+  wrapper.appendChild(content);
+  renderContent();
+
+  return wrapper;
+}
+
+function createMatrixTableFromData(matrixData) {
+  if (!matrixData || !Array.isArray(matrixData.rows) || !Array.isArray(matrixData.columns) || !Array.isArray(matrixData.matrix)) {
+    return createEmptyState('La matriz no tiene un formato válido.');
+  }
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'graph-info-classes';
+  const heading = document.createElement('strong');
+  heading.textContent = matrixData.title;
+  wrapper.appendChild(heading);
+
+  const table = document.createElement('table');
+  table.className = 'graph-info-table';
+
+  const headerRow = document.createElement('tr');
+  const corner = document.createElement('th');
+  corner.textContent = matrixData.rowTitle;
+  headerRow.appendChild(corner);
+  matrixData.columns.forEach(label => {
+    const th = document.createElement('th');
+    th.textContent = label;
+    headerRow.appendChild(th);
+  });
+  table.appendChild(headerRow);
+
+  matrixData.rows.forEach((label, rowIndex) => {
+    const row = document.createElement('tr');
+    const rowLabel = document.createElement('th');
+    rowLabel.textContent = label;
+    row.appendChild(rowLabel);
+    (matrixData.matrix[rowIndex] || []).forEach(value => {
+      const cell = document.createElement('td');
+      cell.textContent = formatMatrixCellValue(value);
+      row.appendChild(cell);
+    });
+    table.appendChild(row);
+  });
+
+  wrapper.appendChild(table);
+  return wrapper;
+}
+
+function normalizeMatrixPayload(matrixData, title, rowTitle) {
+  if (!matrixData) return null;
+  const rows = Array.isArray(matrixData.rows) ? matrixData.rows : Array.isArray(matrixData.vertex_labels) ? matrixData.vertex_labels : [];
+  const columns = Array.isArray(matrixData.cols) ? matrixData.cols : Array.isArray(matrixData.columns) ? matrixData.columns : rows;
+  const matrix = Array.isArray(matrixData.matrix) ? matrixData.matrix : [];
+  if (!rows.length || !columns.length || !matrix.length) return null;
+
+  return {
+    title,
+    rowTitle,
+    rows,
+    columns,
+    matrix,
+  };
+}
+
+async function handleGraphDirectionChange(side) {
+  const checkbox = document.getElementById(`graph${side}-directed`);
+  const desiredDirected = !!checkbox?.checked;
+  updateDirectionStatus(side, desiredDirected);
+
+  const graphId = getEditableGraphId(side);
+  if (!graphId) {
+    return;
+  }
+
+  const currentGraph = graphEditState[side].graph?.graph_id === graphId
+    ? graphEditState[side].graph
+    : await loadGraphFromState(graphId);
+
+  if (!currentGraph) {
+    return;
+  }
+
+  if (currentGraph.directed === desiredDirected) {
+    return;
+  }
+
+  try {
+    await persistGraphDirection(graphId, desiredDirected);
+    await refreshGraphSelectors();
+    await refreshGraphViewForGraph(graphId);
+    if (getGraphCategory() === 'matrices') {
+      await renderMatrixExplorer(true);
+    }
+    logStatus(`Grafo ${graphId} cambiado a ${desiredDirected ? 'dirigido' : 'no dirigido'}.`);
+  } catch (error) {
+    logError(`No se pudo cambiar la dirección del grafo: ${error.message}`);
+    if (checkbox) checkbox.checked = !desiredDirected;
+    updateDirectionStatus(side, !desiredDirected);
+  }
+}
+
+async function handleGraphWeightChange(side) {
+  const checkbox = document.getElementById(`graph${side}-weighted`);
+  const desiredWeighted = !!checkbox?.checked;
+  updateWeightedStatus(side, desiredWeighted);
+
+  const graphId = getEditableGraphId(side);
+  if (!graphId) {
+    return;
+  }
+
+  const currentGraph = graphEditState[side].graph?.graph_id === graphId
+    ? graphEditState[side].graph
+    : await loadGraphFromState(graphId);
+
+  if (!currentGraph) {
+    return;
+  }
+
+  if (currentGraph.weighted === desiredWeighted) {
+    return;
+  }
+
+  try {
+    await persistGraphWeight(graphId, desiredWeighted);
+    await refreshGraphSelectors();
+    await refreshGraphViewForGraph(graphId);
+    logStatus(`Grafo ${graphId} cambiado a ${desiredWeighted ? 'ponderado' : 'no ponderado'}.`);
+  } catch (error) {
+    logError(`No se pudo cambiar la ponderación del grafo: ${error.message}`);
+    if (checkbox) checkbox.checked = !desiredWeighted;
+    updateWeightedStatus(side, !desiredWeighted);
+  }
+}
+
+async function persistGraphDirection(graphId, directed) {
+  const snapshot = await fetchJSON(`${GRAPH_API_BASE}/export`, { method: 'POST' });
+  const graphs = Array.isArray(snapshot?.state?.graphs) ? snapshot.state.graphs : [];
+  const targetGraph = graphs.find(graph => graph.graph_id === graphId);
+  if (!targetGraph) {
+    throw new Error(`No se encontró el grafo ${graphId}.`);
+  }
+
+  targetGraph.directed = directed;
+  targetGraph.edges = Array.isArray(targetGraph.edges)
+    ? targetGraph.edges.map(edge => ({ ...edge, directed }))
+    : [];
+
+  await fetchJSON(`${GRAPH_API_BASE}/import`, {
+    method: 'POST',
+    body: JSON.stringify({ snapshot }),
+  });
+}
+
+async function persistGraphWeight(graphId, weighted) {
+  const snapshot = await fetchJSON(`${GRAPH_API_BASE}/export`, { method: 'POST' });
+  const graphs = Array.isArray(snapshot?.state?.graphs) ? snapshot.state.graphs : [];
+  const targetGraph = graphs.find(graph => graph.graph_id === graphId);
+  if (!targetGraph) {
+    throw new Error(`No se encontró el grafo ${graphId}.`);
+  }
+
+  targetGraph.weighted = weighted;
+
+  await fetchJSON(`${GRAPH_API_BASE}/import`, {
+    method: 'POST',
+    body: JSON.stringify({ snapshot }),
+  });
+}
+
+async function refreshGraphViewForGraph(graphId) {
+  for (const side of ['A', 'B']) {
+    const sideSelect = document.getElementById(`graph${side}-select`);
+    const shouldRefresh = graphEditState[side].graphId === graphId || sideSelect?.value === graphId;
+    if (!shouldRefresh) continue;
+
+    const updated = await loadGraphFromState(graphId);
+    if (!updated) continue;
+
+    setGraphState(side, updated);
+    renderGraph(updated, `graph${side}-container`);
+    setSummary(side, updated);
+  }
+
+  if (graphEditState.Result.graphId === graphId) {
+    const updated = await loadGraphFromState(graphId);
+    if (updated) {
+      graphEditState.Result.graph = updated;
+      renderGraph(updated, 'graphResult-container');
+      setSummary('Result', updated);
+    }
+  }
+
+  refreshRenderedGraphs();
+}
+
+async function renderMatrixExplorer(forceRefresh = false) {
+  const panel = document.getElementById('matrices-panel');
+  const output = document.getElementById('matrix-output');
+  const tabsContainer = document.getElementById('matrix-tabs');
+  const status = document.getElementById('matrix-status');
+  const matrixSelect = document.getElementById('matrix-graph-select');
+
+  if (!panel || panel.style.display === 'none') {
+    return;
+  }
+
+  const selectedGraphId = matrixSelect?.value || document.getElementById('graphA-select')?.value || matrixExplorerState.graphId || '';
+  if (matrixSelect && selectedGraphId && matrixSelect.value !== selectedGraphId) {
+    matrixSelect.value = selectedGraphId;
+  }
+
+  if (!selectedGraphId) {
+    matrixExplorerState.graphId = '';
+    matrixExplorerState.error = '';
+    matrixExplorerState.loading = false;
+    matrixExplorerState.matrices = {};
+    if (tabsContainer) tabsContainer.innerHTML = '';
+    if (status) status.textContent = 'Selecciona un grafo para ver sus matrices.';
+    if (output) {
+      output.innerHTML = '';
+      output.appendChild(createEmptyState('No hay grafo seleccionado.'));
+    }
+    return;
+  }
+
+  if (!forceRefresh && matrixExplorerState.graphId === selectedGraphId && Object.keys(matrixExplorerState.matrices).length) {
+    renderMatrixExplorerContent();
+    return;
+  }
+
+  matrixExplorerState.graphId = selectedGraphId;
+  matrixExplorerState.loading = true;
+  matrixExplorerState.error = '';
+  matrixExplorerState.matrices = {};
+  if (status) status.textContent = 'Cargando matrices...';
+  if (output) {
+    output.innerHTML = '';
+    output.appendChild(createEmptyState('Cargando matrices...', 'matrix-loading'));
+  }
+
+  const responses = await Promise.allSettled(
+    GRAPH_MATRIX_DEFINITIONS.map(definition =>
+      fetchJSON(`${GRAPH_API_BASE}/${encodeURIComponent(selectedGraphId)}/matrices/${definition.endpoint}`, { method: 'GET' })
+        .then(payload => ({ key: definition.key, payload }))
+    )
+  );
+
+  const matrices = {};
+  const errors = [];
+
+  responses.forEach((result, index) => {
+    const definition = GRAPH_MATRIX_DEFINITIONS[index];
+    if (result.status === 'fulfilled') {
+      matrices[definition.key] = result.value.payload;
+    } else {
+      const message = result.reason?.message || 'No se pudo cargar la matriz.';
+      matrices[definition.key] = { error: message };
+      errors.push(`${definition.label}: ${message}`);
+    }
+  });
+
+  matrixExplorerState.loading = false;
+  matrixExplorerState.matrices = matrices;
+  matrixExplorerState.error = errors.length === GRAPH_MATRIX_DEFINITIONS.length ? errors.join(' | ') : '';
+
+  renderMatrixExplorerContent();
+}
+
+function renderMatrixExplorerContent() {
+  const output = document.getElementById('matrix-output');
+  const tabsContainer = document.getElementById('matrix-tabs');
+  const status = document.getElementById('matrix-status');
+  if (!output || !tabsContainer || !status) return;
+
+  const definitions = GRAPH_MATRIX_DEFINITIONS.map(definition => ({
+    ...definition,
+    data: matrixExplorerState.matrices[definition.key],
+  }));
+
+  tabsContainer.innerHTML = '';
+  output.innerHTML = '';
+
+  if (matrixExplorerState.loading) {
+    status.textContent = 'Cargando matrices...';
+    output.appendChild(createEmptyState('Cargando matrices...', 'matrix-loading'));
+    return;
+  }
+
+  if (!definitions.some(definition => definition.data && !definition.data.error)) {
+    status.textContent = matrixExplorerState.error || 'No se encontraron matrices para este grafo.';
+    output.appendChild(createEmptyState(matrixExplorerState.error || 'No se encontraron matrices para este grafo.'));
+    return;
+  }
+
+  status.textContent = `Mostrando matrices de ${matrixExplorerState.graphId}.`;
+  const activeKey = definitions.some(definition => definition.key === matrixExplorerState.activeKey && definition.data && !definition.data.error)
+    ? matrixExplorerState.activeKey
+    : definitions.find(definition => definition.data && !definition.data.error)?.key || 'incidence';
+  matrixExplorerState.activeKey = activeKey;
+
+  const panel = createTabbedPanel(
+    definitions.map(definition => ({
+      key: definition.key,
+      label: definition.label,
+      onSelect: key => {
+        matrixExplorerState.activeKey = key;
+      },
+      render: () => {
+        if (!definition.data || definition.data.error) {
+          return createEmptyState(definition.data?.error || 'No se pudo cargar la matriz.', 'matrix-error');
+        }
+        const matrixData = normalizeMatrixPayload(definition.data, definition.title, definition.rowTitle);
+        if (!matrixData) {
+          return createEmptyState('La matriz no tiene datos válidos.', 'matrix-error');
+        }
+        return createMatrixTableFromData(matrixData);
+      },
+    })),
+    activeKey,
+    'matrix-tab'
+  );
+
+  output.appendChild(panel);
+}
+
 function renderResultPayload(operation, payload, visualization) {
   const container = document.getElementById('graphResult-container');
   const renderableGraph = visualization && Array.isArray(visualization.vertices) && Array.isArray(visualization.edges)
@@ -924,8 +1439,37 @@ function renderGraphInfo(operation, payload, graph) {
     }
   } else if (operation === 'floyd-warshall') {
     summaryRow.appendChild(createInfoCard('Vertices', graph && graph.vertices ? graph.vertices.length : 'N/A'));
+    summaryRow.appendChild(createInfoCard('Ciclo negativo', payload.negative_cycle_detected ? 'Sí' : 'No'));
     container.appendChild(summaryRow);
-    container.appendChild(createJsonBlock('Caminos mínimos', payload.shortest_paths || {}));
+    const vertexLabels = graph && Array.isArray(graph.vertices) ? graph.vertices.map(vertex => vertex.name) : [];
+    const distanceMatrix = normalizeMatrixPayload(
+      { rows: vertexLabels, cols: vertexLabels, matrix: payload.distance_matrix || [] },
+      'Matriz de distancias',
+      'Vértice'
+    );
+    const predecessorMatrix = normalizeMatrixPayload(
+      { rows: vertexLabels, cols: vertexLabels, matrix: payload.predecessor_matrix || [] },
+      'Matriz de predecesores',
+      'Vértice'
+    );
+    const floydTabs = createTabbedPanel([
+      {
+        key: 'distance',
+        label: 'Distancia',
+        render: () => distanceMatrix ? createMatrixTableFromData(distanceMatrix) : createEmptyState('No hay matriz de distancias disponible.'),
+      },
+      {
+        key: 'predecessor',
+        label: 'Predecesores',
+        render: () => predecessorMatrix ? createMatrixTableFromData(predecessorMatrix) : createEmptyState('No hay matriz de predecesores disponible.'),
+      },
+      {
+        key: 'paths',
+        label: 'Caminos',
+        render: () => createJsonBlock('Caminos mínimos', payload.shortest_paths || {}),
+      },
+    ], 'distance', 'matrix-tab');
+    container.appendChild(floydTabs);
   } else if (graph && Array.isArray(graph.vertices) && Array.isArray(graph.edges)) {
     summaryRow.appendChild(createInfoCard('Grafo resultante', graph.graph_id || 'resultado'));
     summaryRow.appendChild(createInfoCard('Vértices', graph.vertices.length));
@@ -958,15 +1502,8 @@ function renderOperationDetails(container, operation, payload, graph, summaryRow
   summaryRow.appendChild(createInfoCard('Dirigido', currentGraph?.directed ? 'Sí' : 'No'));
   summaryRow.appendChild(createInfoCard('Ponderado', currentGraph?.weighted ? 'Sí' : 'No'));
   container.appendChild(summaryRow);
-
-  const matrixType = document.getElementById('matrix-view-select')?.value || '';
-  if (matrixType && currentGraph) {
-    const matrixTable = createMatrixTable(currentGraph, matrixType);
-    if (matrixTable) container.appendChild(matrixTable);
-  } else {
-    const info = createOperationSummaryList(operation, payload, currentGraph);
-    if (info) container.appendChild(info);
-  }
+  const info = createOperationSummaryList(operation, payload, currentGraph);
+  if (info) container.appendChild(info);
 }
 
 function createOperationSummaryList(operation, payload, graph) {
@@ -995,42 +1532,7 @@ function createOperationSummaryList(operation, payload, graph) {
 function createMatrixTable(graph, matrixType) {
   const matrixData = getGraphMatrixData(graph, matrixType);
   if (!matrixData) return null;
-
-  const wrapper = document.createElement('div');
-  wrapper.className = 'graph-info-classes';
-  const heading = document.createElement('strong');
-  heading.textContent = matrixData.title;
-  wrapper.appendChild(heading);
-
-  const table = document.createElement('table');
-  table.className = 'graph-info-table';
-
-  const headerRow = document.createElement('tr');
-  const corner = document.createElement('th');
-  corner.textContent = matrixData.rowTitle;
-  headerRow.appendChild(corner);
-  matrixData.columns.forEach(label => {
-    const th = document.createElement('th');
-    th.textContent = label;
-    headerRow.appendChild(th);
-  });
-  table.appendChild(headerRow);
-
-  matrixData.rows.forEach((label, rowIndex) => {
-    const row = document.createElement('tr');
-    const rowLabel = document.createElement('th');
-    rowLabel.textContent = label;
-    row.appendChild(rowLabel);
-    matrixData.matrix[rowIndex].forEach(value => {
-      const cell = document.createElement('td');
-      cell.textContent = String(value);
-      row.appendChild(cell);
-    });
-    table.appendChild(row);
-  });
-
-  wrapper.appendChild(table);
-  return wrapper;
+  return createMatrixTableFromData(matrixData);
 }
 
 function getGraphMatrixData(graph, matrixType) {
@@ -1207,6 +1709,8 @@ function clearGraphForm(side) {
   document.getElementById(`graph${side}-id`).value = '';
   document.getElementById(`graph${side}-directed`).checked = false;
   document.getElementById(`graph${side}-weighted`).checked = false;
+  updateDirectionStatus(side, false);
+  updateWeightedStatus(side, false);
   document.getElementById(`graph${side}-vertices`).value = '';
   document.getElementById(`graph${side}-edges`).value = '';
   document.getElementById(`graph${side}-delete-vertex-select`).innerHTML = '';
@@ -1295,7 +1799,7 @@ function renderGraph(graph, containerId) {
 
   const forceTreeLabels = getGraphCategory() === 'traversals';
   const showEdgeNames = forceTreeLabels || document.getElementById('edge-label-name-toggle')?.checked;
-  const showEdgeWeights = forceTreeLabels || document.getElementById('edge-label-weight-toggle')?.checked;
+  const showEdgeWeights = forceTreeLabels || (!!graph.weighted && document.getElementById('edge-label-weight-toggle')?.checked);
   const renderDerivedColors = containerId === 'graphResult-container';
   const vertexColorClasses = renderDerivedColors ? graph.derived?.vertex_coloring?.chromatic_classes || {} : {};
   const edgeColorClasses = renderDerivedColors ? graph.derived?.edge_coloring?.edge_chromatic_classes || {} : {};
@@ -1397,7 +1901,7 @@ async function fetchJSON(url, options = {}) {
   }
 
   if (!response.ok) {
-    throw new Error(payload?.detail || payload?.message || response.statusText || 'Error de red');
+    throw new Error(translateGraphError(payload?.detail || payload?.message || response.statusText || 'Error de red'));
   }
 
   return payload;
@@ -1439,8 +1943,41 @@ function generatePalette(count) {
 }
 
 function logError(message) {
-  logStatus(`ERROR: ${message}`);
+  const translated = translateGraphError(message);
+  logStatus(`ERROR: ${translated}`);
   if (typeof window.notifyError === 'function') {
-    window.notifyError(message);
+    window.notifyError(translated);
   }
+}
+
+function updateLayoutToggleIcon(button, isCompact) {
+  if (!button) return;
+  button.title = isCompact ? 'Disposición horizontal' : 'Disposición vertical';
+  button.setAttribute('aria-label', button.title);
+  button.innerHTML = isCompact
+    ? '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 12h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M9 7l-5 5 5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    : '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 4v16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 9l5-5 5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 15l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+
+function translateGraphError(message) {
+  const text = String(message || '').trim();
+  const normalized = text.toLowerCase();
+  const translations = [
+    ['graph already exists', 'El grafo ya existe'],
+    ['snapshot type mismatch', 'El tipo de estructura no coincide'],
+    ['graph direction compatibility mismatch', 'Los grafos tienen distinta dirección'],
+    ['graph weight compatibility mismatch', 'Los grafos tienen distinta ponderación'],
+    ['graph does not exist', 'El grafo no existe'],
+    ['graph not found', 'No se encontró el grafo'],
+    ['bad request', 'Solicitud incorrecta'],
+    ['internal server error', 'Error interno del servidor'],
+    ['failed to fetch', 'No se pudo conectar con el servidor'],
+    ['error de red', 'Error de red'],
+  ];
+
+  for (const [needle, replacement] of translations) {
+    if (normalized.includes(needle)) return replacement;
+  }
+
+  return text;
 }

@@ -144,6 +144,7 @@ function showContent(type) {
         <button class="ribbon-btn" data-category="traversals">Árboles</button>
         <button class="ribbon-btn" data-category="paths">Caminos</button>
         <button class="ribbon-btn" data-category="coloring">Coloreado</button>
+        <button class="ribbon-btn" data-category="matrices">Matrices</button>
       </div>
     `;
     lvl2.innerHTML = "";
