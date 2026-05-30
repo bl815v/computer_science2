@@ -158,7 +158,30 @@
 
       const indexBlocksToShow = getIndexBlocksToShow(b_i);
 
-      const dataBlocksToShow = getDataBlocksForIndexes(indexBlocksToShow, b_i, b, blocksPerIndex);
+      let dataBlocksToShow;
+
+      if (type === "secondary") {
+        // For secondary index: calculate which data blocks contain the referenced entries
+        const dataBlocksSet = new Set();
+        const entriesPerIndexBlock = Math.ceil(r / b_i);
+
+        for (const idxBlock of indexBlocksToShow) {
+          const firstEntry = (idxBlock - 1) * entriesPerIndexBlock + 1;
+          const lastEntry = Math.min(idxBlock * entriesPerIndexBlock, r);
+
+          // Convert entries to data blocks
+          const firstDataBlock = Math.ceil(firstEntry / bfr);
+          const lastDataBlock = Math.ceil(lastEntry / bfr);
+
+          dataBlocksSet.add(firstDataBlock);
+          dataBlocksSet.add(lastDataBlock);
+        }
+
+        dataBlocksToShow = Array.from(dataBlocksSet).sort((a, b) => a - b);
+      } else {
+        // For primary index: use existing logic
+        dataBlocksToShow = getDataBlocksForIndexes(indexBlocksToShow, b_i, b, blocksPerIndex);
+      }
 
       structuresHtml += generateIndexColumn(b_i, bfr_i, index_record_length, indexBlocksToShow, {
 
@@ -171,6 +194,8 @@
         showFullIndexRanges: type === "secondary",
 
         totalEntries: r,
+
+        recordsPerBlock: bfr,
 
       });
 
@@ -403,7 +428,7 @@
 
     }
 
-    return `<div class="structure-column" data-structure-type="${title}">
+    return `<div class="structure-column" data-structure-type="${title}" data-is-secondary="${extra.showFullIndexRanges ? 'true' : 'false'}" data-records-per-block="${extra.recordsPerBlock || 10}">
 
       <div class="structure-title">${title}</div>
 
@@ -599,9 +624,24 @@
 
         const lastBlock = parseInt(idxCell.dataset.arrowLastBlock || idxCell.dataset.lastEntryBlock, 10);
 
-        const firstTargetCell = findTargetCellForBlock(targetCells, targetMap, firstBlock);
+        // Check if this is a secondary index column
+        const isSecondaryIndex = idxCol.dataset.isSecondary === 'true';
 
-        const lastTargetCell = findTargetCellForBlock(targetCells, targetMap, lastBlock);
+        let firstTargetCell, lastTargetCell;
+
+        if (isSecondaryIndex && targetCol.querySelector('.structure-title')?.textContent.includes('Datos')) {
+          // For secondary indices: convert entry numbers to data block numbers
+          const recordsPerBlock = parseInt(idxCol.dataset.recordsPerBlock || '10', 10);
+          const firstDataBlock = Math.ceil(firstBlock / recordsPerBlock);
+          const lastDataBlock = Math.ceil(lastBlock / recordsPerBlock);
+
+          firstTargetCell = findTargetCellForBlock(targetCells, targetMap, firstDataBlock);
+          lastTargetCell = findTargetCellForBlock(targetCells, targetMap, lastDataBlock);
+        } else {
+          // For primary indices: use block numbers directly
+          firstTargetCell = findTargetCellForBlock(targetCells, targetMap, firstBlock);
+          lastTargetCell = findTargetCellForBlock(targetCells, targetMap, lastBlock);
+        }
 
         if (firstTargetCell) {
 
@@ -989,7 +1029,11 @@
 
       if (document.querySelector('.structures-container')) {
 
-        drawArrowsByTarget();
+        requestAnimationFrame(() => {
+
+          drawArrowsByTarget();
+
+        });
 
       }
 

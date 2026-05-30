@@ -328,71 +328,24 @@ function loadExternalJS(url, callback) {
 /* ---------------- Impresión sin nueva ventana ---------------- */
 
 function printCurrentView() {
-  const content = document.getElementById("content");
-  if (!content) return;
-  const page = getCurrentSimulatorPage();
-
-  // Guardar el HTML original
-  const originalHTML = content.innerHTML;
-  let restored = false;
-
-  const restorePrintedView = () => {
-    if (restored) return;
-    restored = true;
-    content.innerHTML = originalHTML;
-    document.body.classList.remove('printing');
-
-    const initializer = page ? getSimulatorInitializer(page) : null;
-    if (typeof initializer === "function") {
-      initializer();
-    }
-
-    window.requestAnimationFrame(() => {
-      window.focus?.();
-      content.setAttribute("tabindex", "-1");
-      content.focus({ preventScroll: true });
-    });
-  };
-
-  // Convertir inputs a texto
-  const inputs = content.querySelectorAll('input');
-  inputs.forEach(input => {
-    const span = document.createElement('span');
-    span.textContent = input.value;
-    span.className = input.className;
-    input.parentNode.replaceChild(span, input);
-  });
-
-  // Convertir selects a texto
-  const selects = content.querySelectorAll('select');
-  selects.forEach(select => {
-    const selectedOption = select.options[select.selectedIndex];
-    const span = document.createElement('span');
-    span.textContent = selectedOption ? selectedOption.text : '';
-    span.className = select.className;
-    select.parentNode.replaceChild(span, select);
-  });
-
-  // Eliminar botones
-  const buttons = content.querySelectorAll('button');
-  buttons.forEach(btn => btn.remove());
-
-  // Eliminar contenedores de acciones
-  const actionSections = content.querySelectorAll('#actions-section, .actions-section');
-  actionSections.forEach(section => section.remove());
+  // Redibujar flechas antes de imprimir para asegurar que estén actualizadas
+  if (typeof window.drawArrowsByTarget === 'function') {
+    window.drawArrowsByTarget();
+  }
 
   // Añadir clase temporal al body para ocultar elementos no deseados
   document.body.classList.add('printing');
 
-  window.addEventListener("afterprint", restorePrintedView, { once: true });
-
   // Llamar a la impresión
   window.print();
 
-  // Restaurar contenido y quitar clase tras un breve retraso
-  setTimeout(() => {
-    restorePrintedView();
-  }, 100);
+  // Quitar clase después de imprimir
+  document.body.classList.remove('printing');
+
+  // Redibujar flechas después de imprimir
+  if (typeof window.drawArrowsByTarget === 'function') {
+    setTimeout(() => window.drawArrowsByTarget(), 50);
+  }
 }
 
 /* ---------------- Save / Open ---------------- */
