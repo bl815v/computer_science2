@@ -1,348 +1,196 @@
 /* eslint-disable no-console */
-
 (() => {
-
   "use strict";
-
-
-
   const API_BASE = "http://127.0.0.1:8000/search/index";
-
   let currentIndexType = "primary";
 
-
-
   function getEndpoint(type) {
-
     switch (type) {
-
       case "primary": return `${API_BASE}/primary`;
-
       case "secondary": return `${API_BASE}/secondary`;
-
       case "multilevel-primary": return `${API_BASE}/multilevel-primary`;
-
       case "multilevel-secondary": return `${API_BASE}/multilevel-secondary`;
-
       default: return `${API_BASE}/primary`;
-
     }
-
   }
-
-
 
   function formatNumber(n) {
-
     return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-
   }
-
-
 
   async function calculate() {
-
     const r = parseInt(document.getElementById("total-records").value, 10);
-
     const block_size = parseInt(document.getElementById("block-size").value, 10);
-
     const record_length = parseInt(document.getElementById("record-length").value, 10);
-
     const index_record_length = parseInt(document.getElementById("index-record-length").value, 10);
-
     const indexType = document.getElementById("index-type").value;
-
     currentIndexType = indexType;
 
-
-
     if (isNaN(r) || isNaN(block_size) || isNaN(record_length) || isNaN(index_record_length)) {
-
       window.notifyError?.("Complete todos los campos numéricos");
-
       return;
-
     }
-
-
 
     const resultsDiv = document.getElementById("results-section");
-
     const vizDiv = document.getElementById("visualization");
-
     resultsDiv.style.display = "block";
-
     vizDiv.innerHTML = '<div class="loading-overlay">🖌️ Generando estructura...</div>';
 
-
-
     try {
-
       const endpoint = getEndpoint(indexType);
-
       const response = await fetch(endpoint, {
-
         method: "POST",
-
         headers: { "Content-Type": "application/json" },
-
         body: JSON.stringify({ r, block_size, record_length, index_record_length }),
-
       });
 
-
-
       if (!response.ok) {
-
         const error = await response.json();
-
         throw new Error(error.detail || "Error en el cálculo");
-
       }
 
-
-
       const data = await response.json();
-
       drawStructures(data, indexType, { r, block_size, record_length, index_record_length });
-
       window.notifySuccess?.("Estructura calculada correctamente");
-
       window.markStructureDirty?.();
-
     } catch (err) {
-
       window.notifyError?.(err.message);
-
       vizDiv.innerHTML = '<div class="error-message">No se pudo generar la visualización</div>';
-
     }
-
   }
 
-
-
   function drawStructures(data, type, params) {
-
     const container = document.getElementById("visualization");
-
     if (!container) return;
 
-
-
     const { bfr, b, bfr_i, b_i, accesses, levels } = data;
-
     const { r, record_length, index_record_length } = params;
 
-
-
     const statsHtml = `<div class="stats-summary" style="text-align: center; display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap;">
-
       <div class="stat-item">Datos: ${formatNumber(b)} bloques (${bfr} reg/bloque)</div>
-
       <div class="stat-item">Índice: ${formatNumber(b_i)} bloques (${bfr_i} entradas/bloque)</div>
-
       <div class="stat-item">Accesos: ${accesses}</div>
-
     </div>`;
-
-
 
     let structuresHtml = `<div class="structures-container" style="display: flex; justify-content: center; gap: 3rem; flex-wrap: wrap; margin-top: 1rem;">`;
 
-    
-
     if (type === "primary" || type === "secondary") {
-
       const blocksPerIndex = Math.ceil(b / b_i);
-
       const indexBlocksToShow = getIndexBlocksToShow(b_i);
-
       let dataBlocksToShow;
-
       if (type === "secondary") {
         // For secondary index: calculate which data blocks contain the referenced entries
         const dataBlocksSet = new Set();
         const entriesPerIndexBlock = Math.ceil(r / b_i);
-
         for (const idxBlock of indexBlocksToShow) {
           const firstEntry = (idxBlock - 1) * entriesPerIndexBlock + 1;
           const lastEntry = Math.min(idxBlock * entriesPerIndexBlock, r);
-
           // Convert entries to data blocks
           const firstDataBlock = Math.ceil(firstEntry / bfr);
           const lastDataBlock = Math.ceil(lastEntry / bfr);
-
           dataBlocksSet.add(firstDataBlock);
           dataBlocksSet.add(lastDataBlock);
         }
-
         dataBlocksToShow = Array.from(dataBlocksSet).sort((a, b) => a - b);
       } else {
         // For primary index: use existing logic
         dataBlocksToShow = getDataBlocksForIndexes(indexBlocksToShow, b_i, b, blocksPerIndex);
       }
-
       structuresHtml += generateIndexColumn(b_i, bfr_i, index_record_length, indexBlocksToShow, {
-
         totalTargetBlocks: b,
-
         blocksPerIndex,
-
         levelLabel: 'Índice',
-
         showFullIndexRanges: type === "secondary",
-
         totalEntries: r,
-
         recordsPerBlock: bfr,
-
       });
-
       structuresHtml += generateDataColumn(b, bfr, record_length, dataBlocksToShow, { totalRecords: r, recordsPerBlock: bfr });
-
     } else if (levels && levels.length > 0) {
-
-      for (let i = 0; i < levels.length; i++) {
-
+      // Iterate in reverse order to show highest level first
+      for (let i = levels.length - 1; i >= 0; i--) {
         const lvl = levels[i];
-
-        const targetBlocks = i === levels.length - 1 ? b : levels[i + 1].blocks;
-
+        const targetBlocks = i === 0 ? b : levels[i - 1].blocks;
         const blocksPerIndex = Math.ceil(targetBlocks / lvl.blocks);
-
         const indexBlocksToShow = getIndexBlocksToShow(lvl.blocks);
-
+        const nextLevelBlocks = i > 0 ? levels[i - 1].blocks : b;
         structuresHtml += generateIndexColumn(lvl.blocks, bfr_i, index_record_length, indexBlocksToShow, {
-
           totalTargetBlocks: targetBlocks,
-
           blocksPerIndex,
-
           levelLabel: `Nivel ${i + 1}`,
-
           isMultilevel: true,
-
-          isLastLevel: i === levels.length - 1,
-
+          isLastLevel: i === 0,
+          nextLevelBlocks: nextLevelBlocks,
+          nextLevelEntriesPerBlock: i > 0 ? Math.ceil(nextLevelBlocks / levels[i - 1].blocks) : bfr,
         });
-
       }
-
-      const lastLevel = levels[levels.length - 1];
-
+      const lastLevel = levels[0]; // Nivel 1 (el nivel más bajo en el orden inverso)
       const blocksPerIndexLast = Math.ceil(b / lastLevel.blocks);
-
       const lastIndexBlocks = getIndexBlocksToShow(lastLevel.blocks);
-
       const dataBlocksToShow = getDataBlocksForIndexes(lastIndexBlocks, lastLevel.blocks, b, blocksPerIndexLast);
-
       structuresHtml += generateDataColumn(b, bfr, record_length, dataBlocksToShow, { totalRecords: r, recordsPerBlock: bfr });
-
     }
-
-
 
     structuresHtml += `</div>`;
-
     container.innerHTML = statsHtml + structuresHtml;
 
-
-
     setTimeout(() => {
-
       drawArrowsByTarget();
-
     }, 50);
-
   }
-
-
 
   function getIndexBlocksToShow(totalIndexBlocks) {
-
     if (totalIndexBlocks <= 3) {
-
       return Array.from({ length: totalIndexBlocks }, (_, i) => i + 1);
-
     }
-
     const middle = Math.floor(totalIndexBlocks / 2);
-
     return [1, middle, totalIndexBlocks];
-
   }
-
-
 
   function getDataBlocksForIndexes(indexBlocks, totalIndexBlocks, totalDataBlocks, blocksPerIndex) {
-
     const dataBlocksSet = new Set();
-
     for (const idxBlock of indexBlocks) {
-
       const firstEntryBlock = (idxBlock - 1) * blocksPerIndex + 1;
-
       const lastEntryBlock = Math.min(idxBlock * blocksPerIndex, totalDataBlocks);
-
       dataBlocksSet.add(firstEntryBlock);
-
       dataBlocksSet.add(lastEntryBlock);
-
     }
-
     dataBlocksSet.add(1);
-
     dataBlocksSet.add(totalDataBlocks);
-
     return Array.from(dataBlocksSet).sort((a,b) => a-b);
-
   }
 
-
-
   function generateIndexColumn(totalBlocks, entriesPerBlock, bytes, blocksToShow, extra) {
-
     const prefix = 'B';
-
     const title = extra.levelLabel || 'Índice';
-
     let cellsHtml = '';
-
     for (let i = 0; i < blocksToShow.length; i++) {
-
       const blockNum = blocksToShow[i];
-
       if (i > 0 && blockNum > blocksToShow[i-1] + 1) {
-
         cellsHtml += `<div class="cell dots">...</div>`;
-
       }
-
       const range = extra.showFullIndexRanges || extra.isMultilevel
-
         ? {
-
             start: (blockNum - 1) * entriesPerBlock + 1,
-
             end: blockNum * entriesPerBlock,
-
           }
-
         : {
-
             start: (blockNum - 1) * extra.blocksPerIndex + 1,
-
             end: blockNum * extra.blocksPerIndex,
-
           };
-
+      // For multilevel indices (not last level): calculate range based on next level limits
+      if (extra.isMultilevel && !extra.isLastLevel && extra.nextLevelBlocks && extra.nextLevelEntriesPerBlock) {
+        const firstTargetBlock = (blockNum - 1) * extra.blocksPerIndex + 1;
+        const lastTargetBlock = Math.min(blockNum * extra.blocksPerIndex, extra.nextLevelBlocks);
+        const firstEntry = (firstTargetBlock - 1) * extra.nextLevelEntriesPerBlock + 1;
+        const lastEntry = Math.min(lastTargetBlock * extra.nextLevelEntriesPerBlock, extra.totalTargetBlocks);
+        range.start = firstEntry;
+        range.end = lastEntry;
+      }
       // Check if this is the last block shown AND the actual last block in the index
       const isLastBlockShown = blockNum === blocksToShow[blocksToShow.length - 1];
       const isActualLastBlock = blockNum === totalBlocks;
       let displayRange = { ...range };
       let remainingRange = null;
-
       if (isLastBlockShown && isActualLastBlock) {
         if (extra.showFullIndexRanges) {
           // For secondary indices: check if there's a remainder after the last full block
@@ -360,8 +208,23 @@
               };
             }
           }
+        } else if (extra.isMultilevel && !extra.isLastLevel) {
+          // For multilevel indices (not last level): check if there's a remainder
+          const blockCapacity = entriesPerBlock * extra.nextLevelEntriesPerBlock;
+          const lastFullBlockEnd = Math.floor(range.end / blockCapacity) * blockCapacity;
+          if (lastFullBlockEnd > 0 && lastFullBlockEnd < range.end) {
+            // Show remainder in main cell, full capacity in partial cell below
+            displayRange = {
+              start: lastFullBlockEnd + 1,
+              end: range.end,
+            };
+            remainingRange = {
+              start: range.start,
+              end: lastFullBlockEnd,
+            };
+          }
         } else if (extra.isMultilevel) {
-          // For multilevel indices: check if there's a remainder after the last full block
+          // For multilevel indices (last level): check if there's a remainder after the last full block
           if (extra.totalTargetBlocks) {
             const lastFullBlockEnd = Math.floor(extra.totalTargetBlocks / entriesPerBlock) * entriesPerBlock;
             if (lastFullBlockEnd > 0 && lastFullBlockEnd < extra.totalTargetBlocks) {
@@ -627,6 +490,9 @@
         // Check if this is a secondary index column
         const isSecondaryIndex = idxCol.dataset.isSecondary === 'true';
 
+        // Check if this is a multilevel index connection (not to data)
+        const isMultilevelConnection = idxCol.dataset.isSecondary !== 'true' && !targetCol.querySelector('.structure-title')?.textContent.includes('Datos');
+
         let firstTargetCell, lastTargetCell;
 
         if (isSecondaryIndex && targetCol.querySelector('.structure-title')?.textContent.includes('Datos')) {
@@ -651,7 +517,16 @@
 
         if (lastTargetCell && lastTargetCell !== firstTargetCell) {
 
-          drawArrowBetween(ctx, idxCell, lastTargetCell, container, 'bottom');
+          // For multilevel connections: find the last non-partial cell in target column
+          let targetCellForArrow = lastTargetCell;
+          if (isMultilevelConnection) {
+            const nonPartialCells = Array.from(targetCells).filter(cell => cell.dataset.noArrow !== 'true');
+            if (nonPartialCells.length > 0) {
+              targetCellForArrow = nonPartialCells[nonPartialCells.length - 1];
+            }
+          }
+
+          drawArrowBetween(ctx, idxCell, targetCellForArrow, container, 'bottom', isMultilevelConnection);
 
         }
 
@@ -709,7 +584,7 @@
 
 
 
-  function drawArrowBetween(ctx, fromCell, toCell, container, position = 'top') {
+  function drawArrowBetween(ctx, fromCell, toCell, container, position = 'top', isMultilevelConnection = false) {
 
     const fromRect = fromCell.getBoundingClientRect();
 
@@ -738,6 +613,11 @@
     const endX = toRect.left - containerRect.left + 5;
 
     const endY = toRect.top - containerRect.top + 8;
+
+    // For multilevel connections: use top-left corner of target cell
+    if (isMultilevelConnection) {
+      // Already using top-left corner (endX, endY)
+    }
 
     
 
