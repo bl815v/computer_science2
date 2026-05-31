@@ -227,25 +227,11 @@
       }
       // For multilevel indices: show partial cell with entries per block on last block (highest level only)
       if (extra.isMultilevel && blockNum === totalBlocks) {
-        if (extra.isHighestLevel) {
+        if (extra.isHighestLevel && entriesPerBlock !== range.end && entriesPerBlock !== displayRange.end) {
           remainingRange = {
             start: entriesPerBlock,
             end: entriesPerBlock,
           };
-        } else if (!extra.isLastLevel) {
-          // For intermediate levels: check for remainder
-          const blockCapacity = entriesPerBlock * extra.nextLevelEntriesPerBlock;
-          const lastFullBlockEnd = Math.floor(range.end / blockCapacity) * blockCapacity;
-          if (lastFullBlockEnd > 0 && lastFullBlockEnd < range.end) {
-            displayRange = {
-              start: lastFullBlockEnd + 1,
-              end: range.end,
-            };
-            remainingRange = {
-              start: range.start,
-              end: lastFullBlockEnd,
-            };
-          }
         }
       }
       cellsHtml += `<div class="cell index-cell" data-block="${blockNum}"

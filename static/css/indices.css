@@ -12,9 +12,7 @@
 
 .indices-container {
 
-  max-width: 1200px;
-
-  margin: 0 auto;
+  margin: 0;
 
 }
 
@@ -70,13 +68,11 @@
 
   display: flex;
 
-  justify-content: center;
+  justify-content: flex-start;
 
   align-items: flex-start;
 
   gap: 3rem;
-
-  flex-wrap: wrap;
 
   margin-top: 1rem;
 
