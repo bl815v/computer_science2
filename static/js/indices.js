@@ -106,6 +106,7 @@
           levelLabel: `Nivel ${i + 1}`,
           isMultilevel: true,
           isLastLevel: i === 0,
+          isHighestLevel: i === levels.length - 1,
           nextLevelBlocks: nextLevelBlocks,
           nextLevelEntriesPerBlock: i > 0 ? Math.ceil(nextLevelBlocks / levels[i - 1].blocks) : bfr,
         });
@@ -190,21 +191,6 @@
               };
             }
           }
-        } else if (extra.isMultilevel && !extra.isLastLevel) {
-          // For multilevel indices (not last level): check if there's a remainder
-          const blockCapacity = entriesPerBlock * extra.nextLevelEntriesPerBlock;
-          const lastFullBlockEnd = Math.floor(range.end / blockCapacity) * blockCapacity;
-          if (lastFullBlockEnd > 0 && lastFullBlockEnd < range.end) {
-            // Show remainder in main cell, full capacity in partial cell below
-            displayRange = {
-              start: lastFullBlockEnd + 1,
-              end: range.end,
-            };
-            remainingRange = {
-              start: range.start,
-              end: lastFullBlockEnd,
-            };
-          }
         } else if (extra.isMultilevel) {
           // For multilevel indices (last level): check if there's a remainder after the last full block
           if (extra.totalTargetBlocks) {
@@ -236,6 +222,29 @@
                 end: range.end,
               };
             }
+          }
+        }
+      }
+      // For multilevel indices: show partial cell with entries per block on last block (highest level only)
+      if (extra.isMultilevel && blockNum === totalBlocks) {
+        if (extra.isHighestLevel) {
+          remainingRange = {
+            start: entriesPerBlock,
+            end: entriesPerBlock,
+          };
+        } else if (!extra.isLastLevel) {
+          // For intermediate levels: check for remainder
+          const blockCapacity = entriesPerBlock * extra.nextLevelEntriesPerBlock;
+          const lastFullBlockEnd = Math.floor(range.end / blockCapacity) * blockCapacity;
+          if (lastFullBlockEnd > 0 && lastFullBlockEnd < range.end) {
+            displayRange = {
+              start: lastFullBlockEnd + 1,
+              end: range.end,
+            };
+            remainingRange = {
+              start: range.start,
+              end: lastFullBlockEnd,
+            };
           }
         }
       }
