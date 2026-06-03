@@ -60,7 +60,7 @@
       <div class="stat-item">Índice: ${formatNumber(b_i)} bloques (${bfr_i} entradas/bloque)</div>
       <div class="stat-item">Accesos: ${accesses}</div>
     </div>`;
-    let structuresHtml = `<div class="structures-container" style="display: flex; justify-content: center; gap: 3rem; flex-wrap: wrap; margin-top: 1rem;">`;
+    let structuresHtml = `<div class="structures-container">`;
     if (type === "primary" || type === "secondary") {
       const blocksPerIndex = Math.ceil(b / b_i);
       const indexBlocksToShow = getIndexBlocksToShow(b_i);

@@ -131,7 +131,7 @@ main#content {
   width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   padding: var(--spacing-2xl) var(--spacing-xl);
   box-sizing: border-box;
   margin-bottom: 60px; /* Space for footer */

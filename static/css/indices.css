@@ -12,7 +12,39 @@
 
 .indices-container {
 
-  margin: 0;
+  width: 100%;
+
+  margin: 0 auto;
+
+  overflow-x: auto;
+
+  padding-bottom: 1rem;
+
+}
+
+.indices-container > .card {
+
+  margin-left: auto;
+
+  margin-right: auto;
+
+}
+
+#results-section {
+
+  max-width: fit-content;
+
+  width: fit-content;
+
+  min-width: min(100%, 900px);
+
+}
+
+.indices-visualization {
+
+  width: 100%;
+
+  text-align: center;
 
 }
 
@@ -66,7 +98,7 @@
 
 .structures-container {
 
-  display: flex;
+  display: inline-flex;
 
   justify-content: flex-start;
 
@@ -74,11 +106,15 @@
 
   gap: 3rem;
 
+  flex-wrap: nowrap;
+
   margin-top: 1rem;
 
   position: relative;
 
   min-height: 400px;
+
+  text-align: left;
 
 }
 
@@ -634,7 +670,7 @@
 
 .structures-container {
 
-  justify-content: center;
+  /* inline-flex center handled by parent text-align */
 
 }
 
