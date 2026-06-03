@@ -96,7 +96,7 @@
       // Iterate in reverse order to show highest level first
       for (let i = levels.length - 1; i >= 0; i--) {
         const lvl = levels[i];
-        const targetBlocks = i === 0 ? b : levels[i - 1].blocks;
+        const targetBlocks = i === 0 ? (type === "multilevel-secondary" ? r : b) : levels[i - 1].blocks;
         const blocksPerIndex = Math.ceil(targetBlocks / lvl.blocks);
         const indexBlocksToShow = getIndexBlocksToShow(lvl.blocks);
         const nextLevelBlocks = i > 0 ? levels[i - 1].blocks : b;
@@ -109,6 +109,8 @@
           isHighestLevel: i === levels.length - 1,
           nextLevelBlocks: nextLevelBlocks,
           nextLevelEntriesPerBlock: i > 0 ? Math.ceil(nextLevelBlocks / levels[i - 1].blocks) : bfr,
+          isSecondary: type === "multilevel-secondary",
+          recordsPerBlock: type === "multilevel-secondary" ? bfr : undefined,
         });
       }
       const lastLevel = levels[0]; // Nivel 1 (el nivel más bajo en el orden inverso)
@@ -252,7 +254,7 @@
                       </div>`;
       }
     }
-    return `<div class="structure-column" data-structure-type="${title}" data-is-secondary="${extra.showFullIndexRanges ? 'true' : 'false'}" data-records-per-block="${extra.recordsPerBlock || 10}">
+    return `<div class="structure-column" data-structure-type="${title}" data-is-secondary="${extra.isSecondary ? 'true' : 'false'}" data-records-per-block="${extra.recordsPerBlock || 10}">
       <div class="structure-title">${title}</div>
       <div class="structure-size">${bytes} bytes por entrada</div>
       <div class="cell-list">${cellsHtml}</div>
@@ -265,32 +267,28 @@
     const recordsPerBlockFull = extra.recordsPerBlock;
     const totalRecords = extra.totalRecords;
     const totalDataBlocks = Math.ceil(totalRecords / recordsPerBlockFull);
+    let previousRenderedBlock = null;
     for (let i = 0; i < blocksToShow.length; i++) {
       const blockNum = blocksToShow[i];
-      if (i > 0 && blockNum > blocksToShow[i-1] + 1) {
+      const isLastBlock = blockNum === totalDataBlocks;
+      const startRecord = (blockNum - 1) * recordsPerBlockFull + 1;
+      const endRecord = isLastBlock ? totalRecords : Math.min(blockNum * recordsPerBlockFull, totalRecords);
+      const visibleRecords = Math.max(0, endRecord - startRecord + 1);
+      if (visibleRecords <= 0) {
+        continue;
+      }
+
+      if (previousRenderedBlock !== null && blockNum > previousRenderedBlock + 1) {
         cellsHtml += `<div class="cell dots">...</div>`;
       }
-      if (blockNum === totalDataBlocks) {
-        const startRecord = (blockNum - 1) * recordsPerBlockFull + 1;
-        const endRecord = totalRecords;
-        const visibleRecords = Math.max(0, endRecord - startRecord + 1);
-        cellsHtml += `<div class="cell data-cell" data-block="${blockNum}">
-                        <div><strong>${prefix}${formatNumber(blockNum)}</strong></div>
-                        <div style="font-size: 10px; color: var(--ms-muted);">${visibleRecords} registros</div>
-                        <span class="range-start top-left">${formatNumber(startRecord)}</span>
-                        <span class="range-end bottom-left">${formatNumber(endRecord)}</span>
-                      </div>`;
-      } else {
-        const startRecord = (blockNum - 1) * recordsPerBlockFull + 1;
-        const endRecord = Math.min(blockNum * recordsPerBlockFull, totalRecords);
-        const visibleRecords = Math.max(0, endRecord - startRecord + 1);
-        cellsHtml += `<div class="cell data-cell" data-block="${blockNum}">
-                        <div><strong>${prefix}${formatNumber(blockNum)}</strong></div>
-                        <div style="font-size: 10px; color: var(--ms-muted);">${visibleRecords} registros</div>
-                        <span class="range-start top-left">${formatNumber(startRecord)}</span>
-                        <span class="range-end bottom-left">${formatNumber(endRecord)}</span>
-                      </div>`;
-      }
+
+      cellsHtml += `<div class="cell data-cell" data-block="${blockNum}">
+                      <div><strong>${prefix}${formatNumber(blockNum)}</strong></div>
+                      <div style="font-size: 10px; color: var(--ms-muted);">${visibleRecords} registros</div>
+                      <span class="range-start top-left">${formatNumber(startRecord)}</span>
+                      <span class="range-end bottom-left">${formatNumber(endRecord)}</span>
+                    </div>`;
+      previousRenderedBlock = blockNum;
     }
     return `<div class="structure-column" data-structure-type="Datos">
       <div class="structure-title">Datos</div>
