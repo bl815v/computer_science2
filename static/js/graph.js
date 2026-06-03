@@ -135,6 +135,90 @@ function updateWeightedStatus(side, weighted) {
   }
 }
 
+function createMatrixExplorerShell() {
+  const graphInfo = document.getElementById('graph-info');
+  if (!graphInfo) return null;
+
+  let root = document.getElementById('matrix-explorer-root');
+  if (!root) {
+    root = document.createElement('div');
+    root.id = 'matrix-explorer-root';
+    root.className = 'matrix-explorer-root';
+
+    const toolbar = document.createElement('div');
+    toolbar.className = 'matrix-explorer-toolbar';
+    toolbar.innerHTML = `
+      <div class="matrix-select-group">
+        <label for="matrix-graph-select-visible">Grafo</label>
+        <select id="matrix-graph-select-visible"></select>
+      </div>
+      <button id="matrix-refresh-visible" class="secondary" type="button">Actualizar</button>
+    `;
+
+    const tabs = document.createElement('div');
+    tabs.id = 'matrix-tabs';
+    tabs.className = 'matrix-tabs';
+
+    const status = document.createElement('div');
+    status.id = 'matrix-status';
+    status.className = 'matrix-status';
+
+    const output = document.createElement('div');
+    output.id = 'matrix-output';
+    output.className = 'matrix-output';
+
+    root.appendChild(toolbar);
+    root.appendChild(tabs);
+    root.appendChild(status);
+    root.appendChild(output);
+    graphInfo.appendChild(root);
+
+    const select = document.getElementById('matrix-graph-select-visible');
+    if (select) {
+      select.addEventListener('change', () => renderMatrixExplorer());
+    }
+    const refresh = document.getElementById('matrix-refresh-visible');
+    if (refresh) {
+      refresh.addEventListener('click', () => renderMatrixExplorer(true));
+    }
+  }
+
+  return root;
+}
+
+function safePopulateSelect(selectId, graphs) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+  const previousValue = select.value;
+  select.innerHTML = '';
+
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = 'Seleccionar grafo existente';
+  select.appendChild(placeholder);
+
+  graphs.forEach(graph => {
+    const option = document.createElement('option');
+    option.value = graph.graph_id;
+    option.textContent = `${graph.graph_id} — ${graph.vertices.length} vértices, ${graph.edges.length} aristas`;
+    if (graph.graph_id === previousValue) {
+      option.selected = true;
+    }
+    select.appendChild(option);
+  });
+}
+
+function populateGraphIdDatalist(graphs) {
+  const datalist = document.getElementById('graph-id-list');
+  if (!datalist) return;
+  datalist.innerHTML = '';
+  graphs.forEach(graph => {
+    const option = document.createElement('option');
+    option.value = graph.graph_id;
+    datalist.appendChild(option);
+  });
+}
+
 function initSimulator() {
   bindEvents();
   updateLayoutToggleIcon(document.getElementById('graph-layout-toggle'), document.getElementById('graph-cards')?.classList.contains('full-width'));
@@ -219,12 +303,14 @@ function bindEvents() {
   if (updateEdgeA) updateEdgeA.addEventListener('click', () => updateGraphEdge('A'));
   if (updateEdgeB) updateEdgeB.addEventListener('click', () => updateGraphEdge('B'));
 
-  const matrixSelect = document.getElementById('matrix-view-select');
-  if (matrixSelect) matrixSelect.addEventListener('change', renderStoredResultDetails);
   const matrixGraphSelect = document.getElementById('matrix-graph-select');
   if (matrixGraphSelect) matrixGraphSelect.addEventListener('change', () => renderMatrixExplorer());
+  const matrixGraphSelectVisible = document.getElementById('matrix-graph-select-visible');
+  if (matrixGraphSelectVisible) matrixGraphSelectVisible.addEventListener('change', () => renderMatrixExplorer());
   const matrixRefresh = document.getElementById('matrix-refresh');
   if (matrixRefresh) matrixRefresh.addEventListener('click', () => renderMatrixExplorer(true));
+  const matrixRefreshVisible = document.getElementById('matrix-refresh-visible');
+  if (matrixRefreshVisible) matrixRefreshVisible.addEventListener('click', () => renderMatrixExplorer(true));
 }
 
 function updateOperationInterface() {
@@ -243,7 +329,7 @@ function updateOperationInterface() {
   const edgeLabelRow = document.getElementById('edge-label-options-row');
 
   if (operationsPanel) operationsPanel.style.display = category === 'matrices' ? 'none' : 'block';
-  if (matricesPanel) matricesPanel.style.display = category === 'matrices' ? 'grid' : 'none';
+  if (matricesPanel) matricesPanel.style.display = 'none';
 
   if (category === 'matrices') {
     if (graphBRow) graphBRow.style.display = 'none';
@@ -311,13 +397,14 @@ async function refreshGraphSelectors() {
   try {
     const state = await fetchJSON(`${GRAPH_API_BASE}/state`);
     const graphs = Array.isArray(state.graphs) ? state.graphs : [];
-    populateSelect('graphA-select', graphs);
-    populateSelect('graphB-select', graphs);
-    populateSelect('matrix-graph-select', graphs);
+    safePopulateSelect('graphA-select', graphs);
+    safePopulateSelect('graphB-select', graphs);
+    safePopulateSelect('matrix-graph-select', graphs);
+    safePopulateSelect('matrix-graph-select-visible', graphs);
     populateGraphIdDatalist(graphs);
     logStatus('Lista de grafos actualizada.');
     if (getGraphCategory() === 'matrices') {
-      const matrixSelect = document.getElementById('matrix-graph-select');
+      const matrixSelect = document.getElementById('matrix-graph-select-visible') || document.getElementById('matrix-graph-select');
       const preferredGraphId = matrixSelect?.value || document.getElementById('graphA-select')?.value || '';
       if (matrixSelect && preferredGraphId) {
         const hasOption = Array.from(matrixSelect.options).some(option => option.value === preferredGraphId);
@@ -332,6 +419,7 @@ async function refreshGraphSelectors() {
 
 function populateSelect(selectId, graphs) {
   const select = document.getElementById(selectId);
+  if (!select) return;
   const previousValue = select.value;
   select.innerHTML = '';
 
@@ -353,6 +441,7 @@ function populateSelect(selectId, graphs) {
 
 function populateGraphIdDatalist(graphs) {
   const datalist = document.getElementById('graph-id-list');
+  if (!datalist) return;
   datalist.innerHTML = '';
   graphs.forEach(graph => {
     const option = document.createElement('option');
@@ -1193,18 +1282,28 @@ async function refreshGraphViewForGraph(graphId) {
   refreshRenderedGraphs();
 }
 
-async function renderMatrixExplorer(forceRefresh = false) {
-  const panel = document.getElementById('matrices-panel');
-  const output = document.getElementById('matrix-output');
-  const tabsContainer = document.getElementById('matrix-tabs');
-  const status = document.getElementById('matrix-status');
-  const matrixSelect = document.getElementById('matrix-graph-select');
+function isElementVisible(element) {
+  return !!element && window.getComputedStyle(element).display !== 'none';
+}
 
-  if (!panel || panel.style.display === 'none') {
+async function renderMatrixExplorer(forceRefresh = false) {
+  const graphInfo = document.getElementById('graph-info');
+  if (!graphInfo) {
     return;
   }
 
+  const explorerRoot = createMatrixExplorerShell();
+  if (!explorerRoot) {
+    return;
+  }
+
+  const matrixSelect = document.getElementById('matrix-graph-select-visible') || document.getElementById('matrix-graph-select');
+  const output = document.getElementById('matrix-output');
+  const tabsContainer = document.getElementById('matrix-tabs');
+  const status = document.getElementById('matrix-status');
+
   const selectedGraphId = matrixSelect?.value || document.getElementById('graphA-select')?.value || matrixExplorerState.graphId || '';
+
   if (matrixSelect && selectedGraphId && matrixSelect.value !== selectedGraphId) {
     matrixSelect.value = selectedGraphId;
   }
