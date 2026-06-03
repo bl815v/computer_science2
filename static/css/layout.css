@@ -144,7 +144,10 @@ main#content {
 .secuencial-container,
 .arbol-container,
 .huffman-container,
-.lineal-container {
+.lineal-container,
+.lineal-externa-container,
+.binaria-externa-container,
+.hash-externa-container {
   width: 100%;
   max-width: 900px;
   display: flex;

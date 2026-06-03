@@ -6,17 +6,22 @@
 #visualization.blocks-container {
   display: flex !important;
   flex-direction: row !important;
-  flex-wrap: nowrap !important;
+  flex-wrap: wrap !important;
   gap: var(--spacing-lg);
   justify-content: flex-start;
   align-items: flex-start;
-  overflow-x: auto;
-  padding: var(--spacing-md) 0;
+  padding: var(--spacing-md) var(--spacing-sm);
   width: 100%;
   min-height: 200px;
   background: var(--ms-bg-secondary);
   border: 1px solid var(--ms-border);
   border-radius: var(--radius-md);
+}
+
+#visualization.blocks-container::before,
+#visualization.blocks-container::after {
+  content: "";
+  margin: auto;
 }
 
 /* Individual block */
