@@ -289,7 +289,7 @@ function updateOperationInterface() {
 
 async function ensureCytoscape() {
   if (window.cytoscape) return;
-  await loadScript('https://unpkg.com/cytoscape@3.23.0/dist/cytoscape.min.js');
+  await loadScript('static/js/cytoscape.min.js');
 }
 
 function loadScript(src) {

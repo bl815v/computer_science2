@@ -26,21 +26,9 @@
 
   <!-- Tabs -->
   <div class="tab-bar">
-    <div
-      class="tab active"
-      data-type="busquedas"
-      onclick="handleTabClick('busquedas')"
-    >
-      Búsquedas
-    </div>
-
-    <div
-      class="tab"
-      data-type="grafos"
-      onclick="handleTabClick('grafos')"
-    >
-      Grafos
-    </div>
+    <div class="tab active" data-type="inicio" onclick="handleTabClick('inicio')">Inicio</div>
+    <div class="tab" data-type="busquedas" onclick="handleTabClick('busquedas')">Búsquedas</div>
+    <div class="tab" data-type="grafos" onclick="handleTabClick('grafos')">Grafos</div>
   </div>
 
   <!-- Ribbon -->
@@ -61,10 +49,30 @@
 
   <!-- Main content -->
   <main id="content">
-    <h2>Bienvenido</h2>
-    <p>
-      Selecciona una opción en la cinta para visualizar el simulador.
-    </p>
+    <section class="landing-hero">
+      <div class="hero-copy">
+        <p class="hero-eyebrow">Simuladores de estructuras y algoritmos</p>
+        <h1>Visualiza búsquedas, grafos, índices y hashing</h1>
+        <p>Explora los simuladores, carga y guarda tus archivos y navega sin interrupciones. Empieza desde aquí con una acción rápida.</p>
+        <div class="hero-actions">
+          <button id="start-btn" class="primary">Comenzar</button>
+        </div>
+      </div>
+      <div class="hero-panel">
+        <div class="hero-card">
+          <h2>Accesos rápidos</h2>
+          <div class="landing-grid">
+            <button class="landing-card" data-action="busquedas">Búsquedas</button>
+            <button class="landing-card" data-action="grafos">Grafos</button>
+            <button class="landing-card" data-action="arboles">Árboles</button>
+            <button class="landing-card" data-action="indices">Índices</button>
+            <button class="landing-card" data-action="hash">Hashing</button>
+            <button class="landing-card" data-action="internas">Internas</button>
+            <button class="landing-card" data-action="externas">Externas</button>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
 <div class="app-footer">

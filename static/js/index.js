@@ -1,5 +1,6 @@
 const appState = {
   loadedScripts: new Set(),
+  loadedCSS: new Set(),
   structureDirty: false,
   currentSimulator: null,
   navigationPromptOpen: false,
@@ -102,6 +103,11 @@ function showContent(type) {
   lvl1.innerHTML = "";
   lvl2.innerHTML = "";
   lvl3.innerHTML = "";
+
+  if (type === "inicio") {
+    showLandingPage();
+    return;
+  }
 
   if (type === "busquedas") {
     lvl1.innerHTML = `
@@ -300,13 +306,27 @@ function loadExternalPage(page) {
     });
 }
 
+function unloadDynamicCSS() {
+  appState.loadedCSS.forEach(normalizedUrl => {
+    const matchingLink = Array.from(document.querySelectorAll('link[rel="stylesheet"]')).find(link => link.href.includes(normalizedUrl));
+    if (matchingLink) {
+      matchingLink.remove();
+    }
+  });
+  appState.loadedCSS.clear();
+}
+
 function loadExternalCSS(url) {
-  if ([...document.styleSheets].some(s => s.href?.includes(url))) return;
+  const normalizedUrl = url.replace(/\?.*$/, '');
+  if (appState.loadedCSS.has(normalizedUrl)) return;
+
+  unloadDynamicCSS();
 
   const link = document.createElement("link");
   link.rel = "stylesheet";
   link.href = url;
   document.head.appendChild(link);
+  appState.loadedCSS.add(normalizedUrl);
 }
 
 function loadExternalJS(url, callback) {
@@ -609,11 +629,124 @@ async function handleOpen() {
     }
   }
 }
+function showLandingPage() {
+  const lvl1 = document.getElementById("ribbon-level-1");
+  const lvl2 = document.getElementById("ribbon-level-2");
+  const lvl3 = document.getElementById("ribbon-level-3");
+  const content = document.getElementById("content");
 
+  unloadDynamicCSS();
+  setActiveTab('inicio');
+  lvl1.innerHTML = "";
+  lvl2.innerHTML = "";
+  lvl3.innerHTML = "";
+
+  content.innerHTML = `
+    <section class="landing-hero">
+      <div class="hero-copy">
+        <p class="hero-eyebrow">Simuladores de estructuras y algoritmos</p>
+        <h1>Visualiza búsquedas, grafos, índices y hashing</h1>
+        <p>Explora los simuladores, carga y guarda tus archivos y navega sin interrupciones. Empieza desde aquí con una acción rápida.</p>
+        <div class="hero-actions">
+          <button id="start-btn" class="primary">Comenzar</button>
+        </div>
+      </div>
+      <div class="hero-panel">
+        <div class="hero-card">
+          <h2>Accesos rápidos</h2>
+          <div class="landing-grid">
+            <button class="landing-card" data-action="busquedas">Búsquedas</button>
+            <button class="landing-card" data-action="grafos">Grafos</button>
+            <button class="landing-card" data-action="arboles">Árboles</button>
+            <button class="landing-card" data-action="indices">Índices</button>
+            <button class="landing-card" data-action="hash">Hashing</button>
+            <button class="landing-card" data-action="internas">Internas</button>
+            <button class="landing-card" data-action="externas">Externas</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  `;
+
+  const startBtn = document.getElementById("start-btn");
+  if (startBtn) {
+    startBtn.addEventListener("click", () => {
+      navigateFromLanding(() => navigateToSection("busquedas"));
+    });
+  }
+
+  document.querySelectorAll(".landing-card").forEach((button) => {
+    button.addEventListener("click", () => {
+      const action = button.dataset.action;
+      navigateFromLanding(() => executeLandingAction(action));
+    });
+  });
+}
+
+function navigateFromLanding(action) {
+  const message = "Has creado una estructura. Si cambias de pantalla, se perderán los datos no guardados. ¿Deseas continuar?";
+  runWithUnsavedChangesGuard(action, message);
+}
+
+function navigateToSection(type) {
+  teardownCurrentSimulator();
+  resetAllServices();
+  setActiveTab(type);
+  showContent(type);
+}
+
+function executeLandingAction(action) {
+  if (action === "busquedas") {
+    navigateToSection("busquedas");
+    return;
+  }
+
+  if (action === "grafos") {
+    navigateToSection("grafos");
+    return;
+  }
+
+  if (action === "arboles") {
+    navigateToSection("busquedas");
+    setTimeout(() => loadExternalPage("arbol"), 0);
+    return;
+  }
+
+  if (action === "indices") {
+    navigateToSection("busquedas");
+    setTimeout(() => {
+      showBusquedaExterna();
+      const btn = document.querySelector('[data-page="indices"]');
+      if (btn) {
+        setActiveRibbonButton(btn);
+        loadExternalPage("indices");
+      }
+    }, 0);
+    return;
+  }
+
+  if (action === "hash") {
+    navigateToSection("busquedas");
+    setTimeout(() => loadExternalPage("hash"), 0);
+    return;
+  }
+
+  if (action === "internas") {
+    navigateToSection("busquedas");
+    setTimeout(() => showBusquedaInterna(), 0);
+    return;
+  }
+
+  if (action === "externas") {
+    navigateToSection("busquedas");
+    setTimeout(() => showBusquedaExterna(), 0);
+    return;
+  }
+}
 /* ---------------- Init ---------------- */
 
 document.addEventListener("DOMContentLoaded", () => {
-  handleTabClick("busquedas");
+  showLandingPage();
 
   const printBtn = document.getElementById("print-btn");
   if (printBtn) {

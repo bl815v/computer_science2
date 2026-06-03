@@ -42,9 +42,41 @@
   }
 
   // Exponemos funciones globales
-  window.notifySuccess = (msg) => createModal(msg, "success");
+  function createToast(message, type = "info") {
+    let container = document.querySelector(".toast-container");
+    if (!container) {
+      container = document.createElement("div");
+      container.className = "toast-container";
+      document.body.appendChild(container);
+    }
+
+    const toast = document.createElement("div");
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    container.appendChild(toast);
+
+    requestAnimationFrame(() => toast.classList.add("visible"));
+
+    setTimeout(() => {
+      toast.classList.remove("visible");
+      toast.addEventListener(
+        "transitionend",
+        () => {
+          toast.remove();
+          if (!container.querySelector(".toast")) {
+            container.remove();
+          }
+        },
+        { once: true }
+      );
+    }, 3000);
+
+    return toast;
+  }
+
+  window.notifySuccess = (msg) => createToast(msg, "success");
   window.notifyError = (msg) => createModal(msg, "error");
-  window.notifyInfo = (msg) => createModal(msg, "info");
+  window.notifyInfo = (msg) => createToast(msg, "info");
 
   window.confirmModal = (message, onConfirm, onCancel) => {
     const existing = document.querySelector(".modal-overlay");

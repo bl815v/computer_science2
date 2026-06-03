@@ -245,7 +245,8 @@
                       <span class="range-end bottom-right">${formatNumber(displayRange.end)}</span>
                     </div>`;
       // Add partial extension cell below if there's a remaining range
-      if (remainingRange && remainingRange.start <= remainingRange.end) {
+      // Do not add it when the value shown would be identical to the cell above
+      if (remainingRange && remainingRange.start <= remainingRange.end && remainingRange.end !== displayRange.end) {
         cellsHtml += `<div class="cell index-cell partial-extension" data-block="${blockNum}.5" data-no-arrow="true">
                         <span class="range-end bottom-right">${formatNumber(remainingRange.end)}</span>
                       </div>`;

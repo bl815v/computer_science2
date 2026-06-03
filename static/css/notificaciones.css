@@ -70,3 +70,53 @@
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
+
+.toast-container {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  z-index: 10000;
+  pointer-events: none;
+  max-width: min(360px, calc(100% - 2rem));
+}
+
+.toast {
+  min-height: 44px;
+  padding: 0.95rem 1rem;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  color: white;
+  font-size: var(--font-size-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: pre-wrap;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  pointer-events: auto;
+}
+
+.toast.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast.success {
+  background: var(--ms-success);
+}
+
+.toast.info {
+  background: var(--ms-blue);
+}
+
+.toast.error {
+  background: var(--ms-error);
+}
+
+body.printing .toast-container {
+  display: none !important;
+}

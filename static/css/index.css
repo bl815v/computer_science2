@@ -19,6 +19,99 @@ main#content p {
   max-width: 600px;
 }
 
+.landing-hero {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  flex-wrap: wrap;
+}
+
+.hero-copy {
+  flex: 1 1 420px;
+  min-width: 260px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.hero-eyebrow {
+  margin-bottom: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--ms-blue);
+}
+
+.hero-copy h1 {
+  font-size: clamp(2.2rem, 4vw, 3rem);
+  line-height: 1.06;
+  margin-bottom: 1rem;
+}
+
+.hero-actions {
+  margin-top: 1.5rem;
+}
+
+.hero-panel {
+  flex: 0 0 360px;
+  min-width: 260px;
+}
+
+.hero-card {
+  background: var(--ms-panel);
+  border: 1px solid var(--ms-border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.hero-card h2 {
+  margin: 0 0 1rem;
+  font-size: var(--font-size-lg);
+}
+
+.landing-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(120px, 1fr));
+  gap: 0.85rem;
+}
+
+.landing-card {
+  min-height: 52px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--ms-border);
+  background: transparent;
+  color: var(--ms-text);
+  padding: 0.95rem 1rem;
+  cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast), border-color var(--transition-fast);
+  font-weight: 600;
+  text-align: center;
+}
+
+.landing-card:hover {
+  background: var(--ms-blue-light);
+  border-color: var(--ms-blue);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 920px) {
+  .landing-hero {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .landing-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Ribbon level organization */
 #ribbon-level-1,
 #ribbon-level-2,
