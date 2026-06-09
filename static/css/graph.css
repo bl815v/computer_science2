@@ -308,6 +308,9 @@ button.secondary {
   width: 100%;
   font-size: 0.85rem;
   margin-top: 6px;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .graph-info-table th,
@@ -315,10 +318,57 @@ button.secondary {
   padding: 4px 8px;
   border: 1px solid #e5e7eb;
   text-align: left;
+  vertical-align: middle;
 }
 
 .graph-info-table th {
   background: #f3f4f6;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.matrix-table-shell {
+  gap: 10px;
+}
+
+.matrix-table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow: auto;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.matrix-table-scroll .graph-info-table {
+  margin-top: 0;
+  min-width: 100%;
+}
+
+.matrix-cell {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.matrix-cell-zero {
+  color: #64748b;
+  background: #f8fafc;
+}
+
+.matrix-cell-infinite {
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+.matrix-cell-empty {
+  color: #94a3b8;
+}
+
+.matrix-cell-value {
+  color: #0f172a;
   font-weight: 600;
 }
 

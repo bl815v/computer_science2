@@ -12,7 +12,7 @@ const GRAPH_CATEGORY_TOOLSETS = {
   ],
   traversals: [
     { value: 'center', label: 'Centro / Bicentro' },
-    { value: 'mst', label: 'MST' },
+    { value: 'mst', label: 'Expansiones Mínimas' },
     { value: 'tree-distance', label: 'Distancia entre árboles' },
   ],
   paths: [
@@ -32,29 +32,30 @@ const GRAPH_CATEGORY_TOOLSETS = {
   ],
 };
 
-const GRAPH_MATRIX_DEFINITIONS = [
-  {
-    key: 'incidence',
-    label: 'Incidencia',
-    title: 'Matriz de incidencia',
-    rowTitle: 'Vértice',
-    endpoint: 'incidence',
-  },
-  {
-    key: 'vertex-adjacency',
+const GRAPH_MATRIX_METADATA = {
+  incidence: { label: 'Incidencia', title: 'Matriz de incidencia', rowTitle: 'Vértice', order: 1 },
+  'vertex-adjacency': {
     label: 'Adyacencia de vértices',
     title: 'Matriz de adyacencia de vértices',
     rowTitle: 'Vértice',
-    endpoint: 'vertex-adjacency',
+    order: 2,
   },
-  {
-    key: 'edge-adjacency',
+  'edge-adjacency': {
     label: 'Adyacencia de aristas',
     title: 'Matriz de adyacencia de aristas',
     rowTitle: 'Arista',
-    endpoint: 'edge-adjacency',
+    order: 3,
   },
-];
+  matrix: { label: 'Matriz', title: 'Matriz', rowTitle: 'Ítem', order: 90 },
+  cut_matrix: { label: 'Matriz de cortes', title: 'Matriz de cortes', rowTitle: 'Corte', order: 20 },
+  distance_matrix: { label: 'Matriz de distancias', title: 'Matriz de distancias', rowTitle: 'Vértice', order: 30 },
+  predecessor_matrix: {
+    label: 'Matriz de predecesores',
+    title: 'Matriz de predecesores',
+    rowTitle: 'Vértice',
+    order: 31,
+  },
+};
 
 const cyInstances = {
   'graphA-container': null,
@@ -73,7 +74,11 @@ const matrixExplorerState = {
   activeKey: 'incidence',
   loading: false,
   error: '',
-  matrices: {},
+  matrices: [],
+};
+
+const graphRegistryState = {
+  graphs: [],
 };
 
 function getGraphCategory() {
@@ -217,6 +222,336 @@ function populateGraphIdDatalist(graphs) {
     option.value = graph.graph_id;
     datalist.appendChild(option);
   });
+}
+
+function humanizeMatrixKey(key) {
+  return String(key)
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, character => character.toUpperCase());
+}
+
+function getMatrixMetadata(key) {
+  const normalizedKey = String(key || '').toLowerCase();
+  const lookupKey = normalizedKey.replace(/_/g, '-');
+  return GRAPH_MATRIX_METADATA[lookupKey] || GRAPH_MATRIX_METADATA[normalizedKey] || {
+    label: humanizeMatrixKey(normalizedKey),
+    title: `Matriz ${humanizeMatrixKey(normalizedKey).toLowerCase()}`,
+    rowTitle: 'Ítem',
+    order: 100,
+  };
+}
+
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function buildAxisLabels(size, prefix) {
+  return Array.from({ length: size }, (_, index) => `${prefix}${index + 1}`);
+}
+
+function isMatrixPayload(value) {
+  return !!value && typeof value === 'object' && Array.isArray(value.matrix) && Array.isArray(value.matrix[0]);
+}
+
+function normalizeMatrixPayload(matrixData, title, rowTitle, fallbackRows = [], fallbackColumns = []) {
+  if (!matrixData) return null;
+
+  let rows = [];
+  let columns = [];
+  let matrix = [];
+
+  if (Array.isArray(matrixData)) {
+    matrix = matrixData;
+  } else {
+    rows = asArray(matrixData.rows);
+    if (!rows.length) rows = asArray(matrixData.vertex_labels);
+    columns = asArray(matrixData.cols);
+    if (!columns.length) columns = asArray(matrixData.columns);
+    matrix = asArray(matrixData.matrix);
+  }
+
+  if (!rows.length) rows = asArray(fallbackRows);
+  if (!columns.length) columns = asArray(fallbackColumns.length ? fallbackColumns : rows);
+  if (!matrix.length) matrix = Array.isArray(matrixData) ? matrixData : [];
+
+  if (!rows.length || !columns.length || !matrix.length) return null;
+
+  return {
+    title,
+    rowTitle,
+    rows,
+    columns,
+    matrix,
+  };
+}
+
+function collectMatrixExplorerEntries(graph) {
+  if (!graph || !graph.derived || typeof graph.derived !== 'object') {
+    return [];
+  }
+
+  const entries = [];
+  const seenKeys = new Set();
+  const vertexLabels = asArray(graph.vertices).map(vertex => vertex.name || vertex);
+  const edgeLabels = asArray(graph.edges).map(edge => edge.name || edge);
+
+  const pushEntry = entry => {
+    if (!entry || !entry.key || seenKeys.has(entry.key)) return;
+    if (!entry.matrix || !entry.matrix.length || !entry.rows.length || !entry.columns.length) return;
+    entries.push(entry);
+    seenKeys.add(entry.key);
+  };
+
+  const pushMatrix = (key, payload, options = {}) => {
+    if (!payload) return;
+    const meta = getMatrixMetadata(options.metadataKey || key);
+    const rowsFallback = options.rows || (Array.isArray(payload) ? buildAxisLabels(payload.length, 'R') : []);
+    const columnsFallback = options.columns || (Array.isArray(payload) && Array.isArray(payload[0]) ? buildAxisLabels(payload[0].length, 'C') : []);
+    const normalized = normalizeMatrixPayload(
+      payload,
+      options.title || meta.title,
+      options.rowTitle || meta.rowTitle,
+      rowsFallback,
+      columnsFallback
+    );
+    if (!normalized) return;
+
+    pushEntry({
+      key,
+      label: options.label || meta.label,
+      title: normalized.title,
+      rowTitle: normalized.rowTitle,
+      rows: normalized.rows,
+      columns: normalized.columns,
+      matrix: normalized.matrix,
+      order: options.order ?? meta.order ?? 100,
+    });
+  };
+
+  const derivedMatrices = graph.derived.matrices;
+  if (derivedMatrices && typeof derivedMatrices === 'object') {
+    Object.entries(derivedMatrices).forEach(([key, payload]) => {
+      if (isMatrixPayload(payload)) {
+        pushMatrix(`matrices.${key}`, payload, {
+          metadataKey: key,
+          rows: payload.rows,
+          columns: payload.cols || payload.columns,
+        });
+      }
+    });
+  }
+
+  const floydWarshall = graph.derived.floyd_warshall;
+  if (floydWarshall) {
+    pushMatrix('floyd_warshall.distance_matrix', { matrix: floydWarshall.distance_matrix }, {
+      metadataKey: 'distance_matrix',
+      rows: vertexLabels,
+      columns: vertexLabels,
+    });
+    pushMatrix('floyd_warshall.predecessor_matrix', { matrix: floydWarshall.predecessor_matrix }, {
+      metadataKey: 'predecessor_matrix',
+      rows: vertexLabels,
+      columns: vertexLabels,
+    });
+  }
+
+  const circuits = graph.derived.circuits;
+  if (circuits) {
+    pushMatrix('circuits.matrix', { matrix: circuits.matrix }, {
+      label: 'Matriz de circuitos',
+      title: 'Matriz de circuitos',
+      rowTitle: 'Circuito',
+      rows: asArray(circuits.circuits).map((_, index) => `C${index + 1}`),
+      columns: asArray(circuits.edge_labels),
+      order: 20,
+    });
+  }
+
+  const fundamentalCircuits = graph.derived.fundamental_circuits;
+  if (fundamentalCircuits) {
+    pushMatrix('fundamental_circuits.matrix', { matrix: fundamentalCircuits.matrix }, {
+      label: 'Matriz de circuitos fundamentales',
+      title: 'Matriz de circuitos fundamentales',
+      rowTitle: 'Circuito',
+      rows: asArray(fundamentalCircuits.circuits).map((_, index) => `CF${index + 1}`),
+      columns: asArray(fundamentalCircuits.edge_labels),
+      order: 21,
+    });
+  }
+
+  const cutSets = graph.derived.cut_sets;
+  if (cutSets) {
+    pushMatrix('cut_sets.cut_matrix', { matrix: cutSets.cut_matrix }, {
+      metadataKey: 'cut_matrix',
+      rows: asArray(cutSets.cut_sets).map((_, index) => `K${index + 1}`),
+      columns: asArray(cutSets.edge_labels),
+      order: 22,
+    });
+  }
+
+  const fundamentalCutSets = graph.derived.fundamental_cut_sets;
+  if (fundamentalCutSets) {
+    pushMatrix('fundamental_cut_sets.cut_matrix', { matrix: fundamentalCutSets.cut_matrix }, {
+      metadataKey: 'cut_matrix',
+      label: 'Matriz de cortes fundamentales',
+      title: 'Matriz de cortes fundamentales',
+      rows: asArray(fundamentalCutSets.cut_sets).map((_, index) => `FK${index + 1}`),
+      columns: asArray(fundamentalCutSets.edge_labels),
+      order: 23,
+    });
+  }
+
+  Object.entries(graph.derived).forEach(([key, value]) => {
+    if ([
+      'matrices',
+      'floyd_warshall',
+      'circuits',
+      'fundamental_circuits',
+      'cut_sets',
+      'fundamental_cut_sets',
+    ].includes(key)) {
+      return;
+    }
+
+    if (isMatrixPayload(value)) {
+      pushMatrix(`derived.${key}`, value, { metadataKey: key });
+      return;
+    }
+
+    if (!value || typeof value !== 'object') {
+      return;
+    }
+
+    Object.entries(value).forEach(([childKey, childValue]) => {
+      if (isMatrixPayload(childValue)) {
+        pushMatrix(`derived.${key}.${childKey}`, childValue, { metadataKey: childKey });
+        return;
+      }
+
+      if (Array.isArray(childValue) && Array.isArray(childValue[0]) && /matrix/i.test(childKey)) {
+        pushMatrix(`derived.${key}.${childKey}`, childValue, {
+          metadataKey: childKey,
+          rows: buildAxisLabels(childValue.length, 'R'),
+          columns: buildAxisLabels(childValue[0].length, 'C'),
+        });
+      }
+    });
+  });
+
+  entries.sort((left, right) => left.order - right.order || left.label.localeCompare(right.label, 'es'));
+  return entries;
+}
+
+function normalizeRenderableGraph(sourceGraph, fallback = {}) {
+  if (!sourceGraph || typeof sourceGraph !== 'object') {
+    return null;
+  }
+
+  const vertices = asArray(sourceGraph.vertices)
+    .map(vertex => (typeof vertex === 'string' ? { name: vertex } : vertex))
+    .filter(vertex => vertex && vertex.name);
+  const edges = asArray(sourceGraph.edges)
+    .map(edge => (typeof edge === 'string' ? { name: edge } : edge))
+    .filter(edge => edge && edge.name && edge.source && edge.target);
+
+  return {
+    graph_id: sourceGraph.graph_id || fallback.graph_id || null,
+    directed: !!sourceGraph.directed,
+    weighted: !!sourceGraph.weighted,
+    vertices,
+    edges,
+    highlighted_vertices: asArray(sourceGraph.highlighted_vertices),
+    highlighted_edges: asArray(sourceGraph.highlighted_edges),
+    groups: asArray(sourceGraph.groups),
+    labels: sourceGraph.labels && typeof sourceGraph.labels === 'object' ? sourceGraph.labels : {},
+    colors: sourceGraph.colors && typeof sourceGraph.colors === 'object' ? sourceGraph.colors : {},
+    derived: sourceGraph.derived && typeof sourceGraph.derived === 'object' ? sourceGraph.derived : {},
+  };
+}
+
+function buildRenderableGraph(payload, visualization, operation, sourceGraph = null) {
+  const candidate = normalizeRenderableGraph(visualization || payload || sourceGraph || {}, {
+    graph_id: payload?.graph_id || payload?.result_id || null,
+  });
+
+  if (!candidate) return null;
+
+  const shouldRenderTreeOnly = operation === 'mst' || operation === 'maximum-spanning-tree';
+  const highlightedEdges = new Set(candidate.highlighted_edges || []);
+  const highlightedVertices = new Set(candidate.highlighted_vertices || []);
+
+  if (shouldRenderTreeOnly && highlightedEdges.size) {
+    candidate.edges = candidate.edges.filter(edge => highlightedEdges.has(edge.name));
+  }
+
+  if (operation === 'ordinal' && Array.isArray(payload?.traversal_order) && payload.traversal_order.length) {
+    candidate.highlighted_vertices = payload.traversal_order;
+  }
+
+  if ((operation === 'bellman' || operation === 'dijkstra') && Array.isArray(payload?.path) && payload.path.length) {
+    candidate.highlighted_vertices = payload.path;
+    if (!candidate.highlighted_edges.length) {
+      candidate.highlighted_edges = buildPathEdges(candidate, payload.path);
+    }
+  }
+
+  const hasExplicitVertexHighlights = Array.isArray(candidate.highlighted_vertices) && candidate.highlighted_vertices.length > 0;
+  const hasExplicitEdgeHighlights = Array.isArray(candidate.highlighted_edges) && candidate.highlighted_edges.length > 0;
+  if (!hasExplicitVertexHighlights && candidate.edges.length) {
+    candidate.highlighted_vertices = candidate.edges
+      .flatMap(edge => [edge.source, edge.target])
+      .filter((value, index, items) => items.indexOf(value) === index);
+  }
+
+  if (!hasExplicitEdgeHighlights && (operation === 'bellman' || operation === 'dijkstra') && Array.isArray(payload?.path) && payload.path.length) {
+    candidate.highlighted_edges = buildPathEdges(candidate, payload.path);
+  }
+
+  if (!candidate.vertices.length && !candidate.edges.length) {
+    return null;
+  }
+
+  return candidate;
+}
+
+function buildPathEdges(graph, pathVertices) {
+  if (!graph || !Array.isArray(graph.edges) || !Array.isArray(pathVertices) || pathVertices.length < 2) {
+    return [];
+  }
+
+  const pathEdges = [];
+  for (let index = 0; index < pathVertices.length - 1; index += 1) {
+    const source = pathVertices[index];
+    const target = pathVertices[index + 1];
+    const edge = graph.edges.find(item => (
+      item.source === source && item.target === target
+    ) || (
+      !item.directed && item.source === target && item.target === source
+    ));
+
+    if (edge && !pathEdges.includes(edge.name)) {
+      pathEdges.push(edge.name);
+    }
+  }
+
+  return pathEdges;
+}
+
+function buildShortestPathMatrix(shortestPaths, vertexLabels) {
+  const labels = asArray(vertexLabels);
+  const matrix = labels.map(source => labels.map(target => {
+    const path = shortestPaths?.[source]?.[target];
+    if (!Array.isArray(path) || !path.length) return '—';
+    return path.join(' → ');
+  }));
+
+  return {
+    title: 'Matriz de caminos',
+    rowTitle: 'Origen',
+    rows: labels,
+    columns: labels,
+    matrix,
+  };
 }
 
 function initSimulator() {
@@ -397,6 +732,7 @@ async function refreshGraphSelectors() {
   try {
     const state = await fetchJSON(`${GRAPH_API_BASE}/state`);
     const graphs = Array.isArray(state.graphs) ? state.graphs : [];
+    graphRegistryState.graphs = graphs;
     safePopulateSelect('graphA-select', graphs);
     safePopulateSelect('graphB-select', graphs);
     safePopulateSelect('matrix-graph-select', graphs);
@@ -979,10 +1315,11 @@ async function executeOperation() {
         return;
       }
 
+      const sourceGraph = await loadGraphFromState(graphAId);
       const graph = await fetchJSON(`${GRAPH_API_BASE}/${encodeURIComponent(graphAId)}/${operation}`, {
         method: 'POST',
       });
-      renderResultPayload(operation, graph, graph?.visualization || null);
+      renderResultPayload(operation, graph, graph?.visualization || null, sourceGraph);
       logStatus(`Operación ${operation} ejecutada sobre ${graphAId}.`);
       return;
     }
@@ -1098,10 +1435,13 @@ function createMatrixTableFromData(matrixData) {
   }
 
   const wrapper = document.createElement('div');
-  wrapper.className = 'graph-info-classes';
+  wrapper.className = 'graph-info-classes matrix-table-shell';
   const heading = document.createElement('strong');
   heading.textContent = matrixData.title;
   wrapper.appendChild(heading);
+
+  const scroll = document.createElement('div');
+  scroll.className = 'matrix-table-scroll';
 
   const table = document.createElement('table');
   table.className = 'graph-info-table';
@@ -1124,30 +1464,26 @@ function createMatrixTableFromData(matrixData) {
     row.appendChild(rowLabel);
     (matrixData.matrix[rowIndex] || []).forEach(value => {
       const cell = document.createElement('td');
-      cell.textContent = formatMatrixCellValue(value);
+      const formattedValue = formatMatrixCellValue(value);
+      cell.textContent = formattedValue;
+      cell.className = 'matrix-cell';
+      if (formattedValue === '∞' || formattedValue === '-∞') {
+        cell.classList.add('matrix-cell-infinite');
+      } else if (formattedValue === '0') {
+        cell.classList.add('matrix-cell-zero');
+      } else if (formattedValue === '—') {
+        cell.classList.add('matrix-cell-empty');
+      } else {
+        cell.classList.add('matrix-cell-value');
+      }
       row.appendChild(cell);
     });
     table.appendChild(row);
   });
 
-  wrapper.appendChild(table);
+  scroll.appendChild(table);
+  wrapper.appendChild(scroll);
   return wrapper;
-}
-
-function normalizeMatrixPayload(matrixData, title, rowTitle) {
-  if (!matrixData) return null;
-  const rows = Array.isArray(matrixData.rows) ? matrixData.rows : Array.isArray(matrixData.vertex_labels) ? matrixData.vertex_labels : [];
-  const columns = Array.isArray(matrixData.cols) ? matrixData.cols : Array.isArray(matrixData.columns) ? matrixData.columns : rows;
-  const matrix = Array.isArray(matrixData.matrix) ? matrixData.matrix : [];
-  if (!rows.length || !columns.length || !matrix.length) return null;
-
-  return {
-    title,
-    rowTitle,
-    rows,
-    columns,
-    matrix,
-  };
 }
 
 async function handleGraphDirectionChange(side) {
@@ -1304,6 +1640,22 @@ async function renderMatrixExplorer(forceRefresh = false) {
 
   const selectedGraphId = matrixSelect?.value || document.getElementById('graphA-select')?.value || matrixExplorerState.graphId || '';
 
+  let registryGraphs = graphRegistryState.graphs;
+  if (!registryGraphs.length || forceRefresh) {
+    try {
+      const state = await fetchJSON(`${GRAPH_API_BASE}/state`);
+      registryGraphs = Array.isArray(state.graphs) ? state.graphs : [];
+      graphRegistryState.graphs = registryGraphs;
+    } catch (error) {
+      matrixExplorerState.error = error.message;
+      matrixExplorerState.loading = false;
+      matrixExplorerState.matrices = [];
+      if (status) status.textContent = error.message;
+      if (output) output.appendChild(createEmptyState(error.message, 'matrix-error'));
+      return;
+    }
+  }
+
   if (matrixSelect && selectedGraphId && matrixSelect.value !== selectedGraphId) {
     matrixSelect.value = selectedGraphId;
   }
@@ -1312,7 +1664,7 @@ async function renderMatrixExplorer(forceRefresh = false) {
     matrixExplorerState.graphId = '';
     matrixExplorerState.error = '';
     matrixExplorerState.loading = false;
-    matrixExplorerState.matrices = {};
+    matrixExplorerState.matrices = [];
     if (tabsContainer) tabsContainer.innerHTML = '';
     if (status) status.textContent = 'Selecciona un grafo para ver sus matrices.';
     if (output) {
@@ -1322,7 +1674,7 @@ async function renderMatrixExplorer(forceRefresh = false) {
     return;
   }
 
-  if (!forceRefresh && matrixExplorerState.graphId === selectedGraphId && Object.keys(matrixExplorerState.matrices).length) {
+  if (!forceRefresh && matrixExplorerState.graphId === selectedGraphId && matrixExplorerState.matrices.length) {
     renderMatrixExplorerContent();
     return;
   }
@@ -1330,37 +1682,17 @@ async function renderMatrixExplorer(forceRefresh = false) {
   matrixExplorerState.graphId = selectedGraphId;
   matrixExplorerState.loading = true;
   matrixExplorerState.error = '';
-  matrixExplorerState.matrices = {};
+  matrixExplorerState.matrices = [];
   if (status) status.textContent = 'Cargando matrices...';
   if (output) {
     output.innerHTML = '';
     output.appendChild(createEmptyState('Cargando matrices...', 'matrix-loading'));
   }
 
-  const responses = await Promise.allSettled(
-    GRAPH_MATRIX_DEFINITIONS.map(definition =>
-      fetchJSON(`${GRAPH_API_BASE}/${encodeURIComponent(selectedGraphId)}/matrices/${definition.endpoint}`, { method: 'GET' })
-        .then(payload => ({ key: definition.key, payload }))
-    )
-  );
-
-  const matrices = {};
-  const errors = [];
-
-  responses.forEach((result, index) => {
-    const definition = GRAPH_MATRIX_DEFINITIONS[index];
-    if (result.status === 'fulfilled') {
-      matrices[definition.key] = result.value.payload;
-    } else {
-      const message = result.reason?.message || 'No se pudo cargar la matriz.';
-      matrices[definition.key] = { error: message };
-      errors.push(`${definition.label}: ${message}`);
-    }
-  });
-
   matrixExplorerState.loading = false;
-  matrixExplorerState.matrices = matrices;
-  matrixExplorerState.error = errors.length === GRAPH_MATRIX_DEFINITIONS.length ? errors.join(' | ') : '';
+  const graph = registryGraphs.find(item => item.graph_id === selectedGraphId);
+  matrixExplorerState.matrices = collectMatrixExplorerEntries(graph);
+  matrixExplorerState.error = matrixExplorerState.matrices.length ? '' : 'No se encontraron matrices para este grafo.';
 
   renderMatrixExplorerContent();
 }
@@ -1371,10 +1703,7 @@ function renderMatrixExplorerContent() {
   const status = document.getElementById('matrix-status');
   if (!output || !tabsContainer || !status) return;
 
-  const definitions = GRAPH_MATRIX_DEFINITIONS.map(definition => ({
-    ...definition,
-    data: matrixExplorerState.matrices[definition.key],
-  }));
+  const definitions = matrixExplorerState.matrices;
 
   tabsContainer.innerHTML = '';
   output.innerHTML = '';
@@ -1385,16 +1714,16 @@ function renderMatrixExplorerContent() {
     return;
   }
 
-  if (!definitions.some(definition => definition.data && !definition.data.error)) {
+  if (!definitions.length) {
     status.textContent = matrixExplorerState.error || 'No se encontraron matrices para este grafo.';
     output.appendChild(createEmptyState(matrixExplorerState.error || 'No se encontraron matrices para este grafo.'));
     return;
   }
 
   status.textContent = `Mostrando matrices de ${matrixExplorerState.graphId}.`;
-  const activeKey = definitions.some(definition => definition.key === matrixExplorerState.activeKey && definition.data && !definition.data.error)
+  const activeKey = definitions.some(definition => definition.key === matrixExplorerState.activeKey)
     ? matrixExplorerState.activeKey
-    : definitions.find(definition => definition.data && !definition.data.error)?.key || 'incidence';
+    : definitions[0].key;
   matrixExplorerState.activeKey = activeKey;
 
   const panel = createTabbedPanel(
@@ -1405,10 +1734,7 @@ function renderMatrixExplorerContent() {
         matrixExplorerState.activeKey = key;
       },
       render: () => {
-        if (!definition.data || definition.data.error) {
-          return createEmptyState(definition.data?.error || 'No se pudo cargar la matriz.', 'matrix-error');
-        }
-        const matrixData = normalizeMatrixPayload(definition.data, definition.title, definition.rowTitle);
+        const matrixData = normalizeMatrixPayload(definition.matrix, definition.title, definition.rowTitle, definition.rows, definition.columns);
         if (!matrixData) {
           return createEmptyState('La matriz no tiene datos válidos.', 'matrix-error');
         }
@@ -1422,13 +1748,9 @@ function renderMatrixExplorerContent() {
   output.appendChild(panel);
 }
 
-function renderResultPayload(operation, payload, visualization) {
+function renderResultPayload(operation, payload, visualization, sourceGraph = null) {
   const container = document.getElementById('graphResult-container');
-  const renderableGraph = visualization && Array.isArray(visualization.vertices) && Array.isArray(visualization.edges)
-    ? visualization
-    : payload && Array.isArray(payload.vertices) && Array.isArray(payload.edges)
-      ? payload
-      : null;
+  const renderableGraph = buildRenderableGraph(payload, visualization, operation, sourceGraph);
 
   if (renderableGraph) {
     renderGraph(renderableGraph, 'graphResult-container');
@@ -1509,7 +1831,7 @@ function renderGraphInfo(operation, payload, graph) {
     summaryRow.appendChild(createInfoCard('Rango', payload.rank ?? 'N/A'));
     summaryRow.appendChild(createInfoCard('Nulidad', payload.nullity ?? 'N/A'));
     container.appendChild(summaryRow);
-    container.appendChild(createClassList('Aristas del MST', { ramas: payload.branches || [], cuerdas: payload.chords || [] }));
+    container.appendChild(createClassList('Aristas del árbol de expansiones mínimas', { ramas: payload.branches || [], cuerdas: payload.chords || [] }));
   } else if (operation === 'tree-distance') {
     summaryRow.appendChild(createInfoCard('Distancia', payload.distance ?? 'N/A'));
     summaryRow.appendChild(createInfoCard('Suma unión', payload.union_weight_sum ?? 'N/A'));
@@ -1565,7 +1887,9 @@ function renderGraphInfo(operation, payload, graph) {
       {
         key: 'paths',
         label: 'Caminos',
-        render: () => createJsonBlock('Caminos mínimos', payload.shortest_paths || {}),
+        render: () => createMatrixTableFromData(
+          buildShortestPathMatrix(payload.shortest_paths || payload.paths || {}, vertexLabels)
+        ),
       },
     ], 'distance', 'matrix-tab');
     container.appendChild(floydTabs);
@@ -1904,24 +2228,61 @@ function renderGraph(graph, containerId) {
   const edgeColorClasses = renderDerivedColors ? graph.derived?.edge_coloring?.edge_chromatic_classes || {} : {};
   const vertexColorLookup = buildColorLookup(vertexColorClasses);
   const edgeColorLookup = buildColorLookup(edgeColorClasses);
+  const highlightedVertices = new Set(asArray(graph.highlighted_vertices));
+  const highlightedEdges = new Set(asArray(graph.highlighted_edges));
+  const hasVertexHighlights = highlightedVertices.size > 0;
+  const hasEdgeHighlights = highlightedEdges.size > 0;
 
   const elements = [
-    ...graph.vertices.map(vertex => ({
-      data: { id: vertex.name, label: vertex.name },
-      style: vertexColorLookup[vertex.name]
-        ? { 'background-color': vertexColorLookup[vertex.name], 'text-outline-color': vertexColorLookup[vertex.name] }
-        : {},
-    })),
-    ...graph.edges.map(edge => ({
-      data: {
-        id: edge.name,
-        source: edge.source,
-        target: edge.target,
-        label: formatEdgeLabel(edge, showEdgeNames, showEdgeWeights),
-      },
-      classes: edge.directed ? 'directed' : 'undirected',
-      style: edgeColorLookup[edge.name] ? { 'line-color': edgeColorLookup[edge.name], 'target-arrow-color': edgeColorLookup[edge.name] } : {},
-    })),
+    ...graph.vertices.map(vertex => {
+      const isHighlighted = highlightedVertices.has(vertex.name);
+      const nodeColor = vertexColorLookup[vertex.name] || '#2563eb';
+      const style = {
+        'background-color': nodeColor,
+        'text-outline-color': nodeColor,
+      };
+
+      if (hasVertexHighlights && !isHighlighted) {
+        style.opacity = 0.25;
+        style['text-opacity'] = 0.45;
+      } else if (isHighlighted) {
+        style.opacity = 1;
+        style['border-width'] = 3;
+        style['border-color'] = nodeColor;
+      }
+
+      return {
+        data: { id: vertex.name, label: vertex.name },
+        style,
+      };
+    }),
+    ...graph.edges.map(edge => {
+      const isHighlighted = highlightedEdges.has(edge.name);
+      const edgeColor = edgeColorLookup[edge.name] || '#9ca3af';
+      const style = {
+        'line-color': edgeColor,
+        'target-arrow-color': edgeColor,
+      };
+
+      if (hasEdgeHighlights && !isHighlighted) {
+        style.opacity = 0.2;
+        style['text-opacity'] = 0.25;
+      } else if (isHighlighted) {
+        style.opacity = 1;
+        style.width = 4;
+      }
+
+      return {
+        data: {
+          id: edge.name,
+          source: edge.source,
+          target: edge.target,
+          label: formatEdgeLabel(edge, showEdgeNames, showEdgeWeights),
+        },
+        classes: `${edge.directed ? 'directed' : 'undirected'}${isHighlighted ? ' highlighted-edge' : ''}`.trim(),
+        style,
+      };
+    }),
   ];
 
   const options = {
@@ -1965,6 +2326,12 @@ function renderGraph(graph, containerId) {
         selector: '.undirected',
         style: {
           'target-arrow-shape': 'none',
+        },
+      },
+      {
+        selector: '.highlighted-edge',
+        style: {
+          'font-weight': 700,
         },
       },
     ],
